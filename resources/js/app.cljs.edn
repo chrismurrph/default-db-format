@@ -1,0 +1,3 @@
+{:require  [check-on-db.app]
+ :init-fns [check-on-db.app/init]
+ :compiler-options {:asset-path "js/app.out"}}
