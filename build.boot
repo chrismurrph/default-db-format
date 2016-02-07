@@ -6,7 +6,7 @@
                  [adzerk/boot-reload        "0.4.1"      :scope "test"]
                  [pandeiro/boot-http        "0.6.3"      :scope "test"]
                  [org.clojure/clojurescript "1.7.170"]
-                 [crisptrutski/boot-cljs-test "0.2.0-SNAPSHOT" :scope "test"]
+                 [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
                  [org.omcljs/om "1.0.0-alpha30"]]
 )
 
@@ -37,11 +37,12 @@
 
 (deftask development []
   (task-options! cljs {:optimizations :none :source-map true}
-                 reload {:on-jsload 'check-on-db.app/init})
+                 reload {:on-jsload 'default-db-format.app/init})
   identity)
 
 (deftask dev
-  "Simple alias to run application in development mode"
+  "Running/building a la Figwheel. Not perfect
+  b/c you have to refresh browser to notice a change"
   []
   (comp (development)
         (run)))
