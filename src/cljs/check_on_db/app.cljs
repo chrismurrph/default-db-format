@@ -2,6 +2,8 @@
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]))
 
+(enable-console-print!)
+
 (defn widget [data owner]
   (reify
     om/IRender
@@ -9,5 +11,6 @@
       (dom/h1 nil (:text data)))))
 
 (defn init []
-  (om/root widget {:text "Hello world!"}
+  (println "Where's browser console?")
+  (om/root widget {:text "On thinking. Not observing the change?"}
            {:target (. js/document (getElementById "container"))}))

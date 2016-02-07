@@ -5,9 +5,10 @@
                  [adzerk/boot-cljs-repl     "0.2.0"      :scope "test"]
                  [adzerk/boot-reload        "0.4.1"      :scope "test"]
                  [pandeiro/boot-http        "0.6.3"      :scope "test"]
-                 [org.clojure/clojurescript "1.7.122"]
+                 [org.clojure/clojurescript "1.7.170"]
                  [crisptrutski/boot-cljs-test "0.2.0-SNAPSHOT" :scope "test"]
-                 [org.omcljs/om "1.0.0-alpha30"])
+                 [org.omcljs/om "1.0.0-alpha30"]]
+)
 
 (require
  '[adzerk.boot-cljs      :refer [cljs]]
@@ -17,16 +18,17 @@
  '[crisptrutski.boot-cljs-test :refer [test-cljs]])
 
 (deftask build []
-  (comp (speak)
-        
+  (comp ;(speak)
+
         (cljs)
+        (target :dir #{"target"})
         ))
 
 (deftask run []
-  (comp (serve)
+  (comp (serve :dir "target")
         (watch)
-        (cljs-repl)
         (reload)
+        (cljs-repl)
         (build)))
 
 (deftask production []
