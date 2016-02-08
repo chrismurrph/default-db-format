@@ -8,18 +8,19 @@
 
 (enable-console-print!)
 
+;;
+;; Only exists for purpose of experimenting with boot
+;;
 (defn widget [data owner]
       (reify
         om/IRender
         (render [this]
                 (dom/h1 nil (:text data)))))
-
 (defn init []
       (println "Where's browser console?")
-      (om/root widget {:text "On thinking. Observing the change. What else?"}
+      (om/root widget {:text "On thinking.."}
                {:target (. js/document (getElementById "container"))}))
 
-(def hello "Hello")
 
 (def state {:graph/drop-info [:drop-info/by-id 10200],
             :graph/lines

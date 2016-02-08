@@ -12,5 +12,5 @@
 
 (defn init []
   (println "Where's browser console?")
-  (om/root widget {:text "On thinking. Observing the change. What else?"}
+  (om/root widget {:text "On thinking..."}
            {:target (. js/document (getElementById "container"))}))
