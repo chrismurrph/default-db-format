@@ -1,3 +1,0 @@
-{:require  [default-db-format.app]
- :init-fns [default-db-format.app/init]
- :compiler-options {:asset-path "js/app.out"}}

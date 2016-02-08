@@ -1,6 +1,7 @@
 (set-env!
  :source-paths    #{"src/cljs"}
  :resource-paths  #{"resources"}
+ :init-ns 'default-db-format.core
  :dependencies '[[adzerk/boot-cljs          "1.7.48-6"   :scope "test"]
                  [adzerk/boot-cljs-repl     "0.2.0"      :scope "test"]
                  [adzerk/boot-reload        "0.4.1"      :scope "test"]
@@ -10,12 +11,22 @@
                  [org.omcljs/om "1.0.0-alpha30"]]
 )
 
+;;
+;; From Clojure (not script) project
+;;(set-env! :resource-paths #{"src"} 
+;;          :dependencies '[[org.clojure/core.async "0.1.346.0-17112a-alpha"]])
+
+
 (require
  '[adzerk.boot-cljs      :refer [cljs]]
  '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]]
  '[adzerk.boot-reload    :refer [reload]]
  '[pandeiro.boot-http    :refer [serve]]
  '[crisptrutski.boot-cljs-test :refer [test-cljs]])
+
+(task-options!
+  pom {:project 'default-db-format
+       :version "0.1.0"})
 
 (deftask build []
   (comp ;(speak)
@@ -37,7 +48,7 @@
 
 (deftask development []
   (task-options! cljs {:optimizations :none :source-map true}
-                 reload {:on-jsload 'default-db-format.app/init})
+                 reload {:on-jsload 'default-db-format.core/init})
   identity)
 
 (deftask dev
