@@ -94,7 +94,7 @@
 (defn bad-inside-by-id-val? [okay-maps map-value]
   (for [[k v] map-value
         :let [problem? (bad-inside-by-leaf-id-val? okay-maps v)
-              msg-to-usr (when problem? {:little-key k :little-val v})]
+              msg-to-usr (when problem? [k v])]
         :when problem?]
     msg-to-usr))
 
@@ -102,15 +102,17 @@
   (let [bad-inside? (partial bad-inside-by-id-val? okays-maps)
         res2 (mapcat (fn [kv] (when-let [res1 (bad-inside? (val kv))]
                                res1
-                               )) v)
-        _ (println "RESULT:" res2)]
+                               )) v)]
     res2))
 
 (defn id->error [okays-maps k v]
   (if (not (map? v))
     [(str "Value of " k " has to be a map")]
-    (let [res {k (gather-bads-inside okays-maps v)}]
-      res)))
+    (let [gathered (gather-bads-inside okays-maps v)
+          not-empty (not (empty? gathered))
+          res {k (into {} gathered)}
+          _ (println "RESULT:" res ", not-empty " not-empty)]
+      (when not-empty res))))
 
 ;(defn test-err []
 ;  (id->error ["graph" "app"] :line/by-id (:line/by-id state)))
@@ -147,15 +149,14 @@
                    (if (empty? names)
                      {:failed-assumptions ["by-id normalized file required"]}
                      (if (empty? categories)
-                       {:failed-assumptions [
-                                             "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category"]}
+                       {:failed-assumptions ["Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category"]}
                        (let [non-id-tester (partial non-id->error categories)
                              id-tester (partial id->error okay-maps)]
-                            {:categories     categories
-                             :known-names    names
-                             :not-normalized (into #{} (concat
-                                                         (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
-                                                         (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))
+                         {:categories     categories
+                          :known-names    names
+                          :not-normalized (into #{} (concat
+                                                      (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
+                                                      (flatten (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id))))})))))))
       ([state]
         (check nil state)))
 
