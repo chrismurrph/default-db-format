@@ -1,7 +1,7 @@
 (ns cards.cards
   (:require
-    [om.next :as om :refer-macros [defui]]
     [default-db-format.core :as core]
+    [default-db-format.components :as components]
     [examples.examples :as examples]
     [om.dom :as dom]
     )
@@ -10,19 +10,8 @@
 
 (enable-console-print!)
 
-(defui DisplayDb
-       Object
-       (render [this]
-         (let [props (om/props this)
-               _ (println props)
-               {:keys [result]} props
-               _ (println result)
-               ]
-           (dom/pre nil (apply str result)))))
-(def display-db-component (om/factory DisplayDb {:keyfn :id}))
-
 (defcard card-1
-         "Saying Hi"
-         (fn [props _] (display-db-component @props))
+         "Where not normalized in gases db"
+         (fn [props _] (components/display-db-component @props))
          {:result ((core/check examples/gas-graph))}
          {:inspect-data false})

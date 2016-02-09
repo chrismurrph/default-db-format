@@ -111,7 +111,8 @@
     (let [gathered (gather-bads-inside okays-maps v)
           not-empty (not (empty? gathered))
           res {k (into {} gathered)}
-          _ (println "RESULT:" res ", not-empty " not-empty)]
+          ;_ (println "RESULT:" res ", not-empty " not-empty)
+          ]
       (when not-empty res))))
 
 ;(defn test-err []
@@ -132,6 +133,12 @@
             (let [k (key kv)]
               (by-id-kw? k)))
           state))
+
+(defn my-flatten [in]
+  (let [_ (println "Before: " in)
+        res (into {} in)
+        _ (println "After: " res)]
+    res))
 
 (defn check
       "Checks to see if normalization works as expected. Returns a hash-map you can pprint"
@@ -156,7 +163,7 @@
                           :known-names    names
                           :not-normalized (into #{} (concat
                                                       (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
-                                                      (flatten (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id))))})))))))
+                                                      (my-flatten (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id))))})))))))
       ([state]
         (check nil state)))
 
