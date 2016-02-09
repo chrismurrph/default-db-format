@@ -1,4 +1,4 @@
-(ns examples)
+(ns examples.examples)
 
 (def gas-graph {:graph/drop-info [:drop-info/by-id 10200],
                 :graph/lines

@@ -3,7 +3,7 @@
             [cljs.pprint :as pp :refer [pprint]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [examples :as examples]))
+            [examples.examples :as examples]))
 
 (enable-console-print!)
 
@@ -91,21 +91,26 @@
            (ident? v)
            (vec-of-vec? v))))
 
-(defn bad-inside-by-id-val? [okay-maps map-key map-value]
+(defn bad-inside-by-id-val? [okay-maps map-value]
   (for [[k v] map-value
         :let [problem? (bad-inside-by-leaf-id-val? okay-maps v)
-              msg-to-usr (when problem? (str "In " map-key ": " k ", " v))]
+              msg-to-usr (when problem? {:little-key k :little-val v})]
         :when problem?]
     msg-to-usr))
+
+(defn gather-bads-inside [okays-maps v]
+  (let [bad-inside? (partial bad-inside-by-id-val? okays-maps)
+        res2 (mapcat (fn [kv] (when-let [res1 (bad-inside? (val kv))]
+                               res1
+                               )) v)
+        _ (println "RESULT:" res2)]
+    res2))
 
 (defn id->error [okays-maps k v]
   (if (not (map? v))
     [(str "Value of " k " has to be a map")]
-    (let [bad-inside? (partial bad-inside-by-id-val? okays-maps)]
-      (mapcat (fn [kv] (when-let [res (bad-inside? k (val kv))]
-                         ;[(str "Not all values in " k " are either rudimentary or Idents")]
-                         res
-                         )) v))))
+    (let [res {k (gather-bads-inside okays-maps v)}]
+      res)))
 
 ;(defn test-err []
 ;  (id->error ["graph" "app"] :line/by-id (:line/by-id state)))

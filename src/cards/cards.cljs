@@ -2,6 +2,7 @@
   (:require
     [om.next :as om :refer-macros [defui]]
     [default-db-format.core :as core]
+    [examples.examples :as examples]
     [om.dom :as dom]
     )
   (:require-macros
@@ -23,5 +24,5 @@
 (defcard card-1
          "Saying Hi"
          (fn [props _] (display-db-component @props))
-         {:result ((core/check core/state))}
+         {:result ((core/check examples/gas-graph))}
          {:inspect-data false})
