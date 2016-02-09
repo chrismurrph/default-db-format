@@ -2,27 +2,33 @@
  :source-paths    #{"src/cljs"}
  :resource-paths  #{"resources"}
  :init-ns 'default-db-format.core
- :dependencies '[[adzerk/boot-cljs          "1.7.48-6"   :scope "test"]
-                 [adzerk/boot-cljs-repl     "0.2.0"      :scope "test"]
-                 [adzerk/boot-reload        "0.4.1"      :scope "test"]
-                 [pandeiro/boot-http        "0.6.3"      :scope "test"]
+ :dependencies '[[adzerk/boot-cljs          "1.7.48-6"]
+                 [adzerk/boot-cljs-repl     "0.2.0"]
+                 [adzerk/boot-reload        "0.4.1"]
+                 [pandeiro/boot-http        "0.6.3"]
                  [org.clojure/clojurescript "1.7.170"]
-                 [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
                  [org.omcljs/om "1.0.0-alpha30"]]
 )
 
+;;;
 ;;
-;; From Clojure (not script) project
-;;(set-env! :resource-paths #{"src"} 
-;;          :dependencies '[[org.clojure/core.async "0.1.346.0-17112a-alpha"]])
-
+;; DON'T USE. See lein (project.clj) instead.
+;;
+;;;
 
 (require
  '[adzerk.boot-cljs      :refer [cljs]]
  '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]]
  '[adzerk.boot-reload    :refer [reload]]
- '[pandeiro.boot-http    :refer [serve]]
- '[crisptrutski.boot-cljs-test :refer [test-cljs]])
+ '[pandeiro.boot-http    :refer [serve]])
+
+;; Doesn't work and too hard. Not that it is the source that needs to go into the library
+;; anyway. boot for this task will have to wait for an example. Going to lein for this!
+;;
+;;(deftask build-jar
+;;  "Build jar and install to local repo."
+;;  []
+;;  (comp (sift :add-source #{"src/cljs/default_db_format/core.cljs"}) (pom) (jar) (install)))
 
 (task-options!
   pom {:project 'default-db-format
@@ -57,23 +63,3 @@
   []
   (comp (development)
         (run)))
-
-
-(deftask testing []
-  (set-env! :source-paths #(conj % "test/cljs"))
-  identity)
-
-;;; This prevents a name collision WARNING between the test task and
-;;; clojure.core/test, a function that nobody really uses or cares
-;;; about.
-(ns-unmap 'boot.user 'test)
-
-(deftask test []
-  (comp (testing)
-        (test-cljs :js-env :phantom
-                   :exit?  true)))
-
-(deftask auto-test []
-  (comp (testing)
-        (watch)
-        (test-cljs :js-env :phantom)))
