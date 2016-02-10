@@ -2,23 +2,9 @@
   (:require [clojure.string :as s]
             [cljs.pprint :as pp :refer [pprint]]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [examples.examples :as examples]))
+            [om.dom :as dom :include-macros true]))
 
 (enable-console-print!)
-
-;;
-;; Only exists for purpose of experimenting with boot
-;;
-(defn widget [data owner]
-      (reify
-        om/IRender
-        (render [this]
-                (dom/h1 nil (:text data)))))
-(defn init []
-      (println "Where's browser console?")
-      (om/root widget {:text "On thinking.."}
-               {:target (. js/document (getElementById "container"))}))
 
 (defn by-id-kw?
   "Config should include {:ident-strings []} b/c user shouldn't have
@@ -73,8 +59,7 @@
           (if val-is-ident
             nil
             [(str "Expect to always have Idents, problem at: " k)])
-          (let [_ (println "vec of vect of size " (count v))
-                non-idents (remove #(ident? %) v)]
+          (let [non-idents (remove #(ident? %) v)]
             (when (pos? (count non-idents))
               [(str "The vector value should (but does not) contain only Idents, at: " k)])))))))
 
@@ -134,12 +119,6 @@
               (by-id-kw? k)))
           state))
 
-(defn my-flatten [in]
-  (let [_ (println "Before: " in)
-        res (into {} in)
-        _ (println "After: " res)]
-    res))
-
 (defn check
       "Checks to see if normalization works as expected. Returns a hash-map you can pprint"
       ([config state]
@@ -163,7 +142,7 @@
                           :known-names    names
                           :not-normalized (into #{} (concat
                                                       (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
-                                                      (my-flatten (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id))))})))))))
+                                                      (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id))))})))))))
       ([state]
         (check nil state)))
 
