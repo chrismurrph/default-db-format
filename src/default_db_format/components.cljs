@@ -60,16 +60,17 @@
        Object
        (render [this]
                (let [props (om/props this)
-                     {:keys [result]} props
-                     not-normalized (into {} (:not-normalized result))
-                     failed-assumptions (seq (:failed-assumptions result))
-                     not-normalized? (seq not-normalized)
-                     _ (println "not-normalized?:" not-normalized? ", failed-assumptions?:" failed-assumptions)
+                     {:keys [not-normalized failed-assumptions]} props
+                     ;not-normalized (into {} (:not-normalized result))
+                     ;failed-assumptions (seq (:failed-assumptions result))
+                     ;not-normalized? (seq not-normalized)
+                     ;not-normed (into {} not-normalized)
+                     _ (println "not-normalized:" not-normalized ", failed-assumptions?:" failed-assumptions)
                      ]
                  (if failed-assumptions
                    (dom/div nil (str "Failed assumption: \"" (apply str failed-assumptions) "\""))
                    (dom/div nil "Not normalized problems:"
-                            (for [by-id not-normalized
+                            (for [by-id (into {} not-normalized)
                                   :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
                               (bad-by-ids-component present-lower)))))))
 (def display-db-component (om/factory DisplayDb {:keyfn :id}))

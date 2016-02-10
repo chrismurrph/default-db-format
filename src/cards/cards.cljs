@@ -14,23 +14,23 @@
 (defcard card-1
          "Where not normalized in gases db"
          (fn [props _] (components/display-db-component @props))
-         {:result ((core/check gases/gas-denorm-state))}
+         ((core/check gases/gas-denorm-state))
          {:inspect-data false})
 
 (defcard card-2
          "Where not normalized in kanban db (expect to show nothing)"
          (fn [props _] (components/display-db-component @props))
-         {:result ((core/check kanban/kanban-denorm-state))}
+         ((core/check kanban/kanban-denorm-state))
          {:inspect-data false})
 
 (defcard card-3
-         "Where you don't give nil state to core/check"
+         "Where you give nil state to core/check"
          (fn [props _] (components/display-db-component @props))
-         {:result ((core/check nil))}
+         ((core/check nil))
          {:inspect-data false})
 
 (defcard card-4
          "Where you give empty state to core/check"
          (fn [props _] (components/display-db-component @props))
-         {:result ((core/check {}))}
+         ((core/check {}))
          {:inspect-data false})
