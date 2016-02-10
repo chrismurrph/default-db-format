@@ -1,20 +1,17 @@
 (ns examples.gases)
 
-(def gas-denorm-state
+(def gas-norm-state
   {:graph/drop-info [:drop-info/by-id 10200],
    :graph/lines
                     [[:line/by-id 100]
                      [:line/by-id 101]
                      [:line/by-id 102]
                      [:line/by-id 103]],
-   :system-gases
+   :system-gases ;; Note that it should be picked up that no slash here. Does not. So is assumption bug.
                     [{:id 200, :short-name "Methane"}
                      {:id 201, :short-name "Oxygen"}
                      {:id 202, :short-name "Carbon Monoxide"}
                      {:id 203, :short-name "Carbon Dioxide"}],
-   ;:app/tubes
-   ;                 [{:id 1000, :tube-num "Invercargill"}
-   ;                  {:id 1001, :tube-num "Dunedin"}],
    :graph/points
                     [[:graph-point/by-id 2000]
                      [:graph-point/by-id 2001]
@@ -93,3 +90,10 @@
                      2010 {:id 2010, :x 20, :y 33},
                      2011 {:id 2011, :x 21, :y 34}}})
 
+(def non-id-problem
+  {:app/tubes
+   [{:id 1000, :tube-num "Invercargill"}
+    {:id 1001, :tube-num "Dunedin"}]})
+
+(def include-non-id-problem
+  (merge gas-norm-state non-id-problem))

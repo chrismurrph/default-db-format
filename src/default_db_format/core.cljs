@@ -6,6 +6,10 @@
 
 (enable-console-print!)
 
+;;
+;; When I looked all projects used 'by-id'. Any others I find lets add in here
+;; , and we can forget 'configuration' until there's some need for it...
+;;
 (defn by-id-kw?
   "Config should include {:ident-strings []} b/c user shouldn't have
    to call them all by-id in the denorm state"
@@ -122,27 +126,25 @@
 (defn check
       "Checks to see if normalization works as expected. Returns a hash-map you can pprint"
       ([config state]
-        (fn []
-            (let [{:keys [okay-maps]} config
-                  by-id (by-id-entries state)
-                  ;_ (println "num id:" (count by-id-entries))
-                  names (into #{} (map (comp category-part str key) by-id))
-                  non-by-id (non-by-id-entries state)
-                  ;_ (println "non id:" non-by-id-entries)
-                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
-                 (if (not (map? state))
-                   {:failed-assumptions ["supposed-normalized-state param must be a map"]}
-                   (if (empty? names)
-                     {:failed-assumptions ["by-id normalized file required"]}
-                     (if (empty? categories)
-                       {:failed-assumptions ["Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category"]}
-                       (let [non-id-tester (partial non-id->error categories)
-                             id-tester (partial id->error okay-maps)]
-                         {:categories     categories
-                          :known-names    names
-                          :not-normalized (into #{} (concat
-                                                      (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
-                                                      (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id))))})))))))
+       (let [{:keys [okay-maps]} config
+             by-id (by-id-entries state)
+             ;_ (println "num id:" (count by-id-entries))
+             names (into #{} (map (comp category-part str key) by-id))
+             non-by-id (non-by-id-entries state)
+             ;_ (println "non id:" non-by-id-entries)
+             categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
+         (if (not (map? state))
+           {:failed-assumptions ["supposed-normalized-state param must be a map"]}
+           (if (empty? names)
+             {:failed-assumptions ["by-id normalized file required"]}
+             (if (empty? categories)
+               {:failed-assumptions ["Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category"]}
+               (let [non-id-tester (partial non-id->error categories)
+                     id-tester (partial id->error okay-maps)]
+                 {:categories             categories
+                  :known-names            names
+                  :not-normalized-not-ids (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
+                  :not-normalized-ids     (into #{} (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))}))))))
       ([state]
         (check nil state)))
 

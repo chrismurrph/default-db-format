@@ -17,8 +17,7 @@
             (dom/pre nil (str (second bad)))))
 (defn format-bad-3 [bad]
   (let [[k v] bad]
-    (dom/span nil
-              (dom/pre nil (str k " " v)))))
+    (dom/pre nil (str k " " v))))
 (defn format-bad-4 [bad]
   (let [[k v] bad]
     (dom/table nil
@@ -36,6 +35,28 @@
     (let [{:keys [id bad]} (om/props this)]
       (dom/li nil (format-bad-3 bad)))))
 (def one-bad-component (om/factory OneBad {:keyfn :id}))
+
+(defui TextItem
+  static om/Ident
+  (ident [this props]
+    [:item/by-id (:id props)])
+  Object
+  (render [this]
+    (let [{:keys [id text]} (om/props this)]
+      (dom/li nil text))))
+(def item-component (om/factory TextItem {:keyfn :id}))
+
+(defui TextList
+  static om/Ident
+  (ident [this props]
+    [:list/by-id (:id props)])
+  Object
+  (render [this]
+    (let [{:keys [id items]} (om/props this)]
+      (dom/ul nil
+              (for [item items]
+                (item-component {:id item :text item}))))))
+(def list-component (om/factory TextList {:keyfn :id}))
 
 (defui Label
   Object
@@ -60,17 +81,21 @@
        Object
        (render [this]
                (let [props (om/props this)
-                     {:keys [not-normalized failed-assumptions]} props
-                     ;not-normalized (into {} (:not-normalized result))
-                     ;failed-assumptions (seq (:failed-assumptions result))
-                     ;not-normalized? (seq not-normalized)
-                     ;not-normed (into {} not-normalized)
-                     _ (println "not-normalized:" not-normalized ", failed-assumptions?:" failed-assumptions)
+                     {:keys [not-normalized-ids not-normalized-not-ids failed-assumptions]} props
+                     _ (println "not-normalized-not-ids:" not-normalized-not-ids
+                                ", not-normalized-ids:" not-normalized-ids
+                                ", failed-assumptions?:" failed-assumptions)
                      ]
                  (if failed-assumptions
                    (dom/div nil (str "Failed assumption: \"" (apply str failed-assumptions) "\""))
-                   (dom/div nil "Not normalized problems:"
-                            (for [by-id (into {} not-normalized)
-                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
-                              (bad-by-ids-component present-lower)))))))
+                   (dom/div nil
+                     (when (seq not-normalized-not-ids)
+                       (dom/div nil "Normalization problems:"
+                                (list-component {:id "Normalization problems" :items not-normalized-not-ids}))
+                       )
+                     (when (seq not-normalized-ids)
+                       (dom/div nil "Not normalized id problems:"
+                                (for [by-id (into {} not-normalized-ids)
+                                      :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
+                                  (bad-by-ids-component present-lower)))))))))
 (def display-db-component (om/factory DisplayDb {:keyfn :id}))
