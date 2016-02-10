@@ -37,14 +37,20 @@
       (dom/li nil (format-bad-3 bad)))))
 (def one-bad-component (om/factory OneBad {:keyfn :id}))
 
+(defui Label
+  Object
+  (render [this]
+    (let [{:keys [id text]} (om/props this)]
+      (dom/label nil text))))
+(def label-component (om/factory Label {:keyfn :id}))
+
 (defui BadByIds
   static om/Ident
   (ident [this props]
     [:bads/by-id (:id props)])
   Object
   (render [this]
-    (let [{:keys [id bads-map]} (om/props this)
-          _ (println "Id ignoring: " id)]
+    (let [{:keys [id bads-map]} (om/props this)]
       (dom/ul nil (str id)
               (for [bad bads-map]
                 (one-bad-component {:id (first bad) :bad bad}))))))
@@ -56,10 +62,14 @@
                (let [props (om/props this)
                      {:keys [result]} props
                      not-normalized (into {} (:not-normalized result))
-                     failed-assumptions (:failed-assumptions result)
-                     _ (println "not-normalized:" (count not-normalized) ", failed-assumptions:" (count failed-assumptions))
+                     failed-assumptions (seq (:failed-assumptions result))
+                     not-normalized? (seq not-normalized)
+                     _ (println "not-normalized?:" not-normalized? ", failed-assumptions?:" failed-assumptions)
                      ]
-                 (dom/div nil (for [by-id not-normalized
-                                    :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
-                                (bad-by-ids-component present-lower))))))
+                 (if failed-assumptions
+                   (dom/div nil (str "Failed assumption: \"" (apply str failed-assumptions) "\""))
+                   (dom/div nil "Not normalized problems:"
+                            (for [by-id not-normalized
+                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
+                              (bad-by-ids-component present-lower)))))))
 (def display-db-component (om/factory DisplayDb {:keyfn :id}))
