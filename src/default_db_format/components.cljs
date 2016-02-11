@@ -77,25 +77,34 @@
                 (one-bad-component {:id (first bad) :bad bad}))))))
 (def bad-by-ids-component (om/factory BadByIds {:keyfn :id}))
 
+(defn okay? [check-result]
+  (let [{:keys [failed-assumption not-normalized-not-ids not-normalized-ids]} check-result]
+    (or failed-assumption (seq not-normalized-not-ids) (seq not-normalized-ids))))
+
 (defui DisplayDb
        Object
        (render [this]
                (let [props (om/props this)
-                     {:keys [not-normalized-ids not-normalized-not-ids failed-assumptions]} props
-                     _ (println "not-normalized-not-ids:" not-normalized-not-ids
-                                ", not-normalized-ids:" not-normalized-ids
-                                ", failed-assumptions?:" failed-assumptions)
+                     {:keys [not-normalized-ids not-normalized-not-ids failed-assumption version]} props
+                     _ (assert version)
+                     ;_ (println "not-normalized-not-ids:" not-normalized-not-ids
+                     ;           ", not-normalized-ids:" not-normalized-ids
+                     ;           ", failed-assumptions:" failed-assumption)
+                     report-problem (okay? props)
                      ]
-                 (if failed-assumptions
-                   (dom/div nil (str "Failed assumption: \"" (apply str failed-assumptions) "\""))
-                   (dom/div nil
-                     (when (seq not-normalized-not-ids)
-                       (dom/div nil "Normalization problems:"
-                                (list-component {:id "Normalization problems" :items not-normalized-not-ids}))
-                       )
-                     (when (seq not-normalized-ids)
-                       (dom/div nil "Not normalized id problems:"
-                                (for [by-id (into {} not-normalized-ids)
-                                      :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
-                                  (bad-by-ids-component present-lower)))))))))
+                 (when report-problem
+                   (dom/div nil (dom/h3 nil (str "default-db-format"))
+                                (dom/h4 nil (str "ver:" version))
+                            (if failed-assumption
+                              (dom/div nil (str "Failed assumption: \"" failed-assumption "\""))
+                              (dom/div nil
+                                       (when (seq not-normalized-not-ids)
+                                         (dom/div nil "Normalization problems:"
+                                                  (list-component {:id "Normalization problems" :items not-normalized-not-ids}))
+                                         )
+                                       (when (seq not-normalized-ids)
+                                         (dom/div nil "Not normalized id problems:"
+                                                  (for [by-id (into {} not-normalized-ids)
+                                                        :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
+                                                    (bad-by-ids-component present-lower)))))))))))
 (def display-db-component (om/factory DisplayDb {:keyfn :id}))

@@ -1,7 +1,6 @@
 (ns cards.cards
   (:require
-    [default-db-format.core :as core]
-    [default-db-format.components :as components]
+    [default-db-format.core :refer [display check]]
     [examples.gases :as gases]
     [examples.kanban :as kanban]
     [om.dom :as dom]
@@ -11,38 +10,64 @@
 
 (enable-console-print!)
 
-(defcard card-1
+(def irrelevant-keys #{:graph/labels-visible?
+                       :graph/hover-pos
+                       :graph/args
+                       :graph/translators
+                       :graph/init
+                       :graph/last-mouse-moment})
+
+(defcard card-22
+         "Real project, fixed component idents and saying that colour maps are okay"
+         (fn [props _] (display @props))
+         (check {:excluded-keys irrelevant-keys
+                      :okay-value-maps #{[:r :g :b]}} gases/real-project-fixed-component-idents)
+         {:inspect-data false})
+
+(defcard card-23
+         "Real project, fixed component idents"
+         (fn [props _] (display @props))
+         (check {:excluded-keys irrelevant-keys} gases/real-project-fixed-component-idents)
+         {:inspect-data false})
+
+(defcard card-24
+         "Real project, lots of problems"
+         (fn [props _] (display @props))
+         (check {:excluded-keys irrelevant-keys} gases/from-real-project)
+         {:inspect-data false})
+
+(defcard card-25
          "Should show where not normalized in gases db (3 problems)"
-         (fn [props _] (components/display-db-component @props))
-         (core/check gases/gas-norm-state)
+         (fn [props _] (display @props))
+         (check gases/gas-norm-state)
          {:inspect-data false})
 
-(defcard card-2
+(defcard card-26
          "Now with even more problems"
-         (fn [props _] (components/display-db-component @props))
-         (core/check gases/include-non-id-problem)
+         (fn [props _] (display @props))
+         (check gases/include-non-id-problem)
          {:inspect-data false})
 
-(defcard card-3
+(defcard card-27
          "Kanban db (expect to show problem because no use of / in names)"
-         (fn [props _] (components/display-db-component @props))
-         (core/check kanban/kanban-norm-state)
+         (fn [props _] (display @props))
+         (check kanban/kanban-norm-state)
          {:inspect-data false})
 
-(defcard card-4
+(defcard card-28
          "Kanban db (now fixed so there is use of / in names)"
-         (fn [props _] (components/display-db-component @props))
-         (core/check kanban/kanban-corrected-norm-state)
+         (fn [props _] (display @props))
+         (check kanban/kanban-corrected-norm-state)
          {:inspect-data false})
 
-(defcard card-5
+(defcard card-29
          "Where you give nil state to core/check"
-         (fn [props _] (components/display-db-component @props))
-         (core/check nil)
+         (fn [props _] (display @props))
+         (check nil)
          {:inspect-data false})
 
-(defcard card-6
+(defcard card-30
          "Where you give empty state to core/check"
-         (fn [props _] (components/display-db-component @props))
-         (core/check {})
+         (fn [props _] (display @props))
+         (check {})
          {:inspect-data false})
