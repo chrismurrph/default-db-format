@@ -193,7 +193,7 @@
       ([config state]
        (let [are-not-slashed (not-slashed-keys state)]
          (if (seq are-not-slashed)
-           (ret {:failed-assumption "All top level keys must be namespaced (have a slash), see: "})
+           (ret {:failed-assumption (str "All top level keys must be namespaced (have a slash), see: " (apply str (interpose ", " are-not-slashed)))})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
                  _ (swap! temp-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
                  by-id (by-id-entries state)

@@ -7,7 +7,7 @@
                      [:line/by-id 101]
                      [:line/by-id 102]
                      [:line/by-id 103]],
-   :system-gases
+   :app/system-gases
                     [{:id 200, :short-name "Methane"}
                      {:id 201, :short-name "Oxygen"}
                      {:id 202, :short-name "Carbon Monoxide"}

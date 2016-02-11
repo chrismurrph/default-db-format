@@ -2,7 +2,8 @@
   (:require [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]))
 
-(def tab #js {:style #js {:marginLeft 20}})
+(def hard-left #js {:style #js {:margin 15 :padding 0}})
+(def pad-in #js {:style #js {:margin 20 :padding 0}})
 
 ;;
 ;; Yes I'm not good at formatting web pages. No 'proper/external' css as this is just a
@@ -33,7 +34,7 @@
   Object
   (render [this]
     (let [{:keys [id bad]} (om/props this)]
-      (dom/li nil (format-bad-3 bad)))))
+      (dom/li pad-in (format-bad-3 bad)))))
 (def one-bad-component (om/factory OneBad {:keyfn :id}))
 
 (defui TextItem
@@ -72,7 +73,7 @@
   Object
   (render [this]
     (let [{:keys [id bads-map]} (om/props this)]
-      (dom/ul nil (str id)
+      (dom/ul hard-left (str id)
               (for [bad bads-map]
                 (one-bad-component {:id (first bad) :bad bad}))))))
 (def bad-by-ids-component (om/factory BadByIds {:keyfn :id}))
@@ -80,6 +81,10 @@
 (defn okay? [check-result]
   (let [{:keys [failed-assumption not-normalized-not-ids not-normalized-ids]} check-result]
     (not (or failed-assumption (seq not-normalized-not-ids) (seq not-normalized-ids)))))
+
+(def allow-follow-on #js {:style #js {:whiteSpace "pre"}})
+(def follow-on #js {:style #js {:display "inline-block"}})
+(def coloured-follow-on #js {:style #js {:display "inline-block" :color "#0000FF"}})
 
 (defui DisplayDb
        Object
@@ -93,8 +98,9 @@
                      report-problem (not (okay? props))
                      ]
                  (when report-problem
-                   (dom/div nil (dom/h3 nil (str "default-db-format"))
-                                (dom/h4 nil (str "ver:" version))
+                   (dom/div nil (dom/span allow-follow-on
+                                          (dom/h3 coloured-follow-on (str "default-db-format"))
+                                          (dom/h4 follow-on (str "  (ver: " version ")")))
                             (if failed-assumption
                               (dom/div nil (str "Failed assumption: \"" failed-assumption "\""))
                               (dom/div nil
