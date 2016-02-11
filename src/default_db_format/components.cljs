@@ -79,7 +79,7 @@
 
 (defn okay? [check-result]
   (let [{:keys [failed-assumption not-normalized-not-ids not-normalized-ids]} check-result]
-    (or failed-assumption (seq not-normalized-not-ids) (seq not-normalized-ids))))
+    (not (or failed-assumption (seq not-normalized-not-ids) (seq not-normalized-ids)))))
 
 (defui DisplayDb
        Object
@@ -90,7 +90,7 @@
                      ;_ (println "not-normalized-not-ids:" not-normalized-not-ids
                      ;           ", not-normalized-ids:" not-normalized-ids
                      ;           ", failed-assumptions:" failed-assumption)
-                     report-problem (okay? props)
+                     report-problem (not (okay? props))
                      ]
                  (when report-problem
                    (dom/div nil (dom/h3 nil (str "default-db-format"))
