@@ -20,8 +20,8 @@
 (defcard card-22
          "#####Real project, fixed component idents and saying that colour maps are okay"
          (fn [props _] (display @props))
-         (check {:excluded-keys irrelevant-keys
-                      :okay-value-maps #{[:r :g :b]}} gases/real-project-fixed-component-idents)
+         (check {:excluded-keys   irrelevant-keys
+                 :okay-value-maps #{[:r :g :b]}} gases/real-project-fixed-component-idents)
          {:inspect-data false})
 
 (defcard card-23

@@ -71,18 +71,18 @@
   "Given non id top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
   [knowns k v]
-  (let [k-err (if (not (known-category k knowns)) (str "Unknown category: " (category-part (str k))))]
+  (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
     (if k-err
-      [k-err]
+      k-err
       (let [val-is-ident (ident? v)
             val-is-vector-of-vectors (vec-of-idents? v)]
         (if (not val-is-vector-of-vectors)
           (if val-is-ident
             nil
-            [(str "Expect Idents, problem with: " k)])
+            [{:text "Expect Idents" :problem k}])
           (let [non-idents (remove #(ident? %) v)]
             (when (pos? (count non-idents))
-              [(str "The vector value should (but does not) contain only Idents, at: " k)])))))))
+              [{:text "The vector value should (but does not) contain only Idents" :problem k}])))))))
 
 (defn map-of-partic-format?
   "Returns true if the shape of the test-map is as given by vec-format e.g. [:r :g :b] {:r 0 :g 0 :b}"
@@ -212,7 +212,7 @@
                  ;_ (println "num id:" (count by-id-entries))
                  names (into #{} (map (comp category-part str key) by-id))
                  non-by-id (non-by-id-entries state excluded-keys)
-                 ;_ (println "non id:" non-by-id-entries)
+                 ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (not (map? state))
                (ret {:failed-assumption (incorrect "state param must be a map")})
