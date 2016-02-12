@@ -21,14 +21,14 @@
 ;; from the top. Will get rid of later with high level functions created in main.
 ;; This just shows us the candidates for that refactor.
 ;;
-(def temp-config (atom {:by-id-kw nil}))
+(def local-atom-config (atom {:by-id-kw nil}))
 
 ;;
 ;; When I looked all projects used 'by-id'.
 ;;
 (defn by-id-kw?
   [kw]
-  (let [by-id-kw-str (:by-id-kw @temp-config)
+  (let [by-id-kw-str (:by-id-kw @local-atom-config)
         _ (assert by-id-kw-str)]
     (and (keyword? kw)
          (= (name kw) by-id-kw-str)))) ;; name returns part after "/"
@@ -177,7 +177,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  5)
+  6)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -207,7 +207,7 @@
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
-                 _ (swap! temp-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
+                 _ (swap! local-atom-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
                  by-id (by-id-entries state)
                  ;_ (println "num id:" (count by-id-entries))
                  names (into #{} (map (comp category-part str key) by-id))
