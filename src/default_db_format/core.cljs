@@ -182,6 +182,18 @@
 (defn- ret [m]
   (merge m {:version version}))
 
+;;
+;; Later in html do equiv of this:
+;; (apply str (interpose ", " are-not-slashed))
+;; Also after comment might want to append: ", see: "
+;;
+(defn- incorrect
+  ([text problems]
+   (if (nil? problems)
+     {:text text}
+     {:text text :problems problems}))
+  ([text] (incorrect text nil)))
+
 (defn check
       "Checks to see if normalization works as expected. Returns a hash-map you can pprint
       config param keys:
@@ -193,7 +205,7 @@
       ([config state]
        (let [are-not-slashed (not-slashed-keys state)]
          (if (seq are-not-slashed)
-           (ret {:failed-assumption (str "All top level keys must be namespaced (have a slash), see: " (apply str (interpose ", " are-not-slashed)))})
+           (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
                  _ (swap! temp-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
                  by-id (by-id-entries state)
@@ -203,11 +215,11 @@
                  ;_ (println "non id:" non-by-id-entries)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (not (map? state))
-               (ret {:failed-assumption "state param must be a map"})
+               (ret {:failed-assumption (incorrect "state param must be a map")})
                (if (empty? names)
-                 (ret {:failed-assumption "by-id normalized file required"})
+                 (ret {:failed-assumption (incorrect "by-id normalized file required")})
                  (if (empty? categories)
-                   (ret {:failed-assumption "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category"})
+                   (ret {:failed-assumption (incorrect "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category")})
                    (let [non-id-tester (partial non-id->error categories)
                          id-tester (partial id->error okay-value-maps)]
                      (ret {:categories             categories

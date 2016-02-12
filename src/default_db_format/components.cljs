@@ -85,6 +85,21 @@
 (def allow-follow-on #js {:style #js {:whiteSpace "pre"}})
 (def follow-on #js {:style #js {:display "inline-block"}})
 (def coloured-follow-on #js {:style #js {:display "inline-block" :color "#0000FF"}})
+(def reddish-follow-on #js {:style #js {:display "inline-block" :color "#E11F1F"}})
+
+;;
+;; Later in html do equiv of this:
+;; (apply str (interpose ", " are-not-slashed))
+;; Also after comment might want to append: ", see: "
+;;
+(defn poor-assump-div [failed-assumption]
+  (let [{:keys [text problems]} failed-assumption
+        boiler-text (str "Failed assumption: \"" text "\"")]
+    (if (nil? problems)
+      (dom/div nil boiler-text)
+      (dom/div allow-follow-on
+               (dom/span follow-on (str boiler-text ", see: "))
+               (dom/span reddish-follow-on (apply str (interpose ", " problems)))))))
 
 (defui DisplayDb
        Object
@@ -92,9 +107,6 @@
                (let [props (om/props this)
                      {:keys [not-normalized-ids not-normalized-not-ids failed-assumption version]} props
                      _ (assert version)
-                     ;_ (println "not-normalized-not-ids:" not-normalized-not-ids
-                     ;           ", not-normalized-ids:" not-normalized-ids
-                     ;           ", failed-assumptions:" failed-assumption)
                      report-problem (not (okay? props))
                      ]
                  (when report-problem
@@ -102,7 +114,7 @@
                                           (dom/h3 coloured-follow-on (str "default-db-format"))
                                           (dom/h4 follow-on (str "  (ver: " version ")")))
                             (if failed-assumption
-                              (dom/div nil (str "Failed assumption: \"" failed-assumption "\""))
+                              (poor-assump-div failed-assumption)
                               (dom/div nil
                                        (when (seq not-normalized-not-ids)
                                          (dom/div nil "Normalization problems:"
