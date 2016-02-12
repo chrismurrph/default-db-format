@@ -21,22 +21,21 @@
 ;; from the top. Will get rid of later with high level functions created in main.
 ;; This just shows us the candidates for that refactor.
 ;;
-(def local-atom-config (atom {:by-id-kw nil}))
+;;(def local-atom-config (atom {:by-id-kw nil}))
 
 ;;
 ;; When I looked all projects used 'by-id'.
 ;;
-(defn by-id-kw?
-  [kw]
-  (let [by-id-kw-str (:by-id-kw @local-atom-config)
-        _ (assert by-id-kw-str)]
+(defn by-id-kw-ho-fn
+  [config-kw-str]
+  (fn [kw]
     (and (keyword? kw)
-         (= (name kw) by-id-kw-str)))) ;; name returns part after "/"
+         (= (name kw) config-kw-str)))) ;; name returns part after "/"
 
 ;;
 ;; [:graph-point/by-id 2003]
 ;;
-(defn ident? [tuple]
+(defn ident? [by-id-kw? tuple]
   (and (vector? tuple)
        (= 2 (count tuple))
        (by-id-kw? (first tuple))
@@ -64,23 +63,23 @@
         ]
     (first (filter #(= % before-slash) knowns))))
 
-(defn vec-of-idents? [v]
-  (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove ident? v))))
+(defn vec-of-idents? [by-id-kw? v]
+  (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident? by-id-kw?) v))))
 
 (defn non-id->error
   "Given non id top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
-  [knowns k v]
+  [by-id-kw? knowns k v]
   (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
     (if k-err
       k-err
-      (let [val-is-ident (ident? v)
-            val-is-vector-of-vectors (vec-of-idents? v)]
+      (let [val-is-ident (ident? by-id-kw? v)
+            val-is-vector-of-vectors (vec-of-idents? by-id-kw? v)]
         (if (not val-is-vector-of-vectors)
           (if val-is-ident
             nil
             [{:text "Expect Idents" :problem k}])
-          (let [non-idents (remove #(ident? %) v)]
+          (let [non-idents (remove #(ident? by-id-kw? %) v)]
             (when (pos? (count non-idents))
               [{:text "The vector value should (but does not) contain only Idents" :problem k}])))))))
 
@@ -100,23 +99,23 @@
 
 (defn- bad-inside-by-leaf-id-val?
   "The (normalized) graph's values should only be true leaf data types or idents"
-  [okay-value-maps v]
+  [by-id-kw? okay-value-maps v]
   (not (or (number? v)
            (string? v)
-           (ident? v)
+           (ident? by-id-kw? v)
            (boolean? v)
-           (vec-of-idents? v)
+           (vec-of-idents? by-id-kw? v)
            (known-map? okay-value-maps v))))
 
-(defn- bad-inside-by-id-val? [okay-value-maps map-value]
+(defn- bad-inside-by-id-val? [by-id-kw? okay-value-maps map-value]
   (for [[k v] map-value
-        :let [problem? (bad-inside-by-leaf-id-val? okay-value-maps v)
+        :let [problem? (bad-inside-by-leaf-id-val? by-id-kw? okay-value-maps v)
               msg-to-usr (when problem? [k v])]
         :when problem?]
     msg-to-usr))
 
-(defn- gather-bads-inside [okays-maps v]
-  (let [bad-inside? (partial bad-inside-by-id-val? okays-maps)
+(defn- gather-bads-inside [by-id-kw-fn? okays-maps v]
+  (let [bad-inside? (partial bad-inside-by-id-val? by-id-kw-fn? okays-maps)
         res2 (mapcat (fn [kv] (when-let [res1 (bad-inside? (val kv))]
                                res1
                                )) v)]
@@ -125,10 +124,10 @@
 (defn id->error
   "Given id top level keys, find out those not in correct format and return them
   Returns nil if there is no error. Specific hash-map data structure is returned"
-  [okays-maps k v]
+  [by-id-kw-fn? okays-maps k v]
   (if (not (map? v))
     [(str "Value of " k " has to be a map")]
-    (let [gathered (gather-bads-inside okays-maps v)
+    (let [gathered (gather-bads-inside by-id-kw-fn? okays-maps v)
           not-empty (not (empty? gathered))
           res {k (into {} gathered)}
           ;_ (println "RESULT:" res ", not-empty " not-empty)
@@ -141,7 +140,7 @@
 (defn non-by-id-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
   the part after the / is not 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  [state excluded-keys]
+  [by-id-kw? state excluded-keys]
   (filter (fn [kv]
             (let [k (key kv)]
               (and (not (contains? excluded-keys k))
@@ -152,7 +151,7 @@
 (defn by-id-entries
   "There are only two types of top level keys in 'default db format'. This function returns the 'by id' ones,
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  [state]
+  [by-id-kw? state]
   (filter (fn [kv]
             (let [k (key kv)]
               (by-id-kw? k)))
@@ -207,11 +206,12 @@
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
-                 _ (swap! local-atom-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
-                 by-id (by-id-entries state)
+                 by-id-kw-fn? (by-id-kw-ho-fn (if by-id-kw by-id-kw (:by-id-kw default-config)))
+                 ;_ (swap! local-atom-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
+                 by-id (by-id-entries by-id-kw-fn? state)
                  ;_ (println "num id:" (count by-id-entries))
                  names (into #{} (map (comp category-part str key) by-id))
-                 non-by-id (non-by-id-entries state excluded-keys)
+                 non-by-id (non-by-id-entries by-id-kw-fn? state excluded-keys)
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (not (map? state))
@@ -220,8 +220,8 @@
                  (ret {:failed-assumption (incorrect "by-id normalized file required")})
                  (if (empty? categories)
                    (ret {:failed-assumption (incorrect "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category")})
-                   (let [non-id-tester (partial non-id->error categories)
-                         id-tester (partial id->error okay-value-maps)]
+                   (let [non-id-tester (partial non-id->error by-id-kw-fn? categories)
+                         id-tester (partial id->error by-id-kw-fn? okay-value-maps)]
                      (ret {:categories             categories
                            :known-names            names
                            :not-normalized-not-ids (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
