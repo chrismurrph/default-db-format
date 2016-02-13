@@ -6,8 +6,8 @@ Checks that your Om Next client state is in **default db format**
 ###### [default-db-format 0.0.1] @clojars.org
 
 One way of working with Om Next is to have initial state that is not normalized,
-and let Om Next do the normalization for you. This library checks that the
-normalization - into what is called 'default db format' - did in fact succeed.
+and let Om Next do the normalization for you. This program checks that the
+normalization - into 'default db format' - succeeded.
 Any issues and a heads-up display (HUD) will pop up.
 
 You need to put some code into your root component's render method:
@@ -42,8 +42,8 @@ You need to put some code into your root component's render method:
 ````
 
 `check` also has a one parameter varity that can be called without any configuration.
-This is a good way to start out as the heads up display will let you know where its
-assumptions have not been met. The most onerous of these being that all
+This is a good way to start out as the HUD will let you know where its
+assumptions have not been met. The most onerous assumption being that all
 top level keys be **namespaced** i.e. have a 'slash' in them.
 
 The call to `check-default-db` should be in your root component's render method:
@@ -60,7 +60,7 @@ The intended workflow is that output from the HUD will cause you to either modif
 denormalized state or alter the configuration hashmap (`check-config` in the example above) that is 
 given to `check`.
   
-If you think there is a false positive/negative(*) please see the next section - ***Hacking***  
+If you think there is a false positive/negative(*) please see the last section - ***Hacking***  
   
 ##### Inputs
 
@@ -75,6 +75,15 @@ vector it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` w
 For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first place in an **Ident**.     
   
 ##### Outputs  
+
+The output from `check` is a map that is understood by the components that make up the HUD.
+
+`:failed-assumption` will be output when default-db-format's input validation criteria are not met.
+
+Take a look at any normalized state graph and you will see two types of top level keys. Each type of key has a
+different data shape beneath it. The two types of errors reflect not finding **Idents** in these two different shapes.
+That is how we get `:not-normalized-not-ids` and `:not-normalized-ids`. The descriptions used by the 
+components will reflect these two types of errors.  
   
 ##### Hacking
   
