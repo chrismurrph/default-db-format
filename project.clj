@@ -8,11 +8,10 @@
                  [org.omcljs/om "1.0.0-alpha30"]
                  [cljsjs/react "0.14.3-0"]
                  [cljsjs/react-dom "0.14.3-1"]
-                 [devcards "0.2.1-4"]
-                 ]
+                 [devcards "0.2.1-4"]]
 
   :scm {:name "git"
-        :url "https://github.com/chrismurrph/default-db-format"})
+        :url "https://github.com/chrismurrph/default-db-format"}
 
   :plugins [[lein-cljsbuild "1.1.2"]
             [lein-figwheel "0.5.0-1"]]
