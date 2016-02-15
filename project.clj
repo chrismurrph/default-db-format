@@ -1,5 +1,8 @@
-(defproject default-db-format "0.1.0-SNAPSHOT"
-  :description "Test to see if normalized data is in 'default db format'"
+(defproject org.clojars.cjmurphy/default-db-format "0.1.0"
+  :description "Visual feedback if normalized data is not in 'default db format'."
+  :url "https://github.com/chrismurrph/default-db-format"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}  
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.170"]
                  [org.omcljs/om "1.0.0-alpha30"]
@@ -7,6 +10,9 @@
                  [cljsjs/react-dom "0.14.3-1"]
                  [devcards "0.2.1-4"]
                  ]
+
+  :scm {:name "git"
+        :url "https://github.com/chrismurrph/default-db-format"})
 
   :plugins [[lein-cljsbuild "1.1.2"]
             [lein-figwheel "0.5.0-1"]]
@@ -23,7 +29,4 @@
                                     :asset-path "js/devcards_out"
                                     :output-to  "resources/public/js/devcards.js"
                                     :output-dir "resources/public/js/devcards_out"
-                                    :source-map-timestamp true }}]}
-
-  ;; Remove when all working fine
-  :figwheel { :css-dirs ["resources/public/css"] })
+                                    :source-map-timestamp true }}]})

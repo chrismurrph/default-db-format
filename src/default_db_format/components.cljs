@@ -95,9 +95,8 @@
                (let [props (om/props this)
                      {:keys [not-normalized-ids not-normalized-not-ids failed-assumption version]} props
                      _ (assert version)
-                     report-problem (not (okay? props))
-                     ]
-                 (when report-problem
+                     report-problem? (not (okay? props))]
+                 (when report-problem?
                    (dom/div nil (dom/span allow-follow-on
                                           (dom/h3 coloured-follow-on (str "default-db-format"))
                                           (dom/h4 follow-on (str "  (ver: " version ")")))

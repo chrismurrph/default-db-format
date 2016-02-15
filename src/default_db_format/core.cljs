@@ -1,8 +1,8 @@
 (ns default-db-format.core
   (:require [clojure.string :as s]
-            [cljs.pprint :as pp :refer [pprint]]
-            [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
+            [cljs.pprint :refer [pprint]]
+            [om.core :include-macros true]
+            [om.dom :include-macros true]
             [default-db-format.components :refer [display-db-component okay?]]))
 
 (enable-console-print!)
@@ -10,7 +10,7 @@
 (defn ok? [check-result]
   (okay? check-result))
 
-(defn display [check-result]
+(defn show-hud [check-result]
   "Brings up into the browser an Om Next defui component whose render method returns either nil
   or a description of the lack of full normalization. This method should be called at the beginning
   of the application's root component's render method, usually just inside a div"
@@ -176,7 +176,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  7)
+  0)
 
 (defn- ret [m]
   (merge m {:version version}))
