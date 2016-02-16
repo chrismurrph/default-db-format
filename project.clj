@@ -1,4 +1,4 @@
-(defproject org.clojars.cjmurphy/default-db-format "0.1.0"
+(defproject default-db-format "0.1.0"
   :description "Visual feedback if normalized data is not in 'default db format'."
   :url "https://github.com/chrismurrph/default-db-format"
   :license {:name "Eclipse Public License"
