@@ -3,11 +3,13 @@ Checks that your Om Next client state is in **default db format**
 
 #### Current release:
 
-###### [default-db-format 0.1.0] @clojars.org
+###### [default-db-format "0.1.0-SNAPSHOT"] @clojars.org
 
 One way of working with Om Next is to have initial state that is not normalized,
-and let Om Next do the normalization for you. This program checks that the
-normalization - into 'default db format' - succeeded.
+and let Om Next do the normalization for you. This program checks that this initial
+normalization - into 'default db format' - succeeds. It also checks that it stays that
+way in the face of your code's mutations.
+  
 Any issues and a heads-up display (HUD) will pop up.
 
 You need to put some code into your root component's render method:
@@ -57,7 +59,7 @@ The call to `check-default-db` should be in your root component's render method:
 ````
 
 The `show-hud` function returns an Om Next component, or nil when there are no issues. 
-`check-default-db` is also *component function* since it returns what `show-hud` returns.  
+`check-default-db` is also a *component function* since it returns what `show-hud` returns.  
   
 The intended workflow is that output from the HUD will cause you to either modify your application's
 denormalized state or alter the configuration hashmap (`check-config` in the example above) that is 
