@@ -3,7 +3,7 @@
             [cljs.pprint :refer [pprint]]
             [om.core :include-macros true]
             [om.dom :include-macros true]
-            [default-db-format.components :refer [display-db-component okay?]]))
+            [default-db-format.components :as components :refer [display-db-component okay?]]))
 
 (enable-console-print!)
 
@@ -15,6 +15,8 @@
   or a description of the lack of full normalization. This method should be called at the beginning
   of the application's root component's render method, usually just inside a div"
   (display-db-component check-result))
+
+(def display components/display)
 
 ;;
 ;; Not all config state is put in here, just some things inconvenient to load

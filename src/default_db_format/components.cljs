@@ -113,3 +113,10 @@
                                                         :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
                                                     (bad-by-ids-component present-lower)))))))))))
 (def display-db-component (om/factory DisplayDb {:keyfn :id}))
+
+(defui GenericDisplayer
+  Object
+  (render [this]
+    (let [val (om/props this)]
+      (dom/pre nil (with-out-str (cljs.pprint/pprint val))))))
+(def display (om/factory GenericDisplayer))
