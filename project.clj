@@ -10,6 +10,9 @@
                  [cljsjs/react-dom "0.14.3-1"]
                  [devcards "0.2.1-4"]]
 
+  ;; copy/guess here - inspecting the jar over time will make this list better...
+  :jar-exclusions [#"devcards" #"test" #"index.html" #"cards.html" #"public"]
+
   :scm {:name "git"
         :url "https://github.com/chrismurrph/default-db-format"}
 
