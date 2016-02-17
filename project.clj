@@ -1,4 +1,4 @@
-(defproject default-db-format "0.1.0"
+(defproject default-db-format "0.1.0-SNAPSHOT"
   :description "Visual feedback if normalized data is not in 'default db format'."
   :url "https://github.com/chrismurrph/default-db-format"
   :license {:name "Eclipse Public License"
@@ -11,7 +11,7 @@
                  [devcards "0.2.1-4"]]
 
   ;; copy/guess here - inspecting the jar over time will make this list better...
-  :jar-exclusions [#"devcards" #"test" #"index.html" #"cards.html" #"public"]  
+  :jar-exclusions [#"devcards" #"test" #"index.html" #"cards.html" #"public"]
 
   :scm {:name "git"
         :url "https://github.com/chrismurrph/default-db-format"}
