@@ -6,9 +6,9 @@ Checks that your Om Next client state is in **default db format**
 ###### [default-db-format "0.1.0-SNAPSHOT"] @clojars.org
 
 One way of working with Om Next is to have initial state that is not normalized,
-and let Om Next do the normalization for you. This program checks that this initial
-normalization - into 'default db format' - succeeds. It also checks that it stays that
-way in the face of your code's mutations.
+and let Om Next do the normalization for you. Here we check that this initial
+normalization - into 'default db format' - succeeds. And check that the state stays 
+fully normalized in the face of your code's mutations.
   
 Any issues and a heads-up display (HUD) will pop up.
 
@@ -48,7 +48,7 @@ This is a good way to start out as the HUD will let you know where its
 assumptions have not been met. The most onerous assumption being that all
 top level keys be **namespaced** i.e. have a 'slash' in them.
 
-The call to `check-default-db` should be in your root component's render method:
+The call to the function we just wrote should be in your root component's render method:
 
 ````clojure
 (render [this]
