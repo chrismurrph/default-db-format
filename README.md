@@ -72,13 +72,13 @@ If you see a false positive or false negative see the last section: ***Hacking**
 All `check` does is see that there are **Idents** everywhere there possibly could be, which is everywhere, in a very
 flat structure. You may have special value objects in your data. Unless this program is told about these it
 will report a problem and output a false negative. At the moment only simple hashmaps as value objects is 
-supported. In the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite the fact that it is a
-vector it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
+supported. In the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
+vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
 missing **Ident**.
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
 **Idents**. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
-For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first place in an **Ident**.     
+For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an **Ident**.     
   
 ##### Outputs  
 
