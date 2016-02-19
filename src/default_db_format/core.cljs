@@ -25,10 +25,8 @@
 ;;
 ;;(def local-atom-config (atom {:by-id-kw nil}))
 
-;;
-;; When I looked all projects used 'by-id'.
-;;
-(defn by-id-kw-ho-fn
+(defn by-id-kw-hof
+  "When I looked all projects used 'by-id'. Never-the-less, this is configurable"
   [config-kw-str]
   (fn [kw]
     (and (keyword? kw)
@@ -37,7 +35,9 @@
 ;;
 ;; [:graph-point/by-id 2003]
 ;;
-(defn ident? [by-id-kw? tuple]
+(defn ident?
+  "e.g. [:foo/by-id 203] passes, so long as first param is \"by-id\""
+  [by-id-kw? tuple]
   (and (vector? tuple)
        (= 2 (count tuple))
        (by-id-kw? (first tuple))
@@ -139,25 +139,38 @@
 ;(defn test-err []
 ;  (id->error ["graph" "app"] :line/by-id (:line/by-id state)))
 
+(defn- non-by-id-entries-impl
+  ([by-id-kw-fn? state excluded-keys]
+   (filter (fn [kv]
+             (let [k (key kv)]
+               (and (not (contains? excluded-keys k))
+                    (not (by-id-kw-fn? k))
+                    (= 2 (count (s/split (kw->str k) #"/"))))))
+           state))
+  ([by-id-kw-fn? state]
+    (non-by-id-entries-impl by-id-kw-fn? state nil))
+  )
+
 (defn non-by-id-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
   the part after the / is not 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  [by-id-kw? state excluded-keys]
+  ([by-id-kw-fn? state excluded-keys]
+   (into {} (non-by-id-entries-impl by-id-kw-fn? state excluded-keys)))
+  ([by-id-kw-fn? state]
+   (into {} (non-by-id-entries-impl by-id-kw-fn? state))))
+
+(defn- by-id-entries-impl
+  [by-id-kw-fn? state]
   (filter (fn [kv]
             (let [k (key kv)]
-              (and (not (contains? excluded-keys k))
-                   (not (by-id-kw? k))
-                   (= 2 (count (s/split (kw->str k) #"/"))))))
+              (by-id-kw-fn? k)))
           state))
 
 (defn by-id-entries
   "There are only two types of top level keys in 'default db format'. This function returns the 'by id' ones,
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  [by-id-kw? state]
-  (filter (fn [kv]
-            (let [k (key kv)]
-              (by-id-kw? k)))
-          state))
+  [by-id-kw-fn? state]
+  (into {} (by-id-entries-impl by-id-kw-fn? state)))
 
 ;;
 ;; Making this a hard and fast rule, even for keys that are to be ignored
@@ -178,7 +191,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  0)
+  3)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -208,12 +221,12 @@
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
-                 by-id-kw-fn? (by-id-kw-ho-fn (if by-id-kw by-id-kw (:by-id-kw default-config)))
+                 by-id-kw-fn? (by-id-kw-hof (if by-id-kw by-id-kw (:by-id-kw default-config)))
                  ;_ (swap! local-atom-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
-                 by-id (by-id-entries by-id-kw-fn? state)
+                 by-id (by-id-entries-impl by-id-kw-fn? state)
                  ;_ (println "num id:" (count by-id-entries))
                  names (into #{} (map (comp category-part str key) by-id))
-                 non-by-id (non-by-id-entries by-id-kw-fn? state excluded-keys)
+                 non-by-id (non-by-id-entries-impl by-id-kw-fn? state excluded-keys)
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (not (map? state))
@@ -226,7 +239,7 @@
                          id-tester (partial id->error by-id-kw-fn? okay-value-maps)]
                      (ret {:categories             categories
                            :known-names            names
-                           :not-normalized-not-ids (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id)
+                           :not-normalized-not-ids (into #{} (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id))
                            :not-normalized-ids     (into #{} (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
       ([state]
         (check default-config state)))
