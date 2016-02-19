@@ -65,16 +65,16 @@ given to `check`.
     
 ##### Inputs
 
-All `check` does is see that there are **Idents** everywhere there possibly could be, which is everywhere, in a very
+All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a very
 flat structure. You may have special value objects in your data. Unless this program is told about these it
 will report a problem and output a false negative. At the moment only simple hashmaps as value objects is 
 supported. In the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
 vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
-missing **Ident**.
+missing Ident.
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
-**Idents**. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
-For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an **Ident**.     
+Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
+For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an Ident.     
   
 ##### Outputs  
 
@@ -83,7 +83,7 @@ The output from `check` is a map that is understood by the components that make 
 `:failed-assumption` will be output when default-db-format's input validation criteria are not met.
 
 Take a look at any normalized state graph and you will see two types of top level keys. Each type of key has a
-different data shape beneath it. The two types of errors reflect not finding **Idents** in these two different shapes.
+different data shape beneath it. The two types of errors reflect not finding Idents in these two different shapes.
 That is how we get `:not-normalized-not-ids` and `:not-normalized-ids`. The descriptions used by the 
 components will reflect these two types of errors.  
   

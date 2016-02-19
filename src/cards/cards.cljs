@@ -137,6 +137,17 @@
              (is (= (:not-normalized-not-ids res) #{}))
              )))
 
+(defcard still-all-good-even-with-empties
+         (dc/tests
+           (let [res (check {:excluded-keys   irrelevant-keys
+                             :okay-value-maps #{[:r :g :b]}} gases/real-project-empty-points)]
+             (is (= (:categories res) #{"tube" "app" "graph"}))
+             (is (= (:known-names res) #{"gas-of-system" "plumb-line" "drop-info" "label" "gas-at-location"
+                                         "x-gas-details" "line" "tube" "button"}))
+             (is (= (:not-normalized-ids res) #{}))
+             (is (= (:not-normalized-not-ids res) #{}))
+             )))
+
 (defcard test-template
          (dc/tests
            "Test template

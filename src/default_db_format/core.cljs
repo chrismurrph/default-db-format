@@ -75,15 +75,17 @@
   (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
     (if k-err
       k-err
-      (let [val-is-ident (ident? by-id-kw? v)
-            val-is-vector-of-vectors (vec-of-idents? by-id-kw? v)]
-        (if (not val-is-vector-of-vectors)
-          (if val-is-ident
-            nil
-            [{:text "Expect Idents" :problem k}])
-          (let [non-idents (remove #(ident? by-id-kw? %) v)]
-            (when (pos? (count non-idents))
-              [{:text "The vector value should (but does not) contain only Idents" :problem k}])))))))
+      (if (or (nil? v) (empty v))
+        nil
+        (let [val-is-ident (ident? by-id-kw? v)
+              val-is-vector-of-vectors (vec-of-idents? by-id-kw? v)]
+          (if (not val-is-vector-of-vectors)
+            (if val-is-ident
+              nil
+              [{:text "Expect Idents" :problem k}])
+            (let [non-idents (remove #(ident? by-id-kw? %) v)]
+              (when (pos? (count non-idents))
+                [{:text "The vector value should (but does not) contain only Idents" :problem k}]))))))))
 
 (defn map-of-partic-format?
   "Returns true if the shape of the test-map is as given by vec-format e.g. [:r :g :b] {:r 0 :g 0 :b}"
@@ -191,7 +193,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  3)
+  5)
 
 (defn- ret [m]
   (merge m {:version version}))
