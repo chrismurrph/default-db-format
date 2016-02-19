@@ -43,10 +43,8 @@ You need to put some code into your root component's render method:
     (db-format/show-hud check-result)))  
 ````
 
-`check` also has a one parameter varity that can be called without any configuration.
-This is a good way to start out as the HUD will let you know where its
-assumptions have not been met. The most onerous assumption being that all
-top level keys be **namespaced** i.e. have a 'slash' in them.
+`check` also has a one parameter varity that can be called without configuration (`check-config` above) - the HUD will let 
+you know where assumptions have not been met. Example assumption - all top level keys be **namespaced** i.e. have a 'slash' in them.
 
 The call to the function we just wrote should be in your root component's render method:
 
@@ -64,9 +62,7 @@ The `show-hud` function returns an Om Next component, or nil when there are no i
 The intended workflow is that output from the HUD will cause you to either modify your application's
 denormalized state or alter the configuration hashmap (`check-config` in the example above) that is 
 given to `check`.
-  
-If you see a false positive or false negative see the last section: ***Hacking***  
-  
+    
 ##### Inputs
 
 All `check` does is see that there are **Idents** everywhere there possibly could be, which is everywhere, in a very
