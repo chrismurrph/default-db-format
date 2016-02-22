@@ -18,13 +18,6 @@
 
 (def display components/display)
 
-;;
-;; Not all config state is put in here, just some things inconvenient to load
-;; from the top. Will get rid of later with high level functions created in main.
-;; This just shows us the candidates for that refactor.
-;;
-;;(def local-atom-config (atom {:by-id-kw nil}))
-
 (defn by-id-kw-hof
   "When I looked all projects used 'by-id'. Never-the-less, this is configurable"
   [config-kw-str]
@@ -66,7 +59,8 @@
     (first (filter #(= % before-slash) knowns))))
 
 (defn vec-of-idents? [by-id-kw? v]
-  (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident? by-id-kw?) v))))
+  (or (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident? by-id-kw?) v)))
+      (and (vector? v) (empty? v))))
 
 (defn non-id->error
   "Given non id top level keys, find out those not in correct format and return them.
@@ -135,7 +129,6 @@
     (let [gathered (gather-bads-inside by-id-kw-fn? okays-maps v)
           not-empty (not (empty? gathered))
           res {k (into {} gathered)}
-          ;_ (println "RESULT:" res ", not-empty " not-empty)
           ]
       (when not-empty res))))
 
@@ -194,7 +187,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  6)
+  9)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -225,9 +218,7 @@
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
                  by-id-kw-fn? (by-id-kw-hof (if by-id-kw by-id-kw (:by-id-kw default-config)))
-                 ;_ (swap! local-atom-config assoc :by-id-kw (if by-id-kw by-id-kw (:by-id-kw default-config)))
                  by-id (by-id-entries-impl by-id-kw-fn? state)
-                 ;_ (println "num id:" (count by-id-entries))
                  names (into #{} (map (comp category-part str key) by-id))
                  non-by-id (non-by-id-entries-impl by-id-kw-fn? state excluded-keys)
                  ;_ (println "non by id:" non-by-id)

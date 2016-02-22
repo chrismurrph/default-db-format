@@ -8,7 +8,9 @@
                  [org.omcljs/om "1.0.0-alpha30"]
                  [cljsjs/react "0.14.3-0"]
                  [cljsjs/react-dom "0.14.3-1"]
-                 [devcards "0.2.1-4"]]
+                 [devcards "0.2.1-4"]
+                 [figwheel-sidecar "0.5.0-SNAPSHOT"]
+                 ]
 
   ;; copy/guess here - inspecting the jar over time will make this list better...
   :jar-exclusions [#"cards" #"examples" #"test" #"index.html" #"cards.html" #"public"]
@@ -16,13 +18,12 @@
   :scm {:name "git"
         :url "https://github.com/chrismurrph/default-db-format"}
 
-  :plugins [[lein-cljsbuild "1.1.2"]
-            [lein-figwheel "0.5.0-1"]]
+  :plugins [[lein-cljsbuild "1.1.2"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/"
                                     "target"]
                                     
-  :source-paths ["src"]
+  :source-paths ["src" "script"]
                  
   :cljsbuild {:builds [{:id "devcards"
                         :source-paths ["src"]

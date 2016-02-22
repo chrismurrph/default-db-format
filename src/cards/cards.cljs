@@ -1,10 +1,11 @@
-(ns cards.cards
+(ns ^:figwheel-always cards.cards
   (:require
     [default-db-format.core :refer [show-hud check]]
     [examples.gases :as gases]
     [examples.kanban :as kanban]
     [om.dom :as dom]
     [cljs.test :refer-macros [deftest testing is]]
+    [cljs.pprint :refer [pprint]]
     )
   (:require-macros
     [devcards.core :as dc :refer [defcard deftest]]))
@@ -147,6 +148,12 @@
              (is (= (:not-normalized-ids res) #{}))
              (is (= (:not-normalized-not-ids res) #{}))
              )))
+
+;;
+;; If one of the tests is failing run this function from the REPL
+;;
+(defn test-problem []
+  (pprint (:not-normalized-ids (check {:excluded-keys irrelevant-keys} gases/real-project-fixed-component-idents))))
 
 (defcard test-template
          (dc/tests
