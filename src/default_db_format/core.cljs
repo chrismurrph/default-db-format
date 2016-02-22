@@ -90,12 +90,13 @@
 (defn map-of-partic-format?
   "Returns true if the shape of the test-map is as given by vec-format e.g. [:r :g :b] {:r 0 :g 0 :b}"
   [partic-vec-format test-map]
-  (let [;_ (println (str "FORMAT:" vec-format " " test-map))
-        truths (map (fn [good-key [test-k _]] (= good-key test-k)) partic-vec-format test-map)
-        ;_ (println truths)
-        res (filter false? truths)
-        ]
-    (empty? res)))
+  (when (map? test-map)
+    (let [;_ (println (str "FORMAT:" partic-vec-format " " test-map))
+          truths (map (fn [good-key [test-k _]] (= good-key test-k)) partic-vec-format test-map)
+          ;_ (println truths)
+          res (filter false? truths)
+          ]
+      (empty? res))))
 
 (defn known-map?
   [okay-value-maps test-map]
@@ -193,7 +194,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  5)
+  6)
 
 (defn- ret [m]
   (merge m {:version version}))
