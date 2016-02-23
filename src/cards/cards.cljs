@@ -3,6 +3,7 @@
     [default-db-format.core :refer [show-hud check]]
     [examples.gases :as gases]
     [examples.kanban :as kanban]
+    [examples.so-question :as so-question]
     [om.dom :as dom]
     [cljs.test :refer-macros [deftest testing is]]
     [cljs.pprint :refer [pprint]]
@@ -120,6 +121,13 @@
              (is (= (:not-normalized-ids res)
                     #{[:line/by-id {:intersect {:id 302} :colour {:r 255 :g 0 :b 0}}]
                       [:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]})))))
+
+(defcard card-6
+         "From SO question (will become a test as shows nothing because checks fine)
+         ***"
+         (fn [props _] (show-hud @props))
+         (check so-question/state)
+         {:inspect-data false})
 
 (defcard bad-input-data
          (dc/tests

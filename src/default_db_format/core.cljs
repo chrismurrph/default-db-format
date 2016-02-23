@@ -187,7 +187,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  9)
+  10)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -219,20 +219,20 @@
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
                  by-id-kw-fn? (by-id-kw-hof (if by-id-kw by-id-kw (:by-id-kw default-config)))
                  by-id (by-id-entries-impl by-id-kw-fn? state)
-                 names (into #{} (map (comp category-part str key) by-id))
+                 table-names (into #{} (map (comp category-part str key) by-id))
                  non-by-id (non-by-id-entries-impl by-id-kw-fn? state excluded-keys)
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (not (map? state))
                (ret {:failed-assumption (incorrect "state param must be a map")})
-               (if (empty? names)
+               (if (empty? table-names)
                  (ret {:failed-assumption (incorrect "by-id normalized file required")})
                  (if (empty? categories)
                    (ret {:failed-assumption (incorrect "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category")})
                    (let [non-id-tester (partial non-id->error by-id-kw-fn? categories)
                          id-tester (partial id->error by-id-kw-fn? okay-value-maps)]
                      (ret {:categories             categories
-                           :known-names            names
+                           :known-names            table-names
                            :not-normalized-not-ids (into #{} (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id))
                            :not-normalized-ids     (into #{} (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
       ([state]
