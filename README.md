@@ -3,7 +3,7 @@ Checks that your Om Next client state is in **default db format**
 
 #### Current release:
 
-[default-db-format "0.1.0-SNAPSHOT"](https://clojars.org/default-db-format)
+[default-db-format "0.1.0"](https://clojars.org/default-db-format)
 
 One way of working with Om Next is to have initial state that is not normalized,
 and let Om Next do the normalization for you. Here we check that this initial
@@ -106,5 +106,10 @@ To setup the Cursive REPL you need to follow these [steps](https://github.com/bh
     
 A **false positive** is where `check` leads you think the state has attained 'default db format' when it has not. 
 
-With a **false negative** issues will be reported where there are none.    
+With a **false negative** issues will be reported where there are none.
+
+##### Internal version
+
+The current internal version is 15. Makes sense for when dealing with snapshots. 15 goes with "0.1.0". Is displayed by
+ the HUD.
     
