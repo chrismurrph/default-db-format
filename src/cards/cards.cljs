@@ -122,12 +122,12 @@
                     #{[:line/by-id {:intersect {:id 302} :colour {:r 255 :g 0 :b 0}}]
                       [:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]})))))
 
-(defcard card-6
-         "From SO question (will become a test as shows nothing because checks fine)
-         ***"
-         (fn [props _] (show-hud @props))
-         (check so-question/state)
-         {:inspect-data false})
+(defcard so-question
+         (dc/tests
+           (let [res (check so-question/state)]
+             (is (= (:not-normalized-table-entries res) #{}))
+             (is (= (:not-normalized-ref-entries res) #{}))
+             )))
 
 (defcard bad-input-data
          (dc/tests

@@ -69,10 +69,12 @@
   (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
     (if k-err
       k-err
-      (if (or (nil? v) (empty v))
+      (if (or (nil? v) (empty? v))
         nil
         (let [val-is-ident (ident? by-id-kw? v)
-              val-is-vector-of-vectors (vec-of-idents? by-id-kw? v)]
+              val-is-vector-of-vectors (vec-of-idents? by-id-kw? v)
+              ;_ (println "is-ident: " val-is-ident ", is-vector-of-vectors: " val-is-vector-of-vectors ", val: " v)
+              ]
           (if (not val-is-vector-of-vectors)
             (if val-is-ident
               nil
@@ -187,7 +189,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  11)
+  12)
 
 (defn- ret [m]
   (merge m {:version version}))

@@ -88,7 +88,8 @@
                (let [props (om/props this)
                      {:keys [not-normalized-table-entries not-normalized-ref-entries failed-assumption version]} props
                      _ (assert version)
-                     report-problem? (not (okay? props))]
+                     report-problem? (not (okay? props))
+                     _ (println "not-normalized-ref-entries: " not-normalized-ref-entries)]
                  (when report-problem?
                    (dom/div nil (dom/span allow-follow-on
                                           (dom/h3 coloured-follow-on (str "default-db-format"))

@@ -13,7 +13,7 @@
                  ]
 
   ;; copy/guess here - inspecting the jar over time will make this list better...
-  :jar-exclusions [#"cards" #"examples" #"test" #"index.html" #"cards.html" #"public"]
+  :jar-exclusions [#"cards" #"examples" #"index.html" #"cards.html" #"public"]
 
   :scm {:name "git"
         :url "https://github.com/chrismurrph/default-db-format"}
