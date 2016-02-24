@@ -122,6 +122,13 @@
                     #{[:line/by-id {:intersect {:id 302} :colour {:r 255 :g 0 :b 0}}]
                       [:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]})))))
 
+(defcard object-needs-be-seen
+         (dc/tests
+           (let [res (check {:okay-value-maps #{[:r :g :b] [:horiz-fn :vert-fn :point-fn]}} gases/with-object)]
+             (is (= (:not-normalized-table-entries res) #{}))
+             (is (= (:not-normalized-ref-entries res) #{}))
+             )))
+
 (defcard so-question
          (dc/tests
            (let [res (check so-question/state)]

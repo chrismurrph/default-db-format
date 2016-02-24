@@ -89,7 +89,8 @@
                      {:keys [not-normalized-table-entries not-normalized-ref-entries failed-assumption version]} props
                      _ (assert version)
                      report-problem? (not (okay? props))
-                     _ (println "not-normalized-ref-entries: " not-normalized-ref-entries)]
+                     ;_ (println "not-normalized-ref-entries: " not-normalized-ref-entries)
+                     ]
                  (when report-problem?
                    (dom/div nil (dom/span allow-follow-on
                                           (dom/h3 coloured-follow-on (str "default-db-format"))
@@ -98,11 +99,11 @@
                               (poor-assump-div failed-assumption)
                               (dom/div nil
                                        (when (seq not-normalized-ref-entries)
-                                         (dom/div nil "Normalization problems:"
-                                                  (refs-list-component {:id "Normalization problems" :items not-normalized-ref-entries}))
+                                         (dom/div nil "Normalization in refs problems:"
+                                                  (refs-list-component {:id "Normalization in refs problems" :items not-normalized-ref-entries}))
                                          )
                                        (when (seq not-normalized-table-entries)
-                                         (dom/div nil "Not normalized id problems:"
+                                         (dom/div nil "Not normalized in tables problems:"
                                                   (for [by-id (into {} not-normalized-table-entries)
                                                         :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
                                                     (bad-table-entries-component present-lower)))))))))))

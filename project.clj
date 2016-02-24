@@ -12,8 +12,7 @@
                  [figwheel-sidecar "0.5.0-SNAPSHOT"]
                  ]
 
-  ;; copy/guess here - inspecting the jar over time will make this list better...
-  :jar-exclusions [#"cards" #"examples" #"index.html" #"cards.html" #"public"]
+  :jar-exclusions [#"cards" #"examples" #"index.html" #"cards.html" #"public" #"repl.clj"]
 
   :scm {:name "git"
         :url "https://github.com/chrismurrph/default-db-format"}

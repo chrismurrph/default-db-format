@@ -98,6 +98,16 @@
   [okay-value-maps test-map]
   (first (filter #(map-of-partic-format? % test-map) okay-value-maps)))
 
+;;
+;; This should catch anything complicated put into the state, for instance a channel:
+;; #object[cljs.core.async.impl.channels.ManyToManyChannel]
+;; - when you str it it becomes [object Object]
+;;
+(defn anything-else?
+  [v]
+  ;(println "VAL: " (str v) ", OR: " v)
+  (= "[object Object]" (subs (str v) 0 15)))
+
 (defn- bad-inside-leaf-table-entries-val?
   "The (normalized) graph's values should only be true leaf data types or idents"
   [by-id-kw? okay-value-maps v]
@@ -106,7 +116,8 @@
            (ident? by-id-kw? v)
            (boolean? v)
            (vec-of-idents? by-id-kw? v)
-           (known-map? okay-value-maps v))))
+           (known-map? okay-value-maps v)
+           (anything-else? v))))
 
 (defn- bad-inside-table-entry-val? [by-id-kw? okay-value-maps map-value]
   (for [[k v] map-value
@@ -189,7 +200,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  12)
+  14)
 
 (defn- ret [m]
   (merge m {:version version}))
