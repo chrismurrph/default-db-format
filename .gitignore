@@ -1,6 +1,9 @@
 /target
 /.nrepl-port
 /resources/public/js
+.lein-deps-sum
+.nrepl-history
+*.jar
 .idea
 figwheel_server.log
 *.iml
