@@ -25,7 +25,7 @@
          ***"
          (fn [props _] (show-hud @props))
          (check kanban/kanban-norm-state)
-         {:inspect-data true})
+         {:inspect-data false})
 
 (defcard card-1-test
          (dc/tests
@@ -42,8 +42,8 @@
            (let [res (check kanban/kanban-corrected-norm-state)]
              (is (= (:categories res) #{"kanban"}))
              (is (= (:known-names res) #{"secret" "card" "lane" "user" "board"}))
-             (is (= (:not-normalized-not-ids res) #{}))
-             (is (= (:not-normalized-ids res) #{}))
+             (is (= (:not-normalized-ref-entries res) #{}))
+             (is (= (:not-normalized-table-entries res) #{}))
              )
            ))
 
@@ -60,10 +60,10 @@
            (let [res (check {:excluded-keys irrelevant-keys} gases/from-real-project)]
              (is (= (:categories res) #{"tube", "app", "graph"}))
              (is (= (:known-names res) #{"label" "gas-at-location" "x-gas-details" "tube" "graph-point" "gas-of-system", "button"}))
-             (is (= (:not-normalized-not-ids
+             (is (= (:not-normalized-ref-entries res)
                       #{{:text "Expect Idents" :problem :graph/drop-info}
                         {:text "Expect Idents" :problem :graph/lines}
-                        {:text "Expect Idents" :problem :graph/plumb-line}}))
+                        {:text "Expect Idents" :problem :graph/plumb-line}})
                  ))))
 
 (defcard card-3
@@ -80,8 +80,8 @@
              (is (= (:categories res) #{"tube", "app", "graph"}))
              (is (= (:known-names res) #{"gas-of-system" "plumb-line" "drop-info" "label" "gas-at-location" 
                                          "x-gas-details" "line" "tube" "graph-point" "button"}))
-             (is (= (:not-normalized-not-ids res) #{}))
-             (is (= (:not-normalized-ids res) #{[:line/by-id {:colour {:r 255 :g 0 :b 0}}]}))
+             (is (= (:not-normalized-ref-entries res) #{}))
+             (is (= (:not-normalized-table-entries res) #{[:line/by-id {:colour {:r 255 :g 0 :b 0}}]}))
              )
            ))
 
@@ -97,9 +97,9 @@
            (let [res (check gases/gas-norm-state)]
              (is (= (:categories res) #{"app", "graph"}))
              (is (= (:known-names res) #{"line" "graph-point" "drop-info"}))
-             (is (= (:not-normalized-not-ids
-                      #{{:text "Expect Idents" :problem :app/system-gases}})))
-             (is (= (:not-normalized-ids res)
+             (is (= (:not-normalized-ref-entries res)
+                      #{{:text "Expect Idents" :problem :app/system-gases}}))
+             (is (= (:not-normalized-table-entries res)
                     #{[:line/by-id {:intersect {:id 302} :colour {:r 255 :g 0 :b 0}}]
                       [:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]})))))
 
@@ -115,10 +115,10 @@
            (let [res (check gases/include-non-id-problem)]
              (is (= (:categories res) #{"app", "graph"}))
              (is (= (:known-names res) #{"line" "graph-point" "drop-info"}))
-             (is (= (:not-normalized-not-ids
+             (is (= (:not-normalized-ref-entries res)
                       #{{:text "Expect Idents" :problem :app/system-gases}
-                        {:text "Expect Idents" :problem :app/tubes}})))
-             (is (= (:not-normalized-ids res)
+                        {:text "Expect Idents" :problem :app/tubes}}))
+             (is (= (:not-normalized-table-entries res)
                     #{[:line/by-id {:intersect {:id 302} :colour {:r 255 :g 0 :b 0}}]
                       [:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]})))))
 
@@ -142,8 +142,8 @@
              (is (= (:categories res) #{"tube" "app" "graph"}))
              (is (= (:known-names res) #{"gas-of-system" "plumb-line" "drop-info" "label" "gas-at-location"
                                          "x-gas-details" "line" "tube" "graph-point" "button"}))
-             (is (= (:not-normalized-ids res) #{}))
-             (is (= (:not-normalized-not-ids res) #{}))
+             (is (= (:not-normalized-table-entries res) #{}))
+             (is (= (:not-normalized-ref-entries res) #{}))
              )))
 
 (defcard still-all-good-even-with-empties
@@ -153,15 +153,15 @@
              (is (= (:categories res) #{"tube" "app" "graph"}))
              (is (= (:known-names res) #{"gas-of-system" "plumb-line" "drop-info" "label" "gas-at-location"
                                          "x-gas-details" "line" "tube" "button"}))
-             (is (= (:not-normalized-ids res) #{}))
-             (is (= (:not-normalized-not-ids res) #{}))
+             (is (= (:not-normalized-table-entries res) #{}))
+             (is (= (:not-normalized-ref-entries res) #{}))
              )))
 
 ;;
 ;; If one of the tests is failing run this function from the REPL
 ;;
 (defn test-problem []
-  (pprint (:not-normalized-ids (check {:excluded-keys irrelevant-keys} gases/real-project-fixed-component-idents))))
+  (pprint (:not-normalized-table-entries (check {:excluded-keys irrelevant-keys} gases/real-project-fixed-component-idents))))
 
 (defcard test-template
          (dc/tests

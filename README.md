@@ -84,20 +84,23 @@ The output from `check` is a map that is understood by the components that make 
 
 Take a look at any normalized state graph and you will see two types of top level keys. Each type of key has a
 different data shape beneath it. The two types of errors reflect not finding Idents in these two different shapes.
-That is how we get `:not-normalized-not-ids` and `:not-normalized-ids`. The descriptions used by the 
+That is how we get `:not-normalized-ref-entries` and `:not-normalized-table-entries`. The descriptions used by the 
 components will reflect these two types of errors.  
   
 ##### Hacking/Improving
   
 The `examples` package contains files with `def`s in them where each `def` is normalized state that has 
 been manually copied out from an application. Each `def` is used in one or more devcards, which can
-be found in the `cards.cards` namespace. One way to manually get the supposedly normalized state
-is to `(pprint @my-reconciler)` and copy and paste the output from the Chrome developer console into 
-a new `def`. Then construct another devcard much like one of the existing ones.
-   
-There is currently only one way to ***run*** this project:
-    
-    lein figwheel devcards
+be found in the `cards.cards` namespace. In most cases I got the supposedly normalized state
+using `(pprint @my-reconciler)` and copied and pasted the output from the Chrome developer console into 
+a new `def`. Then constructed another devcard much like one of the existing ones. Every devcard has 
+at least one test associated with it. In cases where a devcard would not be interesting there are just
+tests. 
+
+The only way I know to run this project is through a Cursive REPL. I start the REPL from within
+IntelliJ and point the browser at [the cards/tests html page](http://localhost:3449/cards.html#!/cards.cards).
+
+To setup the Cursive REPL you need to follow these [steps](https://github.com/bhauman/lein-figwheel/wiki/Running-figwheel-in-a-Cursive-Clojure-REPL#create-a-clojuremain-cursive-repl-configuration).    
     
 ##### Definitions
     

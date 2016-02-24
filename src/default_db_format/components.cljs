@@ -7,7 +7,7 @@
 (def reddish-style #js {:style #js {:color reddish}})
 (def pad-in #js {:style #js {:margin 20 :padding 0}})
 
-(defn format-bad-3 [bad]
+(defn format-bad [bad]
   (let [[k v] bad]
     (dom/pre nil (str k " " v))))
 
@@ -18,14 +18,14 @@
   Object
   (render [this]
     (let [{:keys [id bad]} (om/props this)]
-      (dom/li pad-in (format-bad-3 bad)))))
+      (dom/li pad-in (format-bad bad)))))
 (def one-bad-component (om/factory OneBad {:keyfn :id}))
 
 (def allow-follow-on #js {:style #js {:whiteSpace "pre"}})
 (def follow-on #js {:style #js {:display "inline-block"}})
 (def reddish-follow-on #js {:style #js {:display "inline-block" :color reddish}})
 
-(defui NonIdsTextItem
+(defui RefsTextItem
   static om/Ident
   (ident [this props]
     [:item/by-id (:id props)])
@@ -33,9 +33,9 @@
   (render [this]
     (let [{:keys [id text problem]} (om/props this)]
       (dom/li nil (dom/span nil (dom/span nil text ": ") (dom/span reddish-follow-on (str problem)))))))
-(def non-ids-item-component (om/factory NonIdsTextItem {:keyfn :id}))
+(def refs-item-component (om/factory RefsTextItem {:keyfn :id}))
 
-(defui NonIdsTextList
+(defui RefsTextList
   static om/Ident
   (ident [this props]
     [:list/by-id (:id props)])
@@ -47,17 +47,10 @@
                     :let [{:keys [text problem]} item
                           _ (assert text)
                           _ (assert problem)]]
-                (non-ids-item-component {:id (str text problem) :text text :problem problem}))))))
-(def non-ids-list-component (om/factory NonIdsTextList {:keyfn :id}))
+                (refs-item-component {:id (str text problem) :text text :problem problem}))))))
+(def refs-list-component (om/factory RefsTextList {:keyfn :id}))
 
-(defui Label
-  Object
-  (render [this]
-    (let [{:keys [id text]} (om/props this)]
-      (dom/label nil text))))
-(def label-component (om/factory Label {:keyfn :id}))
-
-(defui BadByIds
+(defui BadTablesEntry
   static om/Ident
   (ident [this props]
     [:bads/by-id (:id props)])
@@ -67,11 +60,11 @@
       (dom/ul hard-left (dom/span reddish-style (str id))
               (for [bad bads-map]
                 (one-bad-component {:id (first bad) :bad bad}))))))
-(def bad-by-ids-component (om/factory BadByIds {:keyfn :id}))
+(def bad-table-entries-component (om/factory BadTablesEntry {:keyfn :id}))
 
 (defn okay? [check-result]
-  (let [{:keys [failed-assumption not-normalized-not-ids not-normalized-ids]} check-result]
-    (not (or failed-assumption (seq not-normalized-not-ids) (seq not-normalized-ids)))))
+  (let [{:keys [failed-assumption not-normalized-ref-entries not-normalized-table-entries]} check-result]
+    (not (or failed-assumption (seq not-normalized-ref-entries) (seq not-normalized-table-entries)))))
 
 (def coloured-follow-on #js {:style #js {:display "inline-block" :color "#0000FF"}})
 
@@ -93,7 +86,7 @@
        Object
        (render [this]
                (let [props (om/props this)
-                     {:keys [not-normalized-ids not-normalized-not-ids failed-assumption version]} props
+                     {:keys [not-normalized-table-entries not-normalized-ref-entries failed-assumption version]} props
                      _ (assert version)
                      report-problem? (not (okay? props))]
                  (when report-problem?
@@ -103,15 +96,15 @@
                             (if failed-assumption
                               (poor-assump-div failed-assumption)
                               (dom/div nil
-                                       (when (seq not-normalized-not-ids)
+                                       (when (seq not-normalized-ref-entries)
                                          (dom/div nil "Normalization problems:"
-                                                  (non-ids-list-component {:id "Normalization problems" :items not-normalized-not-ids}))
+                                                  (refs-list-component {:id "Normalization problems" :items not-normalized-ref-entries}))
                                          )
-                                       (when (seq not-normalized-ids)
+                                       (when (seq not-normalized-table-entries)
                                          (dom/div nil "Not normalized id problems:"
-                                                  (for [by-id (into {} not-normalized-ids)
+                                                  (for [by-id (into {} not-normalized-table-entries)
                                                         :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
-                                                    (bad-by-ids-component present-lower)))))))))))
+                                                    (bad-table-entries-component present-lower)))))))))))
 (def display-db-component (om/factory DisplayDb {:keyfn :id}))
 
 (defui GenericDisplayer

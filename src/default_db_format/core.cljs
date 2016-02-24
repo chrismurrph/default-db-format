@@ -62,7 +62,7 @@
   (or (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident? by-id-kw?) v)))
       (and (vector? v) (empty? v))))
 
-(defn non-id->error
+(defn ref-entry->error
   "Given non id top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
   [by-id-kw? knowns k v]
@@ -96,7 +96,7 @@
   [okay-value-maps test-map]
   (first (filter #(map-of-partic-format? % test-map) okay-value-maps)))
 
-(defn- bad-inside-by-leaf-id-val?
+(defn- bad-inside-leaf-table-entries-val?
   "The (normalized) graph's values should only be true leaf data types or idents"
   [by-id-kw? okay-value-maps v]
   (not (or (number? v)
@@ -106,36 +106,36 @@
            (vec-of-idents? by-id-kw? v)
            (known-map? okay-value-maps v))))
 
-(defn- bad-inside-by-id-val? [by-id-kw? okay-value-maps map-value]
+(defn- bad-inside-table-entry-val? [by-id-kw? okay-value-maps map-value]
   (for [[k v] map-value
-        :let [problem? (bad-inside-by-leaf-id-val? by-id-kw? okay-value-maps v)
+        :let [problem? (bad-inside-leaf-table-entries-val? by-id-kw? okay-value-maps v)
               msg-to-usr (when problem? [k v])]
         :when problem?]
     msg-to-usr))
 
-(defn- gather-bads-inside [by-id-kw-fn? okays-maps v]
-  (let [bad-inside? (partial bad-inside-by-id-val? by-id-kw-fn? okays-maps)
+(defn- gather-table-entry-bads-inside [by-id-kw-fn? okays-maps v]
+  (let [bad-inside? (partial bad-inside-table-entry-val? by-id-kw-fn? okays-maps)
         res2 (mapcat (fn [kv] (when-let [res1 (bad-inside? (val kv))]
                                res1
                                )) v)]
     res2))
 
-(defn id->error
+(defn table-entry->error
   "Given id top level keys, find out those not in correct format and return them
   Returns nil if there is no error. Specific hash-map data structure is returned"
   [by-id-kw-fn? okays-maps k v]
   (if (not (map? v))
     [(str "Value of " k " has to be a map")]
-    (let [gathered (gather-bads-inside by-id-kw-fn? okays-maps v)
+    (let [gathered (gather-table-entry-bads-inside by-id-kw-fn? okays-maps v)
           not-empty (not (empty? gathered))
           res {k (into {} gathered)}
           ]
       (when not-empty res))))
 
 ;(defn test-err []
-;  (id->error ["graph" "app"] :line/by-id (:line/by-id state)))
+;  (table-entry->error ["graph" "app"] :line/by-id (:line/by-id state)))
 
-(defn- non-by-id-entries-impl
+(defn- ref-entries-impl
   ([by-id-kw-fn? state excluded-keys]
    (filter (fn [kv]
              (let [k (key kv)]
@@ -144,29 +144,29 @@
                     (= 2 (count (s/split (kw->str k) #"/"))))))
            state))
   ([by-id-kw-fn? state]
-    (non-by-id-entries-impl by-id-kw-fn? state nil))
+    (ref-entries-impl by-id-kw-fn? state nil))
   )
 
-(defn non-by-id-entries
+(defn ref-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
   the part after the / is not 'by-id' (easiest to say 'by-id', but the String used can be configured)"
   ([by-id-kw-fn? state excluded-keys]
-   (into {} (non-by-id-entries-impl by-id-kw-fn? state excluded-keys)))
+   (into {} (ref-entries-impl by-id-kw-fn? state excluded-keys)))
   ([by-id-kw-fn? state]
-   (into {} (non-by-id-entries-impl by-id-kw-fn? state))))
+   (into {} (ref-entries-impl by-id-kw-fn? state))))
 
-(defn- by-id-entries-impl
+(defn- table-entries-impl
   [by-id-kw-fn? state]
   (filter (fn [kv]
             (let [k (key kv)]
               (by-id-kw-fn? k)))
           state))
 
-(defn by-id-entries
+(defn table-entries
   "There are only two types of top level keys in 'default db format'. This function returns the 'by id' ones,
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured)"
   [by-id-kw-fn? state]
-  (into {} (by-id-entries-impl by-id-kw-fn? state)))
+  (into {} (table-entries-impl by-id-kw-fn? state)))
 
 ;;
 ;; Making this a hard and fast rule, even for keys that are to be ignored
@@ -187,7 +187,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  10)
+  11)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -218,9 +218,9 @@
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
                  by-id-kw-fn? (by-id-kw-hof (if by-id-kw by-id-kw (:by-id-kw default-config)))
-                 by-id (by-id-entries-impl by-id-kw-fn? state)
+                 by-id (table-entries-impl by-id-kw-fn? state)
                  table-names (into #{} (map (comp category-part str key) by-id))
-                 non-by-id (non-by-id-entries-impl by-id-kw-fn? state excluded-keys)
+                 non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (not (map? state))
@@ -229,11 +229,11 @@
                  (ret {:failed-assumption (incorrect "by-id normalized file required")})
                  (if (empty? categories)
                    (ret {:failed-assumption (incorrect "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category")})
-                   (let [non-id-tester (partial non-id->error by-id-kw-fn? categories)
-                         id-tester (partial id->error by-id-kw-fn? okay-value-maps)]
+                   (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
+                         id-tester (partial table-entry->error by-id-kw-fn? okay-value-maps)]
                      (ret {:categories             categories
                            :known-names            table-names
-                           :not-normalized-not-ids (into #{} (mapcat (fn [kv] (non-id-tester (key kv) (val kv))) non-by-id))
-                           :not-normalized-ids     (into #{} (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
+                           :not-normalized-ref-entries (into #{} (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
+                           :not-normalized-table-entries (into #{} (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
       ([state]
         (check default-config state)))
