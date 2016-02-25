@@ -110,6 +110,6 @@ With a **false negative** issues will be reported where there are none.
 
 ##### Internal version
 
-The current internal version is 15. Makes sense for when dealing with snapshots. 15 goes with "0.1.1-SNAPSHOT". Is displayed by
+The current internal version is 17. Makes sense for when dealing with snapshots. 17 goes with "0.1.1-SNAPSHOT". Is displayed by
  the HUD.
     
