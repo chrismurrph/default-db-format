@@ -115,7 +115,8 @@
 (defn- bad-inside-leaf-table-entries-val?
   "The (normalized) graph's values should only be true leaf data types or idents"
   [by-id-kw? okay-value-maps v]
-  (not (or (number? v)
+  (not (or (nil? v)
+           (number? v)
            (string? v)
            (ident? by-id-kw? v)
            (boolean? v)
@@ -204,7 +205,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  16)
+  17)
 
 (defn- ret [m]
   (merge m {:version version}))
