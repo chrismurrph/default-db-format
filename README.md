@@ -3,7 +3,7 @@ Checks that your Om Next client state is in **default db format**
 
 #### Current release:
 
-[default-db-format "0.1.1-SNAPSHOT"](https://clojars.org/default-db-format)
+[![Clojars Project](https://img.shields.io/clojars/v/default-db-format.svg)](https://clojars.org/default-db-format)
 
 One way of working with Om Next is to have initial state that is not normalized,
 and let Om Next do the normalization for you. Here we check that this initial
