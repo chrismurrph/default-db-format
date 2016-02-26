@@ -45,6 +45,7 @@ You need to put some code into your root component's render method:
 
 `check` also has a one parameter varity that can be called without configuration (`check-config` above) - the HUD will let 
 you know where assumptions have not been met. Example assumption - all top level keys be **namespaced** i.e. have a 'slash' in them.
+Note that with no configuration for `:by-id-kw` it will be defaulted to "by-id" anyway - hence superfluously set above.
 
 The call to the function we just wrote should be in your root component's render method:
 
@@ -59,18 +60,26 @@ The call to the function we just wrote should be in your root component's render
 The `show-hud` function returns an Om Next component, or nil when there are no issues. 
 `check-default-db` is also a *component function* since it returns what `show-hud` returns.  
   
-The intended workflow is that output from the HUD will cause you to either modify your application's
-denormalized state or alter the configuration hashmap (`check-config` in the example above) that is 
-given to `check`.
+The intended workflow is that feedback from the HUD will alert you to do one or more of:
+ 
+ 1. modify your application's denormalized state.
+ 2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
+ 3. re-code the bad mutation you just wrote.
+ 
+That's the end of the essential documentation.
     
 ##### Inputs
 
-All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a very
-flat structure. You may have special value objects in your data. Unless this program is told about these it
-will report a problem and output a false negative. At the moment only simple hashmaps as value objects is 
-supported. In the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
+All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
+flat structure. You may have special value objects in your data. In general unless this program is told about these it
+will report a problem and report a false negative. Simple hashmaps are supported as value objects as long as they are
+specified in the config. Thus in the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
 vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
 missing Ident.
+
+A false negative is where basically: "I didn't see an Ident or a recognised value, so that's a problem" pops up, where you
+ don't want to see it. This false negative does not happen for complex objects. For example you can put a (chan) in the state
+ and this program won't bother you about it.
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
 Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
