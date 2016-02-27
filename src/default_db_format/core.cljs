@@ -106,33 +106,41 @@
 ;; This should catch anything complicated put into the state, for instance a channel:
 ;; #object[cljs.core.async.impl.channels.ManyToManyChannel]
 ;; - when you str it it becomes [object Object]
+;; Hmm - that didn't catch time, so another check looking just for "function Date"
+;; Hmm - need this to be user definable as who knows what types...
 ;;
 (defn anything-else?
   [v]
-  ;(println "VAL: " (str v) ", OR: " v)
-  (= "[object Object]" (subs (str v) 0 15)))
+  ;(println "VAL: " (str v) ", OR: " v ", OR: " (type v) ", OR: " (str (type v)))
+  (or (= "[object Object]" (subs (str v) 0 15))
+      (= "function Date" (subs (str (type v)) 0 13))
+      ))
 
 (defn- bad-inside-leaf-table-entries-val?
   "The (normalized) graph's values should only be true leaf data types or idents"
-  [by-id-kw? okay-value-maps v]
-  (not (or (nil? v)
-           (number? v)
-           (string? v)
-           (ident? by-id-kw? v)
-           (boolean? v)
-           (vec-of-idents? by-id-kw? v)
-           (known-map? okay-value-maps v)
-           (anything-else? v))))
+  [predicate-fns okay-value-maps v]
+  (let [{:keys [by-id-kw? acceptable-table-value?]} predicate-fns]
+    (assert (and by-id-kw? acceptable-table-value?))
+    (not (or (nil? v)
+             (number? v)
+             (string? v)
+             (ident? by-id-kw? v)
+             (boolean? v)
+             (vec-of-idents? by-id-kw? v)
+             (known-map? okay-value-maps v)
+             (anything-else? v)
+             (acceptable-table-value? v)
+             ))))
 
-(defn- bad-inside-table-entry-val? [by-id-kw? okay-value-maps map-value]
+(defn- bad-inside-table-entry-val? [predicate-fns okay-value-maps map-value]
   (for [[k v] map-value
-        :let [problem? (bad-inside-leaf-table-entries-val? by-id-kw? okay-value-maps v)
+        :let [problem? (bad-inside-leaf-table-entries-val? predicate-fns okay-value-maps v)
               msg-to-usr (when problem? [k v])]
         :when problem?]
     msg-to-usr))
 
-(defn- gather-table-entry-bads-inside [by-id-kw-fn? okays-maps v]
-  (let [bad-inside? (partial bad-inside-table-entry-val? by-id-kw-fn? okays-maps)
+(defn- gather-table-entry-bads-inside [predicate-fns okays-maps v]
+  (let [bad-inside? (partial bad-inside-table-entry-val? predicate-fns okays-maps)
         res2 (mapcat (fn [kv] (when-let [res1 (bad-inside? (val kv))]
                                res1
                                )) v)]
@@ -141,10 +149,10 @@
 (defn table-entry->error
   "Given id top level keys, find out those not in correct format and return them
   Returns nil if there is no error. Specific hash-map data structure is returned"
-  [by-id-kw-fn? okays-maps k v]
+  [predicate-fns okays-maps k v]
   (if (not (map? v))
     [(str "Value of " k " has to be a map")]
-    (let [gathered (gather-table-entry-bads-inside by-id-kw-fn? okays-maps v)
+    (let [gathered (gather-table-entry-bads-inside predicate-fns okays-maps v)
           not-empty (not (empty? gathered))
           res {k (into {} gathered)}
           ]
@@ -202,10 +210,12 @@
   overriden using config arg (:by-id-kw) to the check function"
   {:by-id-kw "by-id"})
 
+(def always-false-fn (fn [_] false))
+
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  17)
+  18)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -229,13 +239,19 @@
                     By default is \"by-id\" as that's what project's I've looked at have used.
       :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                     will mean that {:r 255 :g 255 :b 255} is accepted. This is a set #{} of these
-      :excluded-keys -> #{} of top level keys that we don't want to be part of normaliztion (must still be namespaced)"
+      :excluded-keys -> #{} of top level keys that we don't want to be part of normaliztion (must still be namespaced)
+      :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
+                    in that it is indented to be there, and does not indicate failed normalization"
       ([config state]
        (let [are-not-slashed (not-slashed-keys state)]
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-           (let [{:keys [okay-value-maps by-id-kw excluded-keys]} config
+           (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
                  by-id-kw-fn? (by-id-kw-hof (if by-id-kw by-id-kw (:by-id-kw default-config)))
+                 predicate-fns {:by-id-kw?               by-id-kw-fn?
+                                :acceptable-table-value? (if acceptable-table-value-fn?
+                                                           acceptable-table-value-fn?
+                                                           always-false-fn)}
                  by-id (table-entries-impl by-id-kw-fn? state)
                  table-names (into #{} (map (comp category-part str key) by-id))
                  non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
@@ -248,7 +264,7 @@
                  (if (empty? categories)
                    (ret {:failed-assumption (incorrect "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category")})
                    (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
-                         id-tester (partial table-entry->error by-id-kw-fn? okay-value-maps)]
+                         id-tester (partial table-entry->error predicate-fns okay-value-maps)]
                      (ret {:categories             categories
                            :known-names            table-names
                            :not-normalized-ref-entries (into #{} (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
