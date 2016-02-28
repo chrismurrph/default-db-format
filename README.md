@@ -78,13 +78,15 @@ vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` 
 missing Ident.
 
 A false negative is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
- don't want it to. This false negative can still happen when you store complex objects in your state. This library
- has hard coded against some common complex objects, for example `(chan)` and dates. But the user has the ultimate say
+ don't want it to - when the program should have recognised the value. This false negative can still happen with 
+ complex objects. **default-db-format**
+ has been hard coded to accept common complex objects, for example `(chan)` and dates. But the user has the ultimate say
  because a predicate function can be supplied. This function is given the value and is supposed to return `true` for the particular complex
- object you want to accept, false otherwise. You can also use it to peek into what **default-db-format** 
- has not been able to recognise, in which case make sure it always returns false. If you wanted to allow 
+ object you want to accept, false/nil otherwise. If you wanted to allow 
  dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
- to the config. (Just to be clear: this has already done, just an example). 
+ to the config. (Just to be clear: this has already done, just an example). Obviously if there are many tests you can wrap
+ them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use it to peek into
+ unrecognised values, in which case make sure it returns false.
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
 Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
