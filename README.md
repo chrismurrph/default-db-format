@@ -7,7 +7,7 @@ Checks that your Om Next client state is in **default db format**
 
 One way of working with Om Next is to have it normalize your app's initial state. 
 Here we check that this initial 
-normalization - into 'default db format' - succeeds. And check that the state stays  
+normalization - into 'default db format' - succeeds. And check that the state stays 
 normalized in the face of your code's mutations.
   
 Any issues and a heads-up display (HUD) will pop up.
