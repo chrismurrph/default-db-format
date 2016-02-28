@@ -66,7 +66,7 @@ The intended workflow is that feedback from the HUD will alert you to do one or 
  2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
  3. re-code the bad mutation you just wrote.
  
-That's the end of the essential documentation.
+That's the end of the *getting started* documentation.
     
 ##### Inputs
 
@@ -77,9 +77,14 @@ specified in the config. Thus in the example code above `:okay-value-maps` is a 
 vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
 missing Ident.
 
-A false negative is where basically: "I didn't see an Ident or a recognised value, so that's a problem" pops up, where you
- don't want to see it. This false negative does not happen for complex objects. For example you can put a (chan) in the state
- and this program won't bother you about it.
+A false negative is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
+ don't want it to. This false negative can still happen when you store complex objects in your state. This library
+ has hard coded against some common complex objects, for example `(chan)` and dates. But the user has the ultimate say
+ because a predicate function can be supplied. This function is given the value and is supposed to return `true` for the particular complex
+ object you want to accept, false otherwise. You can also use it to peek into what **default-db-format** 
+ has not been able to recognise, in which case make sure it always returns false. If you wanted to allow 
+ dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
+ to the config. (Just to be clear: this has already done, just an example). 
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
 Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
@@ -119,6 +124,6 @@ With a **false negative** issues will be reported where there are none.
 
 ##### Internal version
 
-The current internal version is 17. Makes sense for when dealing with snapshots. 17 goes with "0.1.1-SNAPSHOT". Is displayed by
+The current internal version is 20. Makes sense for when dealing with snapshots. 20 goes with "0.1.1-SNAPSHOT". Is displayed by
  the HUD.
     

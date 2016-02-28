@@ -108,6 +108,8 @@
 ;; - when you str it it becomes [object Object]
 ;; Hmm - that didn't catch time, so another check looking just for "function Date"
 ;; Hmm - need this to be user definable as who knows what types...
+;; Have now done user definable - :acceptable-table-value-fn? in the input map
+;; Strategy will be to hard-code common things here
 ;;
 (defn anything-else?
   [v]
@@ -215,7 +217,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  18)
+  20)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -233,41 +235,45 @@
   ([text] (incorrect text nil)))
 
 (defn check
-      "Checks to see if normalization works as expected. Returns a hash-map you can pprint
-      config param keys:
-      :by-id-kw  -> What comes after the slash in the Ident tuple-2's first position. As a String.
-                    By default is \"by-id\" as that's what project's I've looked at have used.
-      :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
-                    will mean that {:r 255 :g 255 :b 255} is accepted. This is a set #{} of these
-      :excluded-keys -> #{} of top level keys that we don't want to be part of normaliztion (must still be namespaced)
-      :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
-                    in that it is indented to be there, and does not indicate failed normalization"
-      ([config state]
-       (let [are-not-slashed (not-slashed-keys state)]
-         (if (seq are-not-slashed)
-           (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-           (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
-                 by-id-kw-fn? (by-id-kw-hof (if by-id-kw by-id-kw (:by-id-kw default-config)))
-                 predicate-fns {:by-id-kw?               by-id-kw-fn?
-                                :acceptable-table-value? (if acceptable-table-value-fn?
-                                                           acceptable-table-value-fn?
-                                                           always-false-fn)}
-                 by-id (table-entries-impl by-id-kw-fn? state)
-                 table-names (into #{} (map (comp category-part str key) by-id))
-                 non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
-                 ;_ (println "non by id:" non-by-id)
-                 categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
-             (if (not (map? state))
-               (ret {:failed-assumption (incorrect "state param must be a map")})
-               (if (empty? table-names)
-                 (ret {:failed-assumption (incorrect "by-id normalized file required")})
-                 (if (empty? categories)
-                   (ret {:failed-assumption (incorrect "Expected to have categories - top level keywords should have a / in them, and the LHS is the name of the category")})
-                   (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
-                         id-tester (partial table-entry->error predicate-fns okay-value-maps)]
-                     (ret {:categories             categories
-                           :known-names            table-names
-                           :not-normalized-ref-entries (into #{} (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
-                           :not-normalized-table-entries (into #{} (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
-      ([state]
-        (check default-config state)))
+  "Checks to see if normalization works as expected. Returns a hash-map you can pprint
+  config param keys:
+  :by-id-kw  -> What comes after the slash in the Ident tuple-2's first position. As a String.
+                By default is \"by-id\" as that's what project's I've looked at have used.
+  :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
+                will mean that {:r 255 :g 255 :b 255} is accepted. This is a set #{} of these
+  :excluded-keys -> #{} of top level keys that we don't want to be part of normaliztion (must still be namespaced)
+  :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
+                in that it is indented to be there, and does not indicate failed normalization"
+  ([config state]
+   (let [are-not-slashed (not-slashed-keys state)]
+     (if (seq are-not-slashed)
+       (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
+       (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
+             by-id-kw-fn? (by-id-kw-hof (or by-id-kw (:by-id-kw default-config)))
+             predicate-fns {:by-id-kw?               by-id-kw-fn?
+                            :acceptable-table-value? (or acceptable-table-value-fn? always-false-fn)}
+             by-id (table-entries-impl by-id-kw-fn? state)
+             table-names (into #{} (map (comp category-part str key) by-id))
+             non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
+             ;_ (println "non by id:" non-by-id)
+             categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
+         (if (not (map? state))
+           (ret {:failed-assumption (incorrect "state param must be a map")})
+           (if (empty? table-names)
+             (ret {:failed-assumption (incorrect "by-id normalized file required")})
+             (if (empty? categories)
+               (ret {:failed-assumption (incorrect
+                                          "Expected to have categories - top level keywords should have a / in them, 
+                                          and the LHS is the name of the category")})
+               (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
+                     id-tester (partial table-entry->error predicate-fns okay-value-maps)]
+                 (ret {:categories  categories
+                       :known-names table-names
+                       :not-normalized-ref-entries
+                                    (into #{}
+                                          (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
+                       :not-normalized-table-entries
+                                    (into #{}
+                                          (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
+  ([state]
+   (check default-config state)))
