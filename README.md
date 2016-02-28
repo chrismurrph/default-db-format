@@ -5,10 +5,10 @@ Checks that your Om Next client state is in **default db format**
 
 [![Clojars Project](https://img.shields.io/clojars/v/default-db-format.svg)](https://clojars.org/default-db-format)
 
-One way of working with Om Next is to have initial state that is not normalized,
-and let Om Next do the normalization for you. Here we check that this initial
-normalization - into 'default db format' - succeeds. And check that the state stays 
-fully normalized in the face of your code's mutations.
+One way of working with Om Next is to have it normalize your app's initial state. 
+Here we check that this initial 
+normalization - into 'default db format' - succeeds. And check that the state stays  
+normalized in the face of your code's mutations.
   
 Any issues and a heads-up display (HUD) will pop up.
 
