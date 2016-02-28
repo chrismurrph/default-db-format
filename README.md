@@ -62,7 +62,7 @@ The `show-hud` function returns an Om Next component, or nil when there are no i
   
 The intended workflow is that feedback from the HUD will alert you to do one or more of:
  
- 1. modify your application's denormalized state.
+ 1. modify your application's initial state.
  2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
  3. re-code the bad mutation you just wrote.
  
@@ -72,21 +72,21 @@ That's the end of the *getting started* documentation.
 
 All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
 flat structure. You may have special value objects in your data. In general unless this program is told about these it
-will report a problem and report a false negative. Simple hashmaps are supported as value objects as long as they are
+will report a problem and report a *false negative*. Simple hashmaps are supported as value objects as long as they are
 specified in the config. Thus in the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
 vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
 missing Ident.
 
-A false negative is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
- don't want it to - when the program should have recognised the value. This false negative can still happen with 
- complex objects. **default-db-format**
+A *false negative* is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
+ don't want it to - when the program should have recognised the value. This *false negative* can still occur if you keep 
+ complex objects in your state. To remedy this **default-db-format**
  has been hard coded to accept common complex objects, for example `(chan)` and dates. But the user has the ultimate say
- because a predicate function can be supplied. This function is given the value and is supposed to return `true` for the particular complex
- object you want to accept, false/nil otherwise. If you wanted to allow 
+ because a predicate function can be supplied. It is given the value and is supposed to return a truthy value for the particular complex
+ object you want to accept, `false/nil` otherwise. If you wanted to allow 
  dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
- to the config. (Just to be clear: this has already done, just an example). Obviously if there are many tests you can wrap
- them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use it to peek into
- unrecognised values, in which case make sure it returns false.
+ to the config. (Just to be clear: this has already done, just an example). Obviously if many tests are required you can wrap
+ them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use `:acceptable-table-value-fn?` to peek into
+ unrecognised values, in which case be sure it returns a falsey value.
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
 Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
@@ -110,10 +110,10 @@ been manually copied out from an application. Each `def` is used in one or more 
 be found in the `cards.cards` namespace. In most cases I got the supposedly normalized state
 using `(pprint @my-reconciler)` and copied and pasted the output from the Chrome developer console into 
 a new `def`. Then constructed another devcard much like one of the existing ones. Every devcard has 
-at least one test associated with it. In cases where a devcard would not be interesting there are just
-tests. 
+at least one test associated with it. In cases where a devcard would not be interesting there are tests 
+instead. 
 
-The only way I know to run this project is through a Cursive REPL. I start the REPL from within
+The only way I know to run this project is through a Cursive REPL. I start the REPL from within 
 IntelliJ and point the browser at [the cards/tests html page](http://localhost:3449/cards.html#!/cards.cards).
 
 To setup the Cursive REPL you need to follow these [steps](https://github.com/bhauman/lein-figwheel/wiki/Running-figwheel-in-a-Cursive-Clojure-REPL#create-a-clojuremain-cursive-repl-configuration).    
@@ -123,6 +123,11 @@ To setup the Cursive REPL you need to follow these [steps](https://github.com/bh
 A **false positive** is where `check` leads you think the state has attained 'default db format' when it has not. 
 
 With a **false negative** issues will be reported, despite the fact that 'default db format' has been attained.
+
+For examples of **default db format** take a look at any of the source files in the `examples` package. Note that there
+ are two types of map entries: refs and tables. The value of a ref entry is either an Ident or a vector of Idents. Table
+ entries are where the actual data values are kept, using Idents to refer to other data values. The keys are easily 
+ recognisable because they are all `something\by-id`. 
 
 ##### Internal version
 
