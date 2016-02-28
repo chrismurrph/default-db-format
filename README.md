@@ -120,10 +120,10 @@ To setup the Cursive REPL you need to follow these [steps](https://github.com/bh
     
 A **false positive** is where `check` leads you think the state has attained 'default db format' when it has not. 
 
-With a **false negative** issues will be reported where there are none.
+With a **false negative** issues will be reported, despite the fact that 'default db format' has been attained.
 
 ##### Internal version
 
-The current internal version is 20. Makes sense for when dealing with snapshots. 20 goes with "0.1.1-SNAPSHOT". Is displayed by
+The current internal version is 20. Makes sense for when dealing with snapshots. 20 goes with "0.1.1-SNAPSHOT". It is displayed by
  the HUD.
     
