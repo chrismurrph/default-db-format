@@ -37,10 +37,10 @@ You need to put some code into your root component's render method:
                   (str "BAD: state not fully " msg-boiler))]
     (println message)
     (when (not ok?)
-      (pprint check-result)
+      (pprint check-result) ;; <- check-result is a summary of state, so print one or the other
       ;(pprint state)
-      (halt-receiving))
-    (db-format/show-hud check-result)))  
+      (halt-receiving)) ;; <- project specific function that stops continuous state updates
+    (db-format/show-hud check-result))) ;; <- must be last, displays check-result
 ````
 
 `check` also has a one parameter varity that can be called without configuration (`check-config` above) - the HUD will let 
