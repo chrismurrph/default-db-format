@@ -126,11 +126,11 @@ With a **false negative** issues will be reported, despite the fact that 'defaul
 
 For examples of **default db format** take a look at any of the source files in the `examples` package. Note that there
  are two types of map entries: refs and tables. The value of a ref entry is either an Ident or a vector of Idents. Table
- entries are where the actual data values are kept, using Idents to refer to other data values. The keys are easily 
+ entries are where the actual data values are kept, using Idents to refer to other data values. Here the keys are easily 
  recognisable because they are all `something\by-id`. 
 
 ##### Internal version
 
-The current internal version is 20. Makes sense for when dealing with snapshots. 20 goes with "0.1.1-SNAPSHOT". It is displayed by
+The current internal version is 21. Makes sense for when dealing with snapshots. 21 goes with "0.1.1-SNAPSHOT". It is displayed by
  the HUD.
     
