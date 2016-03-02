@@ -127,7 +127,8 @@ With a **false negative** issues will be reported, despite the fact that 'defaul
 For examples of **default db format** take a look at any of the source files in the `examples` package. Note that there
  are two types of map entries: refs and tables. The value of a ref entry is either an Ident or a vector of Idents. Table
  entries are where the actual data values are kept, using Idents to refer to other data values. Here the keys are easily 
- recognisable because they are all `something\by-id`. 
+ recognisable because they are all `something\by-id`. See [here](https://github.com/omcljs/om/wiki/Components,-Identity-&-Normalization)
+ for an explanation of normalization. 
 
 ##### Internal version
 
