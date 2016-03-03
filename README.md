@@ -25,7 +25,42 @@ You need to put some code into your root component's render method:
 ````
    
 That's the end of the *getting started* documentation.
+      
+##### Inputs
 
+All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
+flat structure. You may have special value objects in your data. In general unless this program is told about these it
+will report a problem and report a *false negative*. Simple hashmaps are supported as value objects as long as they are
+specified in the config. Thus in the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
+vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
+missing Ident.
+
+A *false negative* is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
+ don't want it to - when the program should have recognised the value. This *false negative* can still occur if you keep 
+ complex objects in your state. To remedy this **default-db-format**
+ has been hard coded to accept common complex objects, for example `(chan)` and dates. But the user has the ultimate say
+ because a predicate function can be supplied. It is given the value and is supposed to return a truthy value for the particular complex
+ object you want to accept, `false/nil` otherwise. If you wanted to allow 
+ dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
+ to the config. (Just to be clear: this has already done, just an example). Obviously if many tests are required you can wrap
+ them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use `:acceptable-table-value-fn?` to peek into
+ unrecognised values, in which case be sure it returns a falsey value.
+    
+`:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
+Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
+For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an Ident.     
+  
+##### Outputs  
+
+The output from `check` is a map that is understood by the components that make up the HUD.
+
+`:failed-assumption` will be output when default-db-format's input validation criteria are not met.
+
+Take a look at any normalized state graph and you will see two types of top level keys. Each type of key has a
+different data shape beneath it. The two types of errors reflect not finding Idents in these two different shapes.
+That is how we get `:not-normalized-ref-entries` and `:not-normalized-table-entries`. The descriptions used by the 
+components will reflect these two types of errors.
+  
 ##### *Everything* Example
 
 ````clojure
@@ -78,42 +113,7 @@ The intended workflow is that feedback from the HUD will alert you to do one or 
  
  1. modify your application's initial state.
  2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
- 3. re-code the bad mutation you just wrote.
-      
-##### Inputs
-
-All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
-flat structure. You may have special value objects in your data. In general unless this program is told about these it
-will report a problem and report a *false negative*. Simple hashmaps are supported as value objects as long as they are
-specified in the config. Thus in the example code above `:okay-value-maps` is a set with `[:r :g :b]` in it. Despite being a
-vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` will no longer be interpreted as a
-missing Ident.
-
-A *false negative* is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
- don't want it to - when the program should have recognised the value. This *false negative* can still occur if you keep 
- complex objects in your state. To remedy this **default-db-format**
- has been hard coded to accept common complex objects, for example `(chan)` and dates. But the user has the ultimate say
- because a predicate function can be supplied. It is given the value and is supposed to return a truthy value for the particular complex
- object you want to accept, `false/nil` otherwise. If you wanted to allow 
- dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
- to the config. (Just to be clear: this has already done, just an example). Obviously if many tests are required you can wrap
- them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use `:acceptable-table-value-fn?` to peek into
- unrecognised values, in which case be sure it returns a falsey value.
-    
-`:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
-Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
-For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an Ident.     
-  
-##### Outputs  
-
-The output from `check` is a map that is understood by the components that make up the HUD.
-
-`:failed-assumption` will be output when default-db-format's input validation criteria are not met.
-
-Take a look at any normalized state graph and you will see two types of top level keys. Each type of key has a
-different data shape beneath it. The two types of errors reflect not finding Idents in these two different shapes.
-That is how we get `:not-normalized-ref-entries` and `:not-normalized-table-entries`. The descriptions used by the 
-components will reflect these two types of errors.  
+ 3. re-code the bad mutation you just wrote.  
   
 ##### Hacking/Improving
   
