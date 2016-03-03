@@ -5,6 +5,8 @@ Checks that your Om Next client state is in **default db format**
 
 [![Clojars Project](https://img.shields.io/clojars/v/default-db-format.svg)](https://clojars.org/default-db-format)
 
+##### Getting Started
+
 One way of working with Om Next is to have it normalize your app's initial state. 
 Here we check that this initial 
 normalization - into 'default db format' - succeeds. And check that the state stays 
@@ -24,8 +26,6 @@ You need to put some code into your root component's render method:
              ...)))
 ````
    
-That's the end of the *getting started* documentation.
-      
 ##### Inputs
 
 All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
