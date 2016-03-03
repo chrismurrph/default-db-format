@@ -15,6 +15,20 @@ Any issues and a heads-up display (HUD) will pop up.
 You need to put some code into your root component's render method:
 
 ````clojure
+(:require [default-db-format.core :as db-format])
+          
+(render [this]
+  (let [app-props (om/props this)]
+    (dom/div nil
+             (db-format/show-hud (db-format/check @my-reconciler))                       
+             ...)))
+````
+   
+That's the end of the *getting started* documentation.
+
+##### *Everything* Example
+
+````clojure
 (:require [default-db-format.core :as db-format]
           [cljs.pprint :refer [pprint]])
   
@@ -58,16 +72,14 @@ The call to the function we just wrote should be in your root component's render
 ````
 
 The `show-hud` function returns an Om Next component, or nil when there are no issues. 
-`check-default-db` is also a *component function* since it returns what `show-hud` returns.  
+`check-default-db` is also a *component function* since it returns what `show-hud` returns.
   
 The intended workflow is that feedback from the HUD will alert you to do one or more of:
  
  1. modify your application's initial state.
  2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
  3. re-code the bad mutation you just wrote.
- 
-That's the end of the *getting started* documentation.
-    
+      
 ##### Inputs
 
 All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
