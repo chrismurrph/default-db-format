@@ -42,7 +42,7 @@ A *false negative* is where the program says: "I didn't see an Ident or a recogn
  because a predicate function can be supplied. It is given the value and is supposed to return a truthy value for the particular complex
  object you want to accept, `false/nil` otherwise. If you wanted to allow 
  dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
- to the config. (Just to be clear: this has already done, just an example). Obviously if many tests are required you can wrap
+ to the config. (Just to be clear: this has already been done, just an example). Obviously if many tests are required you can wrap
  them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use `:acceptable-table-value-fn?` to peek into
  unrecognised values, in which case be sure it returns a falsey value.
     
@@ -54,7 +54,7 @@ For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will b
 
 The output from `check` is a map that is understood by the components that make up the HUD.
 
-`:failed-assumption` will be output when default-db-format's input validation criteria are not met.
+`:failed-assumption` will be output when **default-db-format**'s input validation criteria are not met.
 
 Take a look at any normalized state graph and you will see two types of top level keys. Each type of key has a
 different data shape beneath it. The two types of errors reflect not finding Idents in these two different shapes.
@@ -114,6 +114,9 @@ The intended workflow is that feedback from the HUD will alert you to do one or 
  1. modify your application's initial state.
  2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
  3. re-code the bad mutation you just wrote.  
+  
+The inputs used here (see `check-config` above) serve to describe your app's state. So a good place to
+  put them is in the same file as your app's initial state.
   
 ##### Hacking/Improving
   
