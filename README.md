@@ -26,6 +26,8 @@ You need to put some code into your root component's render method:
              ...)))
 ````
    
+That's all you need to get started. The rest is for reference...   
+   
 ##### Inputs
 
 All `check` does is see that there are Idents everywhere there possibly could be, which is everywhere, in a
