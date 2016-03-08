@@ -128,6 +128,7 @@
              (string? v)
              (ident? by-id-kw? v)
              (boolean? v)
+             (keyword? v)
              (vec-of-idents? by-id-kw? v)
              (known-map? okay-value-maps v)
              (anything-else? v)
@@ -217,7 +218,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  21)
+  22)
 
 (defn- ret [m]
   (merge m {:version version}))

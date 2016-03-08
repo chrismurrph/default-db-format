@@ -4,6 +4,7 @@
     [examples.gases :as gases]
     [examples.kanban :as kanban]
     [examples.so-question :as so-question]
+    [examples.medical-records :as medical]
     [om.dom :as dom]
     [cljs.test :refer-macros [deftest testing is]]
     [cljs.pprint :refer [pprint]]
@@ -121,6 +122,19 @@
              (is (= (:not-normalized-table-entries res)
                     #{[:line/by-id {:intersect {:id 302} :colour {:r 255 :g 0 :b 0}}]
                       [:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]})))))
+
+;(defcard slack-card
+;         "From tawus"
+;         (fn [props _] (show-hud @props))
+;         (check {:excluded-keys medical/irrelevant-keys} medical/norm-state)
+;         {:inspect-data false})
+
+(defcard medical
+         (dc/tests
+           (let [res (check {:excluded-keys medical/irrelevant-keys} medical/norm-state)]
+             (is (= (:not-normalized-table-entries res) #{}))
+             (is (= (:not-normalized-ref-entries res) #{}))
+             )))
 
 (defcard object-needs-be-seen
          (dc/tests

@@ -1,4 +1,10 @@
-(ns examples.tawus)
+(ns examples.medical-records)
+
+(def irrelevant-keys #{:app/route
+                       :om.next/tables})
+
+(comment
+  :acceptable-table-value-fn? (fn [v] (= keyword? v)))
 
 (def norm-state
   {:code/list      [[:code/by-id 17592186045430]],

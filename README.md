@@ -149,6 +149,6 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is 21. Makes sense for when dealing with snapshots. 21 goes with "0.1.1-SNAPSHOT". It is displayed by
- the HUD.
+The current internal version is 22. Makes sense for when dealing with snapshots. 22 goes with "0.1.1-SNAPSHOT". It is displayed by
+ the HUD. (Version 21 had a bug where a `keyword` was not recognised as data).
     
