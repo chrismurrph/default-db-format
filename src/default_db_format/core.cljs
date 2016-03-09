@@ -235,6 +235,10 @@
      {:text text :problems problems}))
   ([text] (incorrect text nil)))
 
+;; TODO Return true when it does
+(defn- state-looks-like-config [state]
+  false)
+
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
@@ -258,23 +262,25 @@
              non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
              ;_ (println "non by id:" non-by-id)
              categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
-         (if (not (map? state))
-           (ret {:failed-assumption (incorrect "state param must be a map")})
-           (if (empty? table-names)
-             (ret {:failed-assumption (incorrect "by-id normalized file required")})
-             (if (empty? categories)
-               (ret {:failed-assumption (incorrect
-                                          "Expected to have categories - top level keywords should have a / in them, 
-                                          and the LHS is the name of the category")})
-               (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
-                     id-tester (partial table-entry->error predicate-fns okay-value-maps)]
-                 (ret {:categories  categories
-                       :known-names table-names
-                       :not-normalized-ref-entries
-                                    (into #{}
-                                          (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
-                       :not-normalized-table-entries
-                                    (into #{}
-                                          (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))})))))))))
+         (if (state-looks-like-config state)
+           (ret {:failed-assumption (incorrect "state looks like config - wrong order params")})
+           (if (not (map? state))
+             (ret {:failed-assumption (incorrect "state param must be a map")})
+             (if (empty? table-names)
+               (ret {:failed-assumption (incorrect "by-id normalized file required")})
+               (if (empty? categories)
+                 (ret {:failed-assumption (incorrect
+                                            "Expected to have categories - top level keywords should have a / in them,
+                                            and the LHS is the name of the category")})
+                 (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
+                       id-tester (partial table-entry->error predicate-fns okay-value-maps)]
+                   (ret {:categories  categories
+                         :known-names table-names
+                         :not-normalized-ref-entries
+                                      (into #{}
+                                            (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
+                         :not-normalized-table-entries
+                                      (into #{}
+                                            (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))}))))))))))
   ([state]
    (check default-config state)))
