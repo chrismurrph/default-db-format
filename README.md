@@ -41,12 +41,12 @@ A *false negative* is where the program says: "I didn't see an Ident or a recogn
  don't want it to - when the program should have recognised the value. This *false negative* can still occur if you keep 
  complex objects in your state. To remedy this **default-db-format**
  has been hard coded to accept common complex objects, for example `(chan)` and dates. But the user has the ultimate say
- because a predicate function can be supplied. It is given the value and is supposed to return a truthy value for the particular complex
- object you want to accept, `false/nil` otherwise. If you wanted to allow 
+ because a predicate function can be supplied. It is given the value and is supposed to return logical true for the particular complex
+ object you want to accept, logical false otherwise. If you wanted to allow
  dates you could supply `:acceptable-table-value-fn? (fn [v] (= "function Date" (subs (str (type v)) 0 13)))` as a map entry 
  to the config. (Just to be clear: this has already been done, just an example). Obviously if many tests are required you can wrap
  them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use `:acceptable-table-value-fn?` to peek into
- unrecognised values, in which case be sure it returns a falsey value.
+ unrecognised values, in which case be sure it returns logical false. For example: `(fn [v] (println "BAD value:" v "," (str (type v))))`.
     
 `:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
 Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
@@ -149,6 +149,11 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is 22. Makes sense for when dealing with snapshots. 22 goes with "0.1.1-SNAPSHOT". It is displayed by
- the HUD. (Version 21 had a bug where a `:keyword` was not recognised as data).
+The current internal version is 23. Makes sense for when dealing with snapshots. 23 goes with "0.1.1-SNAPSHOT". It is displayed by
+ the HUD. Previous versions:
+
+23  Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
+22  Fixed bug where a `:keyword` was not recognised as data
+21  Released version (announced on Om slack group)
+
     

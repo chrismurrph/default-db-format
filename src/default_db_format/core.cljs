@@ -102,6 +102,7 @@
   [okay-value-maps test-map]
   (first (filter #(map-of-partic-format? % test-map) okay-value-maps)))
 
+(def goog-date "function (opt_year, opt_month, opt_date, opt_hours,")
 ;;
 ;; This should catch anything complicated put into the state, for instance a channel:
 ;; #object[cljs.core.async.impl.channels.ManyToManyChannel]
@@ -116,6 +117,7 @@
   ;(println "VAL: " (str v) ", OR: " v ", OR: " (type v) ", OR: " (str (type v)))
   (or (= "[object Object]" (subs (str v) 0 15))
       (= "function Date" (subs (str (type v)) 0 13))
+      (= goog-date (subs (str (type v)) 0 (count goog-date)))
       ))
 
 (defn- bad-inside-leaf-table-entries-val?
@@ -218,16 +220,11 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  22)
+  23)
 
 (defn- ret [m]
   (merge m {:version version}))
 
-;;
-;; Later in html do equiv of this:
-;; (apply str (interpose ", " are-not-slashed))
-;; Also after comment might want to append: ", see: "
-;;
 (defn- incorrect
   ([text problems]
    (if (nil? problems)
@@ -235,9 +232,15 @@
      {:text text :problems problems}))
   ([text] (incorrect text nil)))
 
-;; TODO Return true when it does
 (defn- state-looks-like-config [state]
-  false)
+  (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} state]
+    (or okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?)))
+
+(defn- failed-state [state]
+  (if (not (map? state))
+    (ret {:failed-assumption (incorrect "state param must be a map")})
+    (when (state-looks-like-config state)
+      (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
@@ -250,22 +253,19 @@
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
                 in that it is indented to be there, and does not indicate failed normalization"
   ([config state]
-   (let [are-not-slashed (not-slashed-keys state)]
-     (if (seq are-not-slashed)
-       (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-       (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
-             by-id-kw-fn? (by-id-kw-hof (or by-id-kw (:by-id-kw default-config)))
-             predicate-fns {:by-id-kw?               by-id-kw-fn?
-                            :acceptable-table-value? (or acceptable-table-value-fn? always-false-fn)}
-             by-id (table-entries-impl by-id-kw-fn? state)
-             table-names (into #{} (map (comp category-part str key) by-id))
-             non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
-             ;_ (println "non by id:" non-by-id)
-             categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
-         (if (state-looks-like-config state)
-           (ret {:failed-assumption (incorrect "state looks like config - wrong order params")})
-           (if (not (map? state))
-             (ret {:failed-assumption (incorrect "state param must be a map")})
+   (or (failed-state state)
+       (let [are-not-slashed (not-slashed-keys state)]
+         (if (seq are-not-slashed)
+           (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
+           (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
+                 by-id-kw-fn? (by-id-kw-hof (or by-id-kw (:by-id-kw default-config)))
+                 predicate-fns {:by-id-kw?               by-id-kw-fn?
+                                :acceptable-table-value? (or acceptable-table-value-fn? always-false-fn)}
+                 by-id (table-entries-impl by-id-kw-fn? state)
+                 table-names (into #{} (map (comp category-part str key) by-id))
+                 non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
+                 ;_ (println "non by id:" non-by-id)
+                 categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (empty? table-names)
                (ret {:failed-assumption (incorrect "by-id normalized file required")})
                (if (empty? categories)
@@ -281,6 +281,7 @@
                                             (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
                          :not-normalized-table-entries
                                       (into #{}
-                                            (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))}))))))))))
+                                            (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))}))))
+             )))))
   ([state]
    (check default-config state)))
