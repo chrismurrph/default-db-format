@@ -154,9 +154,9 @@ For examples of **default db format** take a look at any of the source files in 
 The current internal version is 24. Makes sense for when dealing with snapshots. 24 goes with "0.1.1-SNAPSHOT". It is displayed by
  the HUD. Previous versions:
 
- 24.  Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-kw and excluded-keys
- 23.  Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
- 22.  Fixed bug where a `:keyword` was not recognised as data
- 21.  Released version (announced on Om Slack group)
+ *  24. Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-kw and excluded-keys
+ *  23. Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
+ *  22. Fixed bug where a `:keyword` was not recognised as data
+ *  21. Released version (announced on Om Slack group)
 
     
