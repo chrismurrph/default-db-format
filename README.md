@@ -38,7 +38,7 @@ vector, it is used to recognise maps. Thus for example `{:r 255 :g 255 :b 255}` 
 missing Ident.
 
 A *false negative* is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you
- don't want it to - when the program should have recognised the value. This *false negative* can still occur if you keep 
+ don't want it to - when the program should have recognised the value. This *false negative* can still occur if you keep
  complex objects in your state. To remedy this **default-db-format**
  has been hard coded to accept common complex objects, for example `(chan)` and dates. But the user has the ultimate say
  because a predicate function can be supplied. It is given the value and is supposed to return logical true for the particular complex
@@ -48,9 +48,11 @@ A *false negative* is where the program says: "I didn't see an Ident or a recogn
  them in an `or`, thus ensuring that `false` is returned unless one of them passes. You can also use `:acceptable-table-value-fn?` to peek into
  unrecognised values, in which case be sure it returns logical false. For example: `(fn [v] (println "BAD value:" v "," (str (type v))))`.
     
-`:excluded-keys` are top level keys you want this program to ignore and `:by-id-kw` is how this program recognises
-Idents. Your program's component's `ident` methods are all assumed to express their identity  in the same way.
-For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an Ident.     
+`:excluded-keys` are top level keys that need to be ignored.
+
+`:by-id-kw` is how Idents are recognised. For instance if it is `by-id` then `:line/by-id` and `:graph-point/by-id` will be recognized in first position
+in an Ident. If all your Idents are `by-id` then you don't have to specify anything as `by-id` is the
+default. If your program has multiple ways of expressing an Ident then provide a set or a vector of Strings rather than a single String.
   
 ##### Outputs  
 
@@ -149,11 +151,12 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is 23. Makes sense for when dealing with snapshots. 23 goes with "0.1.1-SNAPSHOT". It is displayed by
+The current internal version is 24. Makes sense for when dealing with snapshots. 24 goes with "0.1.1-SNAPSHOT". It is displayed by
  the HUD. Previous versions:
 
-23  Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
-22  Fixed bug where a `:keyword` was not recognised as data
-21  Released version (announced on Om slack group)
+ 24.  Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-kw and excluded-keys
+ 23.  Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
+ 22.  Fixed bug where a `:keyword` was not recognised as data
+ 21.  Released version (announced on Om Slack group)
 
     

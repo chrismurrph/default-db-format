@@ -20,10 +20,18 @@
 
 (defn by-id-kw-hof
   "When I looked all projects used 'by-id'. Never-the-less, this is configurable"
-  [config-kw-str]
+  [& config-kw-str]
+  (let [all-kws (into #{} config-kw-str)]
+    (fn [kw]
+      (and (keyword? kw)
+           (some #{(name kw)} all-kws))))) ;; name returns part after "/", and works w/out "/" too (that we don't need)
+
+(defn- *by-id-kw-hof
+  [config-kw-strs]
+  (assert (set? config-kw-strs))
   (fn [kw]
     (and (keyword? kw)
-         (= (name kw) config-kw-str)))) ;; name returns part after "/"
+         (some #{(name kw)} config-kw-strs))))
 
 ;;
 ;; [:graph-point/by-id 2003]
@@ -159,8 +167,7 @@
     [(str "Value of " k " has to be a map")]
     (let [gathered (gather-table-entry-bads-inside predicate-fns okays-maps v)
           not-empty (not (empty? gathered))
-          res {k (into {} gathered)}
-          ]
+          res {k (into {} gathered)}]
       (when not-empty res))))
 
 ;(defn test-err []
@@ -220,7 +227,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  23)
+  24)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -242,28 +249,36 @@
     (when (state-looks-like-config state)
       (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
+(defn- setify [in]
+  (cond (set? in) in
+        (sequential? in) (into #{} in)
+        :else #{in}))
+
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
   :by-id-kw  -> What comes after the slash in the Ident tuple-2's first position. As a String.
                 By default is \"by-id\" as that's what project's I've looked at have used.
+                Also can be a #{} or [] of Strings where > 1 required.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
-                will mean that {:r 255 :g 255 :b 255} is accepted. This is a set #{} of these
-  :excluded-keys -> #{} of top level keys that we don't want to be part of normaliztion (must still be namespaced)
+                will mean that {:r 255 :g 255 :b 255} is accepted. This is a #{} or [] of these.
+  :excluded-keys -> #{} (or []) of top level keys that we don't want to be part of normalization (must still be namespaced)
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
-                in that it is indented to be there, and does not indicate failed normalization"
+                in that it is indented to be there, and does not indicate failed normalization."
   ([config state]
    (or (failed-state state)
        (let [are-not-slashed (not-slashed-keys state)]
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
            (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
-                 by-id-kw-fn? (by-id-kw-hof (or by-id-kw (:by-id-kw default-config)))
+                 kw (or by-id-kw (:by-id-kw default-config))
+                 by-id-kw-fn? (*by-id-kw-hof (setify kw))
                  predicate-fns {:by-id-kw?               by-id-kw-fn?
                                 :acceptable-table-value? (or acceptable-table-value-fn? always-false-fn)}
                  by-id (table-entries-impl by-id-kw-fn? state)
                  table-names (into #{} (map (comp category-part str key) by-id))
-                 non-by-id (ref-entries-impl by-id-kw-fn? state excluded-keys)
+                 keys-to-ignore (setify excluded-keys)
+                 non-by-id (ref-entries-impl by-id-kw-fn? state keys-to-ignore)
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (empty? table-names)
@@ -273,7 +288,8 @@
                                             "Expected to have categories - top level keywords should have a / in them,
                                             and the LHS is the name of the category")})
                  (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
-                       id-tester (partial table-entry->error predicate-fns okay-value-maps)]
+                       okay-maps (setify okay-value-maps)
+                       id-tester (partial table-entry->error predicate-fns okay-maps)]
                    (ret {:categories  categories
                          :known-names table-names
                          :not-normalized-ref-entries
