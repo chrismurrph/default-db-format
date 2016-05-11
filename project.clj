@@ -5,12 +5,11 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}  
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.170"]
-                 [org.omcljs/om "1.0.0-alpha31"]
+                 [org.omcljs/om "1.0.0-alpha32" :scope "provided"]
                  [cljsjs/react "0.14.3-0"]
                  [cljsjs/react-dom "0.14.3-1"]
                  [devcards "0.2.1-4"]
-                 [figwheel-sidecar "0.5.0-SNAPSHOT"]
-                 ]
+                 [figwheel-sidecar "0.5.0-SNAPSHOT"]]
 
   :jar-exclusions [#"cards" #"examples" #"index.html" #"cards.html" #"public" #"repl.clj"]
 
