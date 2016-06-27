@@ -121,16 +121,6 @@ The intended workflow is that feedback from the HUD will alert you to do one or 
 The inputs used here (see `check-config` above) serve to describe your app's state. So a good place to
  put them is in the same file as your app's initial state.
 
-##### Tip
-
-Mutations are supposed to be side effect free. Thus it can be difficult to debug them with `println`
- and `assert` statements. Om Next will happily continue without printing `println` statements, not reporting
- failed assertions, even ignoring mutation compilation errors!
-
-Thus it is often worth the effort to take a copy (as in copy/paste from browser console
- the result of `(pprint @my-reconciler)`) of your normalized state and code your mutations against that - completely
- outside of your Om Next application. Then bring them back in when they are working and side effect free.
-
 ##### Hacking/Improving
   
 The `examples` package contains files with `def`s in them where each `def` is normalized state that has 

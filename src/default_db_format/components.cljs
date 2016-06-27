@@ -99,7 +99,7 @@
                               (poor-assump-div failed-assumption)
                               (dom/div nil
                                        (when (seq not-normalized-ref-entries)
-                                         (dom/div nil "Normalization in refs problems (:excluded-keys in config will fix):"
+                                         (dom/div nil "Normalization in refs problems (:excluded-keys in config one way to fix):"
                                                   (refs-list-component {:id "Normalization in refs problems" :items not-normalized-ref-entries}))
                                          )
                                        (when (seq not-normalized-table-entries)

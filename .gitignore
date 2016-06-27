@@ -8,3 +8,5 @@
 figwheel_server.log
 *.iml
 pom.xml
+/out
+/.lein-plugins
