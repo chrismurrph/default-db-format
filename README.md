@@ -80,7 +80,8 @@ components will reflect these two types of errors.
                    :by-id-kw "by-id"})
   
 (defn check-default-db [state]
-  (let [version db-format/version
+  (let [_ (assert (some? st))
+        version db-format/version
         check-result (db-format/check check-config state)
         ok? (db-format/ok? check-result)
         msg-boiler (str "normalized (default-db-format ver: " version ")")
@@ -89,9 +90,8 @@ components will reflect these two types of errors.
                   (str "BAD: state not fully " msg-boiler))]
     (println message)
     (when (not ok?)
-      (pprint check-result) ;; <- check-result is a summary of state, so print one or the other
-      ;(pprint state)
-      (halt-receiving)) ;; <- project specific function that stops continuous state updates
+      (pprint check-result) ;; <- check-result is a summary of state, so print one or *the other*
+      ;(pprint state))      ;; <- *the other*
     (db-format/show-hud check-result))) ;; <- must be last, displays check-result
 ````
 
@@ -103,9 +103,10 @@ The call to the function we just wrote should be in your root component's render
 
 ````clojure
 (render [this]
-  (let [app-props (om/props this)]
+  (let [app-props (om/props this)
+        rec @my-reconciler]
     (dom/div nil
-             (check-default-db @my-reconciler)
+             (when rec (check-default-db rec))
              ...)))
 ````
 
@@ -153,9 +154,10 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is 26. Makes sense for when dealing with snapshots. 26 goes with "0.1.1-SNAPSHOT". It is displayed by
+The current internal version is 27. Makes sense for when dealing with snapshots. 27 goes with "0.1.1-SNAPSHOT". 27 is displayed by
  the HUD. Version history:
 
+ *  27. Om now *provided* and this one will be in Clojars
  *  26. Any function now accepted
  *  25. If ALL the keys are being ignored then `check` should pass (25 not released to Clojars)
  *  24. Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-kw and excluded-keys

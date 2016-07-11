@@ -239,7 +239,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  26)
+  27)
 
 (defn- ret [m]
   (merge m {:version version}))
