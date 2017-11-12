@@ -67,11 +67,10 @@
   (-> kw str exclude-colon))
 
 (defn category-part [s]
-  (let [res (-> s
-                (s/split #"/")
-                first
-                exclude-colon)]
-    res))
+  (-> s
+      (s/split #"/")
+      first
+      exclude-colon))
 
 (defn known-category [kw knowns]
   (let [before-slash (category-part (str kw))
@@ -89,39 +88,16 @@
   [by-id-kw-fn? knowns]
   (fn [[k v]]
     (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
-      (if k-err
-        k-err
-        (if (nil? v)
-          nil
-          (if (not (seqable? v))
-            [{:text (str "Not seqable") :problem [k v]}]
-            (if (empty? v)
-              nil
-              (let [val-is-ident (ident-like? by-id-kw-fn? v)
-                    val-is-vector-of-vectors (vec-of-idents? by-id-kw-fn? v)
-                    ;_ (println "is-ident: " val-is-ident ", is-vector-of-vectors: " val-is-vector-of-vectors ", val: " v)
-                    ]
-                (if (not val-is-vector-of-vectors)
-                  (if val-is-ident
-                    nil
-                    [{:text "Expect Idents" :problem k}])
-                  (let [non-idents (remove #(ident-like? by-id-kw-fn? %) v)]
-                    (when (pos? (count non-idents))
-                      [{:text "The vector value should (but does not) contain only Idents" :problem k}])))))))))))
-
-;;
-;; Wrong because map doesn't have order
-;;
-#_(defn map-of-partic-format?
-  "Returns true if the shape of the test-map is as given by vec-format e.g. [:r :g :b] {:r 0 :g 0 :b}"
-  [partic-vec-format test-map]
-  (when (map? test-map)
-    (let [;_ (println (str "FORMAT:" partic-vec-format " " test-map))
-          truths (map (fn [good-key [test-k _]] (= good-key test-k)) partic-vec-format test-map)
-          ;_ (println truths)
-          res (filter false? truths)
-          ]
-      (empty? res))))
+      (cond
+        k-err k-err
+        (nil? v) nil
+        (not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
+        (empty? v) nil
+        (vec-of-idents? by-id-kw-fn? v) (let [non-idents (remove #(ident-like? by-id-kw-fn? %) v)]
+                                          (when (pos? (count non-idents))
+                                            [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
+        (ident-like? by-id-kw-fn? v) nil
+        :else [{:text "Expect Idents" :problem k}]))))
 
 (defn map-of-partic-format?
   [partic-vec-format test-map]
@@ -157,9 +133,6 @@
   (or (= "[object Object]" (subs (str v) 0 15))
       ))
 
-(defn instant? [v]
-  (= "function Date() { [native code] }" (-> v type str)))
-
 (defn goog-date? [v]
   (= goog-date (subs (str (type v)) 0 (count goog-date))))
 
@@ -167,15 +140,7 @@
   (fn [v]
     (and (vector? v) (every? predicate-f? v))))
 
-(def vector-of-instants? (vector-of? instant?))
-
-;; Too permissive
-;;(def vector-of-keywords? (vector-of? keyword?))
-
-;; A simple map shows up as a function, so don't use this!!
-#_(defn function?
-  [v]
-  (= "function" (subs (str (type v)) 0 8)))
+(def vector-of-instants? (vector-of? inst?))
 
 (defn- how-fine-inside-leaf-table-entries-val
   "The (normalized) graph's values should only be true leaf data types or idents"
@@ -195,7 +160,7 @@
         (known-map? okay-value-maps val) :known-map
         (known-vector? okay-value-vectors val) :known-vector
         (fn? val) :function
-        (instant? val) :instant
+        (inst? val) :instant
         (vector-of-instants? val) :instants
         (goog-date? val) :goog-date
         (anything-else? val) :anything-else
@@ -232,9 +197,6 @@
             not-empty (not (empty? gathered))
             res {k (into {} gathered)}]
         (when not-empty res)))))
-
-;(defn test-err []
-;  (table-entry->error ["graph" "app"] :line/by-id (:line/by-id state)))
 
 (defn- ref-entries-impl
   "There are only two types of top level keys in 'default db format'. This function returns those for which
@@ -300,6 +262,12 @@
     (when (state-looks-like-config state)
       (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
+;;
+;; TODO
+;; :many-okay-map-keys-sets, that is a set of sets, and relax requirements that every must be included
+;; :many-okay-vector-vals-sets - same
+;; :excluded-keys - must be a set
+;;
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
@@ -307,7 +275,10 @@
                 By default is \"by-id\" as that's what project's I've looked at have used.
                 Also can be a #{} or [] of Strings where > 1 required.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
-                will mean that {:r 255 :g 255 :b 255} is accepted. This is a #{} or [] of these.
+                will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
+  :okay-value-vectors -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
+                will mean that [:report-1] is accepted but [:report-1 :report-3] is not. Note that the order
+                of the objects is not important. This is a #{} or [] of these.
   :excluded-keys -> #{} (or []) of keys that we don't want to be part of normalization (must still be namespaced)
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
                 in that it is intended to be there, and does not indicate failed normalization."
@@ -328,25 +299,24 @@
                  all-keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id)))
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
-             (if (and (empty? table-names)
-                      (pos? all-keys-count))
-               (ret {:failed-assumption (incorrect "by-id normalized file required")})
-               (if (and (empty? categories)
-                        (pos? all-keys-count))
-                 (ret {:failed-assumption (incorrect
-                                            "Expected to have categories - top level keywords should have a / in them,
-                                            and the LHS is the name of the category")})
-                 (let [ref-entries-tester (ref-entry->error-hof by-id-kw-fn? categories)
-                       okay-maps (setify okay-value-maps)
-                       okay-vectors (setify okay-value-vectors)
-                       id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
-                   (ret {:categories  categories
-                         :known-names table-names
-                         :not-normalized-ref-entries
-                                      (into #{}
-                                            (mapcat (fn [kv] (ref-entries-tester kv)) non-by-id))
-                         :not-normalized-table-entries
-                                      (into #{}
-                                            (into {} (mapcat (fn [kv] (id-tester kv)) by-id)))})))))))))
+             (cond
+               (and (empty? table-names)
+                    (pos? all-keys-count)) (ret {:failed-assumption (incorrect "by-id normalized file required")})
+               (and (empty? categories)
+                    (pos? all-keys-count)) (ret {:failed-assumption (incorrect
+                                                                      "Expected to have categories - top level keywords should have a / in them,
+                                                                      and the LHS is the name of the category")})
+               :else (let [ref-entries-tester (ref-entry->error-hof by-id-kw-fn? categories)
+                           okay-maps (setify okay-value-maps)
+                           okay-vectors (setify okay-value-vectors)
+                           id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
+                       (ret {:categories  categories
+                             :known-names table-names
+                             :not-normalized-ref-entries
+                                          (into #{}
+                                                (mapcat (fn [kv] (ref-entries-tester kv)) non-by-id))
+                             :not-normalized-table-entries
+                                          (into #{}
+                                                (into {} (mapcat (fn [kv] (id-tester kv)) by-id)))}))))))))
   ([state]
    (check default-config state)))
