@@ -2,7 +2,7 @@
   :description "Visual feedback if normalized data is not in 'default db format'."
   :url "https://github.com/chrismurrph/default-db-format"
   :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}  
+            :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.170"]
                  [org.omcljs/om "1.0.0-alpha32" :scope "provided"]
@@ -14,20 +14,22 @@
   :jar-exclusions [#"cards" #"examples" #"index.html" #"cards.html" #"public" #"repl.clj"]
 
   :scm {:name "git"
-        :url "https://github.com/chrismurrph/default-db-format"}
+        :url  "https://github.com/chrismurrph/default-db-format"}
 
   :plugins [[lein-cljsbuild "1.1.2"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/"
                                     "target"]
-                                    
+
+  :figwheel {:server-port 3450}
+
   :source-paths ["src" "script"]
-                 
-  :cljsbuild {:builds [{:id "devcards"
+
+  :cljsbuild {:builds [{:id           "devcards"
                         :source-paths ["src"]
-                        :figwheel { :devcards true }
-                        :compiler { :main       "cards.ui"
-                                    :asset-path "js/devcards_out"
-                                    :output-to  "resources/public/js/devcards.js"
-                                    :output-dir "resources/public/js/devcards_out"
-                                    :source-map-timestamp true }}]})
+                        :figwheel     {:devcards    true}
+                        :compiler     {:main                 "cards.ui"
+                                       :asset-path           "js/devcards_out"
+                                       :output-to            "resources/public/js/devcards.js"
+                                       :output-dir           "resources/public/js/devcards_out"
+                                       :source-map-timestamp true}}]})

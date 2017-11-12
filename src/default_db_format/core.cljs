@@ -7,6 +7,11 @@
 
 (enable-console-print!)
 
+(defn- setify [in]
+  (cond (set? in) in
+        (sequential? in) (into #{} in)
+        :else #{in}))
+
 (defn- probe [msg obj]
   (println (str (s/upper-case msg) ":\n" obj))
   obj)
@@ -31,7 +36,7 @@
   (let [all-kws (into #{} config-kw-str)]
     (fn [kw]
       (and (keyword? kw)
-           (some #{(name kw)} all-kws))))) ;; name returns part after "/", and works w/out "/" too (that we don't need)
+           (some #{(name kw)} all-kws)))))                  ;; name returns part after "/", and works w/out "/" too (that we don't need)
 
 (defn- *by-id-kw-hof
   [config-kw-strs]
@@ -43,15 +48,16 @@
 ;;
 ;; [:graph-point/by-id 2003]
 ;;
-(defn ident?
+(defn ident-like?
   "e.g. [:foo/by-id 203] passes, so long as first param is \"by-id\""
   [by-id-kw? tuple]
-  (and (vector? tuple)
-       (= 2 (count tuple))
-       (by-id-kw? (first tuple))
-       (number? (second tuple))))
+  (when (and (vector? tuple)
+             (= 2 (count tuple)))
+    (let [[cls id] tuple]
+      (and (by-id-kw? cls)
+           ((some-fn number? symbol? keyword?) id)))))
 
-(defn boolean? [v]
+(defn bool? [v]
   (or (true? v) (false? v)))
 
 (defn exclude-colon [s]
@@ -74,35 +80,39 @@
     (first (filter #(= % before-slash) knowns))))
 
 (defn vec-of-idents? [by-id-kw-fn? v]
-  (or (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident? by-id-kw-fn?) v)))
+  (or (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident-like? by-id-kw-fn?) v)))
       (and (vector? v) (empty? v))))
 
-(defn ref-entry->error
+(defn ref-entry->error-hof
   "Given non id top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
-  [by-id-kw-fn? knowns k v]
-  (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
-    (if k-err
-      k-err
-      (if (nil? v)
-        nil
-        (if (not (seqable? v))
-          [{:text (str "Not sequable") :problem (str "k: " k " v: " v)}]
-          (if (empty? v)
-            nil
-            (let [val-is-ident (ident? by-id-kw-fn? v)
-                  val-is-vector-of-vectors (vec-of-idents? by-id-kw-fn? v)
-                  ;_ (println "is-ident: " val-is-ident ", is-vector-of-vectors: " val-is-vector-of-vectors ", val: " v)
-                  ]
-              (if (not val-is-vector-of-vectors)
-                (if val-is-ident
-                  nil
-                  [{:text "Expect Idents" :problem k}])
-                (let [non-idents (remove #(ident? by-id-kw-fn? %) v)]
-                  (when (pos? (count non-idents))
-                    [{:text "The vector value should (but does not) contain only Idents" :problem k}]))))))))))
+  [by-id-kw-fn? knowns]
+  (fn [[k v]]
+    (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
+      (if k-err
+        k-err
+        (if (nil? v)
+          nil
+          (if (not (seqable? v))
+            [{:text (str "Not seqable") :problem [k v]}]
+            (if (empty? v)
+              nil
+              (let [val-is-ident (ident-like? by-id-kw-fn? v)
+                    val-is-vector-of-vectors (vec-of-idents? by-id-kw-fn? v)
+                    ;_ (println "is-ident: " val-is-ident ", is-vector-of-vectors: " val-is-vector-of-vectors ", val: " v)
+                    ]
+                (if (not val-is-vector-of-vectors)
+                  (if val-is-ident
+                    nil
+                    [{:text "Expect Idents" :problem k}])
+                  (let [non-idents (remove #(ident-like? by-id-kw-fn? %) v)]
+                    (when (pos? (count non-idents))
+                      [{:text "The vector value should (but does not) contain only Idents" :problem k}])))))))))))
 
-(defn map-of-partic-format?
+;;
+;; Wrong because map doesn't have order
+;;
+#_(defn map-of-partic-format?
   "Returns true if the shape of the test-map is as given by vec-format e.g. [:r :g :b] {:r 0 :g 0 :b}"
   [partic-vec-format test-map]
   (when (map? test-map)
@@ -113,9 +123,23 @@
           ]
       (empty? res))))
 
+(defn map-of-partic-format?
+  [partic-vec-format test-map]
+  (= (setify (keys test-map)) (setify partic-vec-format)))
+
 (defn known-map?
   [okay-value-maps test-map]
   (first (filter #(map-of-partic-format? % test-map) okay-value-maps)))
+
+;; Saying keys but could be anything
+(defn vector-of-partic-keys?
+  [partic-vec-keys test-vector]
+  (when (vector? test-vector)
+    (every? (setify partic-vec-keys) test-vector)))
+
+(defn known-vector?
+  [okay-value-vectors test-vector]
+  (first (filter #(vector-of-partic-keys? % test-vector) okay-value-vectors)))
 
 (def goog-date "function (opt_year, opt_month, opt_date, opt_hours,")
 ;;
@@ -131,61 +155,90 @@
   [v]
   ;(println "VAL: " (str v) ", OR: " v ", OR: " (type v) ", OR: " (str (type v)))
   (or (= "[object Object]" (subs (str v) 0 15))
-      #_(= "function Date" (subs (str (type v)) 0 13))
-      (= goog-date (subs (str (type v)) 0 (count goog-date)))
       ))
 
-(defn function?
+(defn instant? [v]
+  (= "function Date() { [native code] }" (-> v type str)))
+
+(defn goog-date? [v]
+  (= goog-date (subs (str (type v)) 0 (count goog-date))))
+
+(defn vector-of? [predicate-f?]
+  (fn [v]
+    (and (vector? v) (every? predicate-f? v))))
+
+(def vector-of-instants? (vector-of? instant?))
+
+;; Too permissive
+;;(def vector-of-keywords? (vector-of? keyword?))
+
+;; A simple map shows up as a function, so don't use this!!
+#_(defn function?
   [v]
   (= "function" (subs (str (type v)) 0 8)))
 
-(defn- bad-inside-leaf-table-entries-val?
+(defn- how-fine-inside-leaf-table-entries-val
   "The (normalized) graph's values should only be true leaf data types or idents"
-  [predicate-fns okay-value-maps v]
-  (let [{:keys [by-id-kw? acceptable-table-value?]} predicate-fns]
-    (assert (and by-id-kw? acceptable-table-value?))
-    (not (or (nil? v)
-             (number? v)
-             (string? v)
-             (ident? by-id-kw? v)
-             (boolean? v)
-             (keyword? v)
-             (vec-of-idents? by-id-kw? v)
-             (known-map? okay-value-maps v)
-             (function? v)
-             (anything-else? v)
-             (acceptable-table-value? v)
-             ))))
+  [predicate-fns okay-value-maps okay-value-vectors]
+  (fn [val]
+    (let [{:keys [by-id-kw-f? acceptable-table-value-f?]} predicate-fns]
+      (assert (and by-id-kw-f? acceptable-table-value-f?))
+      (cond
+        (nil? val) :nil
+        (number? val) :number
+        (string? val) :string
+        (ident-like? by-id-kw-f? val) :ident-like
+        (bool? val) :bool
+        (keyword? val) :keyword
+        (symbol? val) :symbol
+        (vec-of-idents? by-id-kw-f? val) :vec-of-idents
+        (known-map? okay-value-maps val) :known-map
+        (known-vector? okay-value-vectors val) :known-vector
+        (fn? val) :function
+        (instant? val) :instant
+        (vector-of-instants? val) :instants
+        (goog-date? val) :goog-date
+        (anything-else? val) :anything-else
+        (acceptable-table-value-f? val) :acceptable-table-value))))
 
-(defn- bad-inside-table-entry-val? [predicate-fns okay-value-maps map-value]
-  (for [[k v] map-value
-        :let [problem? (bad-inside-leaf-table-entries-val? predicate-fns okay-value-maps v)
-              msg-to-usr (when problem? [k v])]
-        :when problem?]
-    msg-to-usr))
+(defn- bad-inside-table-entry-val? [predicate-fns okay-value-maps okay-value-vectors keys-to-ignore]
+  (fn [obj-map]
+    (let [how-okay-f? (how-fine-inside-leaf-table-entries-val predicate-fns okay-value-maps okay-value-vectors)]
+      (for [[k v] obj-map
+            :let [how-okay (or (keys-to-ignore k) (how-okay-f? v))
+                  _ (when (= :current-route k)
+                      (println ":current-route s/be okay:" v "\nhow okay:" how-okay))
+                  problem? (nil? how-okay)
+                  msg-to-usr (when problem? [k v])]
+            :when problem?]
+        msg-to-usr))))
 
-(defn- gather-table-entry-bads-inside [predicate-fns okays-maps v]
-  (let [bad-inside? (partial bad-inside-table-entry-val? predicate-fns okays-maps)
-        res2 (mapcat (fn [kv] (when-let [res1 (bad-inside? (val kv))]
-                               res1
-                               )) v)]
+(defn- gather-table-entry-bads-inside [predicate-fns okays-maps okays-vectors keys-to-ignore id-obj-map]
+  (let [bad-inside? (bad-inside-table-entry-val? predicate-fns okays-maps okays-vectors keys-to-ignore)
+        res2 (mapcat (fn [[_ obj-map]]
+                       (when-let [res1 (bad-inside? obj-map)]
+                         res1))
+                     id-obj-map)]
     res2))
 
-(defn table-entry->error
+(defn table-entry->error-hof
   "Given id top level keys, find out those not in correct format and return them
   Returns nil if there is no error. Specific hash-map data structure is returned"
-  [predicate-fns okays-maps k v]
-  (if (not (map? v))
-    [(str "Value of " k " has to be a map")]
-    (let [gathered (gather-table-entry-bads-inside predicate-fns okays-maps v)
-          not-empty (not (empty? gathered))
-          res {k (into {} gathered)}]
-      (when not-empty res))))
+  [conformance-predicates okays-maps okays-vectors keys-to-ignore]
+  (fn [[k v]]
+    (if (not (map? v))
+      [(str "Value of " k " has to be a map")]
+      (let [gathered (gather-table-entry-bads-inside conformance-predicates okays-maps okays-vectors keys-to-ignore v)
+            not-empty (not (empty? gathered))
+            res {k (into {} gathered)}]
+        (when not-empty res)))))
 
 ;(defn test-err []
 ;  (table-entry->error ["graph" "app"] :line/by-id (:line/by-id state)))
 
 (defn- ref-entries-impl
+  "There are only two types of top level keys in 'default db format'. This function returns those for which
+  the part after the / is not 'by-id' (easiest to say 'by-id', but the String used can be configured)"
   ([by-id-kw-fn? state excluded-keys]
    (filter (fn [kv]
              (let [k (key kv)]
@@ -194,29 +247,15 @@
                     (= 2 (count (s/split (kw->str k) #"/"))))))
            state))
   ([by-id-kw-fn? state]
-    (ref-entries-impl by-id-kw-fn? state nil))
-  )
-
-(defn ref-entries
-  "There are only two types of top level keys in 'default db format'. This function returns those for which
-  the part after the / is not 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  ([by-id-kw-fn? state excluded-keys]
-   (into {} (ref-entries-impl by-id-kw-fn? state excluded-keys)))
-  ([by-id-kw-fn? state]
-   (into {} (ref-entries-impl by-id-kw-fn? state))))
+   (ref-entries-impl by-id-kw-fn? state nil)))
 
 (defn- table-entries-impl
-  [by-id-kw-fn? state]
-  (filter (fn [kv]
-            (let [k (key kv)]
-              (by-id-kw-fn? k)))
-          state))
-
-(defn table-entries
   "There are only two types of top level keys in 'default db format'. This function returns the 'by id' ones,
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured)"
   [by-id-kw-fn? state]
-  (into {} (table-entries-impl by-id-kw-fn? state)))
+  (filter (fn [[k _]]
+            (by-id-kw-fn? k))
+          state))
 
 ;;
 ;; Making this a hard and fast rule, even for keys that are to be ignored
@@ -231,7 +270,7 @@
 
 (def default-config
   "Used internally. This default (and prevalent) way of 'by-id' can be
-  overriden using config arg (:by-id-kw) to the check function"
+  overridden using config arg (:by-id-kw) to the check function"
   {:by-id-kw "by-id"})
 
 (def always-false-fn (fn [_] false))
@@ -239,7 +278,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  27)
+  28)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -261,11 +300,6 @@
     (when (state-looks-like-config state)
       (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
-(defn- setify [in]
-  (cond (set? in) in
-        (sequential? in) (into #{} in)
-        :else #{in}))
-
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
@@ -274,45 +308,45 @@
                 Also can be a #{} or [] of Strings where > 1 required.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                 will mean that {:r 255 :g 255 :b 255} is accepted. This is a #{} or [] of these.
-  :excluded-keys -> #{} (or []) of top level keys that we don't want to be part of normalization (must still be namespaced)
+  :excluded-keys -> #{} (or []) of keys that we don't want to be part of normalization (must still be namespaced)
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
-                in that it is indented to be there, and does not indicate failed normalization."
+                in that it is intended to be there, and does not indicate failed normalization."
   ([config state]
    (or (failed-state state)
        (let [are-not-slashed (not-slashed-keys state)]
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-           (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} config
+           (let [{:keys [okay-value-maps okay-value-vectors by-id-kw excluded-keys acceptable-table-value-fn?]} config
                  kw (or by-id-kw (:by-id-kw default-config))
                  by-id-kw-fn? (*by-id-kw-hof (setify kw))
-                 predicate-fns {:by-id-kw?               by-id-kw-fn?
-                                :acceptable-table-value? (or acceptable-table-value-fn? always-false-fn)}
+                 conformance-predicates {:by-id-kw-f?               by-id-kw-fn?
+                                         :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
                  by-id (table-entries-impl by-id-kw-fn? state)
                  table-names (into #{} (map (comp category-part str key) by-id))
                  keys-to-ignore (setify excluded-keys)
                  non-by-id (ref-entries-impl by-id-kw-fn? state keys-to-ignore)
-                 keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id)))
+                 all-keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id)))
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
              (if (and (empty? table-names)
-                      (pos? keys-count))
+                      (pos? all-keys-count))
                (ret {:failed-assumption (incorrect "by-id normalized file required")})
                (if (and (empty? categories)
-                        (pos? keys-count))
+                        (pos? all-keys-count))
                  (ret {:failed-assumption (incorrect
                                             "Expected to have categories - top level keywords should have a / in them,
                                             and the LHS is the name of the category")})
-                 (let [ref-entries-tester (partial ref-entry->error by-id-kw-fn? categories)
+                 (let [ref-entries-tester (ref-entry->error-hof by-id-kw-fn? categories)
                        okay-maps (setify okay-value-maps)
-                       id-tester (partial table-entry->error predicate-fns okay-maps)]
+                       okay-vectors (setify okay-value-vectors)
+                       id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
                    (ret {:categories  categories
                          :known-names table-names
                          :not-normalized-ref-entries
                                       (into #{}
-                                            (mapcat (fn [kv] (ref-entries-tester (key kv) (val kv))) non-by-id))
+                                            (mapcat (fn [kv] (ref-entries-tester kv)) non-by-id))
                          :not-normalized-table-entries
                                       (into #{}
-                                            (into {} (mapcat (fn [kv] (id-tester (key kv) (val kv))) by-id)))}))))
-             )))))
+                                            (into {} (mapcat (fn [kv] (id-tester kv)) by-id)))})))))))))
   ([state]
    (check default-config state)))
