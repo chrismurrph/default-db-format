@@ -7,6 +7,10 @@
 
 (enable-console-print!)
 
+;;
+;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use
+;; `set` constructor instead, which won't wrap a set it param might be given.
+;;
 (defn- setify [in]
   (cond (set? in) in
         (sequential? in) (into #{} in)
@@ -30,14 +34,6 @@
 
 (def display components/display)
 
-(defn by-id-kw-hof
-  "When I looked all projects used 'by-id'. Never-the-less, this is configurable"
-  [& config-kw-str]
-  (let [all-kws (into #{} config-kw-str)]
-    (fn [kw]
-      (and (keyword? kw)
-           (some #{(name kw)} all-kws)))))                  ;; name returns part after "/", and works w/out "/" too (that we don't need)
-
 (defn- *by-id-kw-hof
   [config-kw-strs]
   (assert (set? config-kw-strs))
@@ -45,16 +41,25 @@
     (and (keyword? kw)
          (some #{(name kw)} config-kw-strs))))
 
+(defn- *routed-ns-hof
+  [config-ns-strs]
+  (assert (set? config-ns-strs))
+  (fn [namespaced-kw]
+    (and (keyword? namespaced-kw)
+         (let [ns (namespace namespaced-kw)]
+           (and ns
+                (some #{ns} config-ns-strs))))))
+
 ;;
 ;; [:graph-point/by-id 2003]
 ;;
 (defn ident-like?
   "e.g. [:foo/by-id 203] passes, so long as first param is \"by-id\""
-  [by-id-kw? tuple]
+  [by-id-kw? routed-ns? tuple]
   (when (and (vector? tuple)
              (= 2 (count tuple)))
     (let [[cls id] tuple]
-      (and (by-id-kw? cls)
+      (and (or (by-id-kw? cls) (routed-ns? cls))
            ((some-fn number? symbol? keyword?) id)))))
 
 (defn bool? [v]
@@ -78,14 +83,18 @@
         ]
     (first (filter #(= % before-slash) knowns))))
 
-(defn vec-of-idents? [by-id-kw-fn? v]
-  (or (and (vector? v) (not-empty v) (vector? (first v)) (empty? (remove (partial ident-like? by-id-kw-fn?) v)))
-      (and (vector? v) (empty? v))))
+(defn vec-of-idents? [by-id-kw-fn? routed-ns-fn? v]
+  (or (and (vector? v)
+           (not-empty v)
+           (vector? (first v))
+           (empty? (remove (partial ident-like? by-id-kw-fn? routed-ns-fn?) v)))
+      (and (vector? v)
+           (empty? v))))
 
 (defn ref-entry->error-hof
   "Given non id top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
-  [by-id-kw-fn? knowns]
+  [by-id-kw-fn? routed-ns-fn? knowns]
   (fn [[k v]]
     (let [k-err (when (not (known-category k knowns)) [{:text (str "Unknown category") :problem (category-part (str k))}])]
       (cond
@@ -93,15 +102,15 @@
         (nil? v) nil
         (not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
         (empty? v) nil
-        (vec-of-idents? by-id-kw-fn? v) (let [non-idents (remove #(ident-like? by-id-kw-fn? %) v)]
-                                          (when (pos? (count non-idents))
-                                            [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
-        (ident-like? by-id-kw-fn? v) nil
+        (vec-of-idents? by-id-kw-fn? routed-ns-fn? v) (let [non-idents (remove #(ident-like? by-id-kw-fn? routed-ns-fn? %) v)]
+                                                        (when (pos? (count non-idents))
+                                                          [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
+        (ident-like? by-id-kw-fn? routed-ns-fn? v) nil
         :else [{:text "Expect Idents" :problem k}]))))
 
 (defn map-of-partic-format?
   [partic-vec-format test-map]
-  (= (setify (keys test-map)) (setify partic-vec-format)))
+  (= (set (keys test-map)) (set partic-vec-format)))
 
 (defn known-map?
   [okay-value-maps test-map]
@@ -111,7 +120,7 @@
 (defn vector-of-partic-keys?
   [partic-vec-keys test-vector]
   (when (vector? test-vector)
-    (every? (setify partic-vec-keys) test-vector)))
+    (every? (set partic-vec-keys) test-vector)))
 
 (defn known-vector?
   [okay-value-vectors test-vector]
@@ -146,17 +155,17 @@
   "The (normalized) graph's values should only be true leaf data types or idents"
   [predicate-fns okay-value-maps okay-value-vectors]
   (fn [val]
-    (let [{:keys [by-id-kw-f? acceptable-table-value-f?]} predicate-fns]
-      (assert (and by-id-kw-f? acceptable-table-value-f?))
+    (let [{:keys [by-id-kw-f? routed-ns-f? acceptable-table-value-f?]} predicate-fns]
+      (assert (and by-id-kw-f? routed-ns-f? acceptable-table-value-f?))
       (cond
         (nil? val) :nil
         (number? val) :number
         (string? val) :string
-        (ident-like? by-id-kw-f? val) :ident-like
+        (ident-like? by-id-kw-f? routed-ns-f? val) :ident-like
         (bool? val) :bool
         (keyword? val) :keyword
         (symbol? val) :symbol
-        (vec-of-idents? by-id-kw-f? val) :vec-of-idents
+        (vec-of-idents? by-id-kw-f? routed-ns-f? val) :vec-of-idents
         (known-map? okay-value-maps val) :known-map
         (known-vector? okay-value-vectors val) :known-vector
         (fn? val) :function
@@ -201,15 +210,16 @@
 (defn- ref-entries-impl
   "There are only two types of top level keys in 'default db format'. This function returns those for which
   the part after the / is not 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  ([by-id-kw-fn? state excluded-keys]
+  ([by-id-kw-fn? routed-ns-fn? state excluded-keys]
    (filter (fn [kv]
              (let [k (key kv)]
                (and (not (contains? excluded-keys k))
                     (not (by-id-kw-fn? k))
+                    (not (routed-ns-fn? k))
                     (= 2 (count (s/split (kw->str k) #"/"))))))
            state))
-  ([by-id-kw-fn? state]
-   (ref-entries-impl by-id-kw-fn? state nil)))
+  ([by-id-kw-fn? routed-ns-fn? state]
+   (ref-entries-impl by-id-kw-fn? routed-ns-fn? state nil)))
 
 (defn- table-entries-impl
   "There are only two types of top level keys in 'default db format'. This function returns the 'by id' ones,
@@ -233,7 +243,8 @@
 (def default-config
   "Used internally. This default (and prevalent) way of 'by-id' can be
   overridden using config arg (:by-id-kw) to the check function"
-  {:by-id-kw "by-id"})
+  {:by-id-kw   "by-id"
+   :routing-ns "routed"})
 
 (def always-false-fn (fn [_] false))
 
@@ -272,8 +283,10 @@
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
   :by-id-kw  -> What comes after the slash in the Ident tuple-2's first position. As a String.
-                By default is \"by-id\" as that's what project's I've looked at have used.
-                Also can be a #{} or [] of Strings where > 1 required.
+                By default is \"by-id\" as that's what the convention is.
+                Can be a #{} or [] of Strings where > 1 required.
+  :routing-ns -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
+                 \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                 will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
   :okay-value-vectors -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
@@ -287,15 +300,18 @@
        (let [are-not-slashed (not-slashed-keys state)]
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-           (let [{:keys [okay-value-maps okay-value-vectors by-id-kw excluded-keys acceptable-table-value-fn?]} config
+           (let [{:keys [okay-value-maps okay-value-vectors by-id-kw routing-ns excluded-keys acceptable-table-value-fn?]} config
                  kw (or by-id-kw (:by-id-kw default-config))
                  by-id-kw-fn? (*by-id-kw-hof (setify kw))
+                 ns (or routing-ns (:routing-ns default-config))
+                 routed-ns-fn? (*routed-ns-hof (setify ns))
                  conformance-predicates {:by-id-kw-f?               by-id-kw-fn?
+                                         :routed-ns-f?              routed-ns-fn?
                                          :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
                  by-id (table-entries-impl by-id-kw-fn? state)
                  table-names (into #{} (map (comp category-part str key) by-id))
                  keys-to-ignore (setify excluded-keys)
-                 non-by-id (ref-entries-impl by-id-kw-fn? state keys-to-ignore)
+                 non-by-id (ref-entries-impl by-id-kw-fn? routed-ns-fn? state keys-to-ignore)
                  all-keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id)))
                  ;_ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp category-part str key) non-by-id)))]
@@ -306,7 +322,7 @@
                     (pos? all-keys-count)) (ret {:failed-assumption (incorrect
                                                                       "Expected to have categories - top level keywords should have a / in them,
                                                                       and the LHS is the name of the category")})
-               :else (let [ref-entries-tester (ref-entry->error-hof by-id-kw-fn? categories)
+               :else (let [ref-entries-tester (ref-entry->error-hof by-id-kw-fn? routed-ns-fn? categories)
                            okay-maps (setify okay-value-maps)
                            okay-vectors (setify okay-value-vectors)
                            id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]

@@ -26,8 +26,6 @@
   :clean-targets ^{:protect false} ["resources/public/js/"
                                     "target"]
 
-  :figwheel {:server-port 3450}
-
   :source-paths ["src" "script"]
 
   :cljsbuild {:builds [{:id           "devcards"
