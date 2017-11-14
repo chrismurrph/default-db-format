@@ -80,6 +80,11 @@
   [okay-value-vectors test-vector]
   (first (filter #(vector-of-partic-keys? % test-vector) okay-value-vectors)))
 
+(defn cljs-inst? [x]
+  #_(inst? x)
+  ;; Works for any version of cljs:
+  (instance? js/Date x))
+
 (def goog-date "function (opt_year, opt_month, opt_date, opt_hours,")
 ;;
 ;; This should catch anything complicated put into the state, for instance a channel:
@@ -88,24 +93,29 @@
 ;; Hmm - that didn't catch time, so another check looking just for "function Date"
 ;; Hmm - need this to be user definable as who knows what types...
 ;; Have now done user definable - :acceptable-table-value-fn? in the input map
-;; Strategy will be to hard-code common things here
+;; Strategy will be to hard-code common things here, so library user doesn't have to
 ;;
 (defn anything-else?
   [v]
   ;(println "VAL: " (str v) ", OR: " v ", OR: " (type v) ", OR: " (str (type v)))
-  (or (= "[object Object]" (subs (str v) 0 15))
-      ))
+  (or (= "[object Object]" (subs (str v) 0 15))))
 
 (defn goog-date? [v]
   (= goog-date (subs (str (type v)) 0 (count goog-date))))
+
+;;
+;; A temporary loading thing, not easily dumped
+;;
+(defn fulcro-fetch-state? [v]
+  (-> v :ui/fetch-state map?))
 
 (defn vector-of? [predicate-f?]
   (fn [v]
     (and (vector? v) (every? predicate-f? v))))
 
-(def vector-of-instants? (vector-of? inst?))
+(def vector-of-instants? (vector-of? cljs-inst?))
 
-(defn- how-fine-inside-leaf-table-entries-val
+(defn how-fine-inside-leaf-table-entries-val
   "The (normalized) graph's values should only be true leaf data types or idents"
   [predicate-fns okay-value-maps okay-value-vectors]
   (fn [val]
@@ -123,10 +133,11 @@
         (known-map? okay-value-maps val) :known-map
         (known-vector? okay-value-vectors val) :known-vector
         (fn? val) :function
-        (inst? val) :instant
+        (cljs-inst? val) :instant
         (vector-of-instants? val) :instants
         (goog-date? val) :goog-date
         (anything-else? val) :anything-else
+        (fulcro-fetch-state? val) :fulcro-fetch-state
         (acceptable-table-value-f? val) :acceptable-table-value))))
 
 (defn- bad-inside-table-entry-val? [predicate-fns okay-value-maps okay-value-vectors keys-to-ignore]
@@ -254,7 +265,6 @@
                  keys-to-ignore (help/setify excluded-keys)
                  non-by-id (ref-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
                  all-keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id-table-entries)))
-                 _ (println "non by id:" non-by-id)
                  categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
              (cond
                (and (empty? table-names)
