@@ -7,6 +7,12 @@
 
 (enable-console-print!)
 
+(def default-config
+  "Used internally. This default (and prevalent) way of 'by-id' can be
+  overridden using config arg (:by-id-kw) to the check function"
+  {:by-id-kw   "by-id"
+   :routing-ns "routed"})
+
 ;;
 ;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use
 ;; `set` constructor instead, which won't wrap a set it param might be given.
@@ -15,6 +21,44 @@
   (cond (set? in) in
         (sequential? in) (into #{} in)
         :else #{in}))
+
+(defn- *by-id-kw-hof
+  [config-kw-strs]
+  (assert (set? config-kw-strs))
+  (fn [kw]
+    (and (keyword? kw)
+         (some #{(name kw)} config-kw-strs))))
+
+(def default-by-id-f (*by-id-kw-hof (setify (:by-id-kw default-config))))
+
+(defn- *routed-ns-hof
+  [config-ns-strs]
+  (assert (set? config-ns-strs))
+  (fn [namespaced-kw]
+    (and (keyword? namespaced-kw)
+         (let [ns (namespace namespaced-kw)]
+           (and ns
+                (some #{ns} config-ns-strs))))))
+
+(def default-routed-ns-f (*routed-ns-hof (setify (:routing-ns default-config))))
+
+;;
+;; TODO
+;; Make ident-like? a -hof with outer function taking the same config that check gets.
+;; Thus externally it can be used relatively easily.
+;; At the moment we are just lucky that `check` is using the defaults anyway.
+;; [:graph-point/by-id 2003]
+;;
+(defn ident-like?
+  "e.g. [:foo/by-id 203] passes, so long as first param is \"by-id\""
+  ([by-id-kw? routed-ns? tuple]
+   (when (and (vector? tuple)
+              (= 2 (count tuple)))
+     (let [[cls id] tuple]
+       (and (or (by-id-kw? cls) (routed-ns? cls))
+            ((some-fn number? symbol? keyword?) id)))))
+  ([tuple]
+    (ident-like? default-by-id-f default-routed-ns-f tuple)))
 
 (defn- probe [msg obj]
   (println (str (s/upper-case msg) ":\n" obj))
@@ -33,34 +77,6 @@
   (display-db-component check-result))
 
 (def display components/display)
-
-(defn- *by-id-kw-hof
-  [config-kw-strs]
-  (assert (set? config-kw-strs))
-  (fn [kw]
-    (and (keyword? kw)
-         (some #{(name kw)} config-kw-strs))))
-
-(defn- *routed-ns-hof
-  [config-ns-strs]
-  (assert (set? config-ns-strs))
-  (fn [namespaced-kw]
-    (and (keyword? namespaced-kw)
-         (let [ns (namespace namespaced-kw)]
-           (and ns
-                (some #{ns} config-ns-strs))))))
-
-;;
-;; [:graph-point/by-id 2003]
-;;
-(defn ident-like?
-  "e.g. [:foo/by-id 203] passes, so long as first param is \"by-id\""
-  [by-id-kw? routed-ns? tuple]
-  (when (and (vector? tuple)
-             (= 2 (count tuple)))
-    (let [[cls id] tuple]
-      (and (or (by-id-kw? cls) (routed-ns? cls))
-           ((some-fn number? symbol? keyword?) id)))))
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -180,8 +196,8 @@
     (let [how-okay-f? (how-fine-inside-leaf-table-entries-val predicate-fns okay-value-maps okay-value-vectors)]
       (for [[k v] obj-map
             :let [how-okay (or (keys-to-ignore k) (how-okay-f? v))
-                  _ (when (= :current-route k)
-                      (println ":current-route s/be okay:" v "\nhow okay:" how-okay))
+                  ;_ (when (= :current-route k)
+                  ;    (println ":current-route s/be okay:" v "\nhow okay:" how-okay))
                   problem? (nil? how-okay)
                   msg-to-usr (when problem? [k v])]
             :when problem?]
@@ -240,12 +256,6 @@
                     (not= 2 (count (s/split (kw->str k) #"/")))))
                 state)))
 
-(def default-config
-  "Used internally. This default (and prevalent) way of 'by-id' can be
-  overridden using config arg (:by-id-kw) to the check function"
-  {:by-id-kw   "by-id"
-   :routing-ns "routed"})
-
 (def always-false-fn (fn [_] false))
 
 (def version
@@ -282,19 +292,19 @@
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
-  :by-id-kw  -> What comes after the slash in the Ident tuple-2's first position. As a String.
-                By default is \"by-id\" as that's what the convention is.
-                Can be a #{} or [] of Strings where > 1 required.
+  :by-id-kw -> What comes after the slash in the Ident tuple-2's first position. As a String.
+               By default is \"by-id\" as that's what the convention is.
+               Can be a #{} or [] of Strings where > 1 required.
   :routing-ns -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
-                 \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
+               \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
-                will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
+               will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
   :okay-value-vectors -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
-                will mean that [:report-1] is accepted but [:report-1 :report-3] is not. Note that the order
-                of the objects is not important. This is a #{} or [] of these.
+               will mean that [:report-1] is accepted but [:report-1 :report-3] is not. Note that the order
+               of the objects is not important. This is a #{} or [] of these.
   :excluded-keys -> #{} (or []) of keys that we don't want to be part of normalization (must still be namespaced)
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
-                in that it is intended to be there, and does not indicate failed normalization."
+               in that it is intended to be there, and does not indicate failed normalization."
   ([config state]
    (or (failed-state state)
        (let [are-not-slashed (not-slashed-keys state)]
