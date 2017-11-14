@@ -1,6 +1,7 @@
 (ns examples.gases
-  (:require [cljs.core.async :as async
-             :refer [chan]]))
+  (:require
+    #?(:cljs [cljs.core.async :refer [chan]])
+    #?(:clj [clojure.core.async :refer [chan]])))
 
 (def gas-norm-state
   {:graph/drop-info [:drop-info/by-id 10200],
@@ -597,268 +598,268 @@
                              [:gas-of-system/by-id 151]
                              [:gas-of-system/by-id 152]
                              [:gas-of-system/by-id 153]],
-   :graph/labels-visible? false,
-   :graph/hover-pos nil,
+   :graph/labels-visible?   false,
+   :graph/hover-pos         nil,
    :gas-at-location/by-id
                             {512
-                             {:id 512,
+                             {:id         512,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1003]},
+                              :tube       [:tube/by-id 1003]},
                              513
-                             {:id 513,
+                             {:id         513,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1003],
-                              :selected true},
+                              :tube       [:tube/by-id 1003],
+                              :selected   true},
                              514
-                             {:id 514,
+                             {:id         514,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1003]},
+                              :tube       [:tube/by-id 1003]},
                              515
-                             {:id 515,
+                             {:id         515,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1003]},
+                              :tube       [:tube/by-id 1003]},
                              516
-                             {:id 516,
+                             {:id         516,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1004]},
+                              :tube       [:tube/by-id 1004]},
                              517
-                             {:id 517,
+                             {:id         517,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1004]},
+                              :tube       [:tube/by-id 1004]},
                              518
-                             {:id 518,
+                             {:id         518,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1004]},
+                              :tube       [:tube/by-id 1004]},
                              519
-                             {:id 519,
+                             {:id         519,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1004]},
+                              :tube       [:tube/by-id 1004]},
                              520
-                             {:id 520,
+                             {:id         520,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1005]},
+                              :tube       [:tube/by-id 1005]},
                              521
-                             {:id 521,
+                             {:id         521,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1005]},
+                              :tube       [:tube/by-id 1005]},
                              522
-                             {:id 522,
+                             {:id         522,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1005]},
+                              :tube       [:tube/by-id 1005]},
                              523
-                             {:id 523,
+                             {:id         523,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1005]},
+                              :tube       [:tube/by-id 1005]},
                              524
-                             {:id 524,
+                             {:id         524,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1006]},
+                              :tube       [:tube/by-id 1006]},
                              525
-                             {:id 525,
+                             {:id         525,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1006]},
+                              :tube       [:tube/by-id 1006]},
                              526
-                             {:id 526,
+                             {:id         526,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1006]},
+                              :tube       [:tube/by-id 1006]},
                              527
-                             {:id 527,
+                             {:id         527,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1006]},
+                              :tube       [:tube/by-id 1006]},
                              528
-                             {:id 528,
+                             {:id         528,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1007]},
+                              :tube       [:tube/by-id 1007]},
                              529
-                             {:id 529,
+                             {:id         529,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1007]},
+                              :tube       [:tube/by-id 1007]},
                              530
-                             {:id 530,
+                             {:id         530,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1007]},
+                              :tube       [:tube/by-id 1007]},
                              531
-                             {:id 531,
+                             {:id         531,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1007]},
+                              :tube       [:tube/by-id 1007]},
                              500
-                             {:id 500,
+                             {:id         500,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1000],
-                              :selected true},
+                              :tube       [:tube/by-id 1000],
+                              :selected   true},
                              532
-                             {:id 532,
+                             {:id         532,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1008]},
+                              :tube       [:tube/by-id 1008]},
                              501
-                             {:id 501,
+                             {:id         501,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1000]},
+                              :tube       [:tube/by-id 1000]},
                              533
-                             {:id 533,
+                             {:id         533,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1008]},
+                              :tube       [:tube/by-id 1008]},
                              502
-                             {:id 502,
+                             {:id         502,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1000]},
+                              :tube       [:tube/by-id 1000]},
                              534
-                             {:id 534,
+                             {:id         534,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1008]},
+                              :tube       [:tube/by-id 1008]},
                              503
-                             {:id 503,
+                             {:id         503,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1000]},
+                              :tube       [:tube/by-id 1000]},
                              535
-                             {:id 535,
+                             {:id         535,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1008]},
+                              :tube       [:tube/by-id 1008]},
                              504
-                             {:id 504,
+                             {:id         504,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1001]},
+                              :tube       [:tube/by-id 1001]},
                              536
-                             {:id 536,
+                             {:id         536,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1009]},
+                              :tube       [:tube/by-id 1009]},
                              505
-                             {:id 505,
+                             {:id         505,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1001]},
+                              :tube       [:tube/by-id 1001]},
                              537
-                             {:id 537,
+                             {:id         537,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1009]},
+                              :tube       [:tube/by-id 1009]},
                              506
-                             {:id 506,
+                             {:id         506,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1001]},
+                              :tube       [:tube/by-id 1001]},
                              538
-                             {:id 538,
+                             {:id         538,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1009]},
+                              :tube       [:tube/by-id 1009]},
                              507
-                             {:id 507,
+                             {:id         507,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1001]},
+                              :tube       [:tube/by-id 1001]},
                              539
-                             {:id 539,
+                             {:id         539,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1009]},
+                              :tube       [:tube/by-id 1009]},
                              508
-                             {:id 508,
+                             {:id         508,
                               :system-gas [:gas-of-system/by-id 150],
-                              :tube [:tube/by-id 1002]},
+                              :tube       [:tube/by-id 1002]},
                              509
-                             {:id 509,
+                             {:id         509,
                               :system-gas [:gas-of-system/by-id 151],
-                              :tube [:tube/by-id 1002]},
+                              :tube       [:tube/by-id 1002]},
                              510
-                             {:id 510,
+                             {:id         510,
                               :system-gas [:gas-of-system/by-id 152],
-                              :tube [:tube/by-id 1002]},
+                              :tube       [:tube/by-id 1002]},
                              511
-                             {:id 511,
+                             {:id         511,
                               :system-gas [:gas-of-system/by-id 153],
-                              :tube [:tube/by-id 1002],
-                              :selected true}},
+                              :tube       [:tube/by-id 1002],
+                              :selected   true}},
    :x-gas-details/by-id
                             {10100
-                             {:id 10100,
-                              :name "Carbon Dioxide at 1",
-                              :proportional-y 146.33422462612975,
+                             {:id               10100,
+                              :name             "Carbon Dioxide at 1",
+                              :proportional-y   146.33422462612975,
                               :proportional-val 0.19667279430464207},
                              10101
-                             {:id 10101,
-                              :name "Carbon Monoxide at 1",
-                              :proportional-y 131.68775824757364,
+                             {:id               10101,
+                              :name             "Carbon Monoxide at 1",
+                              :proportional-y   131.68775824757364,
                               :proportional-val 11.337551649514731},
                              10102
-                             {:id 10102,
-                              :name "Oxygen at 1",
-                              :proportional-y 161.68775824757364,
+                             {:id               10102,
+                              :name             "Oxygen at 1",
+                              :proportional-y   161.68775824757364,
                               :proportional-val 10.337551649514731}},
    :graph/x-gas-details
                             [[:x-gas-details/by-id 10100]
                              [:x-gas-details/by-id 10101]
                              [:x-gas-details/by-id 10102]],
-   :graph/args nil,
-   :graph/translators {:horiz nil, :vert nil, :point nil},
-   :graph/drop-info [:drop-info/by-id 10200],
+   :graph/args              nil,
+   :graph/translators       {:horiz nil, :vert nil, :point nil},
+   :graph/drop-info         [:drop-info/by-id 10200],
    :line/by-id
                             {100
-                             {:id 100,
-                              :name "Methane at 1",
-                              :units "%",
-                              :colour {:r 255, :g 0, :b 255},
+                             {:id        100,
+                              :name      "Methane at 1",
+                              :units     "%",
+                              :colour    {:r 255, :g 0, :b 255},
                               :intersect [:gas-at-location/by-id 500],
                               :graph/points
-                              [[:graph-point/by-id 2000]
-                               [:graph-point/by-id 2001]
-                               [:graph-point/by-id 2002]]},
+                                         [[:graph-point/by-id 2000]
+                                          [:graph-point/by-id 2001]
+                                          [:graph-point/by-id 2002]]},
                              101
-                             {:id 101,
-                              :name "Oxygen at 1",
-                              :units "%",
-                              :colour {:r 0, :g 102, :b 0},
+                             {:id        101,
+                              :name      "Oxygen at 1",
+                              :units     "%",
+                              :colour    {:r 0, :g 102, :b 0},
                               :intersect [:gas-at-location/by-id 501],
                               :graph/points
-                              [[:graph-point/by-id 2003]
-                               [:graph-point/by-id 2004]
-                               [:graph-point/by-id 2005]]},
+                                         [[:graph-point/by-id 2003]
+                                          [:graph-point/by-id 2004]
+                                          [:graph-point/by-id 2005]]},
                              102
-                             {:id 102,
-                              :name "Carbon Dioxide at 1",
-                              :units "%",
-                              :colour {:r 0, :g 51, :b 102},
+                             {:id        102,
+                              :name      "Carbon Dioxide at 1",
+                              :units     "%",
+                              :colour    {:r 0, :g 51, :b 102},
                               :intersect [:gas-at-location/by-id 503],
                               :graph/points
-                              [[:graph-point/by-id 2006]
-                               [:graph-point/by-id 2007]
-                               [:graph-point/by-id 2008]]},
+                                         [[:graph-point/by-id 2006]
+                                          [:graph-point/by-id 2007]
+                                          [:graph-point/by-id 2008]]},
                              103
-                             {:id 103,
-                              :name "Carbon Monoxide at 1",
-                              :units "ppm",
-                              :colour {:r 255, :g 0, :b 0},
+                             {:id        103,
+                              :name      "Carbon Monoxide at 1",
+                              :units     "ppm",
+                              :colour    {:r 255, :g 0, :b 0},
                               :intersect [:gas-at-location/by-id 502],
                               :graph/points
-                              [[:graph-point/by-id 2009]
-                               [:graph-point/by-id 2010]
-                               [:graph-point/by-id 2011]]}},
-   :graph/labels [[:label/by-id 10000]],
+                                         [[:graph-point/by-id 2009]
+                                          [:graph-point/by-id 2010]
+                                          [:graph-point/by-id 2011]]}},
+   :graph/labels            [[:label/by-id 10000]],
    :label/by-id
                             {10000 {:id 10000, :name "Carbon Monoxide at 1", :dec-places 1}},
    :button/by-id
                             {1 {:id 1, :name "Map", :description "Mine plan", :showing true},
                              2
-                               {:id 2,
-                                :name "Trending",
+                               {:id          2,
+                                :name        "Trending",
                                 :description "Live data, Trending",
-                                :showing true},
+                                :showing     true},
                              3
-                               {:id 3,
-                                :name "Thresholds",
+                               {:id          3,
+                                :name        "Thresholds",
                                 :description "Alarm Thresholds",
-                                :showing true},
+                                :showing     true},
                              4
-                               {:id 4,
-                                :name "Reports",
+                               {:id          4,
+                                :name        "Reports",
                                 :description "Event Reports",
-                                :showing true},
+                                :showing     true},
                              5
-                               {:id 5,
-                                :name "Automatic",
+                               {:id          5,
+                                :name        "Automatic",
                                 :description "Automatic Tube Bundle",
-                                :showing true},
+                                :showing     true},
                              6 {:id 6, :name "Logs", :description "Warning Log", :showing true}},
    :plumb-line/by-id
                             {10201
-                             {:id 10201,
-                              :height 30,
-                              :visible? true,
-                              :x-position 10,
+                             {:id              10201,
+                              :height          30,
+                              :visible?        true,
+                              :x-position      10,
                               :in-sticky-time? false}},
    :gas-of-system/by-id
                             {150 {:id 150, :long-name "Methane", :short-name "CH₄"},
@@ -880,27 +881,27 @@
                              2011 {:id 2011, :x 51, :y 34}},
    :drop-info/by-id
                             {10200
-                             {:id 10200,
-                              :x 50,
+                             {:id            10200,
+                              :x             50,
                               :lines
-                              [[:line/by-id 100]
-                               [:line/by-id 101]
-                               [:line/by-id 102]
-                               [:line/by-id 103]],
+                                             [[:line/by-id 100]
+                                              [:line/by-id 101]
+                                              [:line/by-id 102]
+                                              [:line/by-id 103]],
                               :current-label [:label/by-id 10000],
                               :x-gas-details
-                              [[:x-gas-details/by-id 10100]
-                               [:x-gas-details/by-id 10101]
-                               [:x-gas-details/by-id 10102]]}},
-   :graph/init {:height 250, :width 640},
+                                             [[:x-gas-details/by-id 10100]
+                                              [:x-gas-details/by-id 10101]
+                                              [:x-gas-details/by-id 10102]]}},
+   :graph/init              {:height 250, :width 640},
    :graph/lines
                             [[:line/by-id 100]
                              [:line/by-id 101]
                              [:line/by-id 102]
                              [:line/by-id 103]],
    :graph/last-mouse-moment nil,
-   :app/selected-button [:button/by-id 3],
-   :graph/plumb-line [:plumb-line/by-id 10201],
+   :app/selected-button     [:button/by-id 3],
+   :graph/plumb-line        [:plumb-line/by-id 10201],
    :graph/points
                             [[:graph-point/by-id 2000]
                              [:graph-point/by-id 2001]
@@ -916,85 +917,85 @@
                              [:graph-point/by-id 2011]],
    :tube/by-id
                             {1000
-                             {:id 1000,
+                             {:id       1000,
                               :tube-num 1,
                               :tube/gases
-                              [[:gas-at-location/by-id 500]
-                               [:gas-at-location/by-id 501]
-                               [:gas-at-location/by-id 502]
-                               [:gas-at-location/by-id 503]]},
+                                        [[:gas-at-location/by-id 500]
+                                         [:gas-at-location/by-id 501]
+                                         [:gas-at-location/by-id 502]
+                                         [:gas-at-location/by-id 503]]},
                              1001
-                             {:id 1001,
+                             {:id       1001,
                               :tube-num 2,
                               :tube/gases
-                              [[:gas-at-location/by-id 504]
-                               [:gas-at-location/by-id 505]
-                               [:gas-at-location/by-id 506]
-                               [:gas-at-location/by-id 507]]},
+                                        [[:gas-at-location/by-id 504]
+                                         [:gas-at-location/by-id 505]
+                                         [:gas-at-location/by-id 506]
+                                         [:gas-at-location/by-id 507]]},
                              1002
-                             {:id 1002,
+                             {:id       1002,
                               :tube-num 3,
                               :tube/gases
-                              [[:gas-at-location/by-id 508]
-                               [:gas-at-location/by-id 509]
-                               [:gas-at-location/by-id 510]
-                               [:gas-at-location/by-id 511]]},
+                                        [[:gas-at-location/by-id 508]
+                                         [:gas-at-location/by-id 509]
+                                         [:gas-at-location/by-id 510]
+                                         [:gas-at-location/by-id 511]]},
                              1003
-                             {:id 1003,
+                             {:id       1003,
                               :tube-num 4,
                               :tube/gases
-                              [[:gas-at-location/by-id 512]
-                               [:gas-at-location/by-id 513]
-                               [:gas-at-location/by-id 514]
-                               [:gas-at-location/by-id 515]]},
+                                        [[:gas-at-location/by-id 512]
+                                         [:gas-at-location/by-id 513]
+                                         [:gas-at-location/by-id 514]
+                                         [:gas-at-location/by-id 515]]},
                              1004
-                             {:id 1004,
+                             {:id       1004,
                               :tube-num 5,
                               :tube/gases
-                              [[:gas-at-location/by-id 516]
-                               [:gas-at-location/by-id 517]
-                               [:gas-at-location/by-id 518]
-                               [:gas-at-location/by-id 519]]},
+                                        [[:gas-at-location/by-id 516]
+                                         [:gas-at-location/by-id 517]
+                                         [:gas-at-location/by-id 518]
+                                         [:gas-at-location/by-id 519]]},
                              1005
-                             {:id 1005,
+                             {:id       1005,
                               :tube-num 6,
                               :tube/gases
-                              [[:gas-at-location/by-id 520]
-                               [:gas-at-location/by-id 521]
-                               [:gas-at-location/by-id 522]
-                               [:gas-at-location/by-id 523]]},
+                                        [[:gas-at-location/by-id 520]
+                                         [:gas-at-location/by-id 521]
+                                         [:gas-at-location/by-id 522]
+                                         [:gas-at-location/by-id 523]]},
                              1006
-                             {:id 1006,
+                             {:id       1006,
                               :tube-num 7,
                               :tube/gases
-                              [[:gas-at-location/by-id 524]
-                               [:gas-at-location/by-id 525]
-                               [:gas-at-location/by-id 526]
-                               [:gas-at-location/by-id 527]]},
+                                        [[:gas-at-location/by-id 524]
+                                         [:gas-at-location/by-id 525]
+                                         [:gas-at-location/by-id 526]
+                                         [:gas-at-location/by-id 527]]},
                              1007
-                             {:id 1007,
+                             {:id       1007,
                               :tube-num 8,
                               :tube/gases
-                              [[:gas-at-location/by-id 528]
-                               [:gas-at-location/by-id 529]
-                               [:gas-at-location/by-id 530]
-                               [:gas-at-location/by-id 531]]},
+                                        [[:gas-at-location/by-id 528]
+                                         [:gas-at-location/by-id 529]
+                                         [:gas-at-location/by-id 530]
+                                         [:gas-at-location/by-id 531]]},
                              1008
-                             {:id 1008,
+                             {:id       1008,
                               :tube-num 9,
                               :tube/gases
-                              [[:gas-at-location/by-id 532]
-                               [:gas-at-location/by-id 533]
-                               [:gas-at-location/by-id 534]
-                               [:gas-at-location/by-id 535]]},
+                                        [[:gas-at-location/by-id 532]
+                                         [:gas-at-location/by-id 533]
+                                         [:gas-at-location/by-id 534]
+                                         [:gas-at-location/by-id 535]]},
                              1009
-                             {:id 1009,
+                             {:id       1009,
                               :tube-num 10,
                               :tube/gases
-                              [[:gas-at-location/by-id 536]
-                               [:gas-at-location/by-id 537]
-                               [:gas-at-location/by-id 538]
-                               [:gas-at-location/by-id 539]]}}})
+                                        [[:gas-at-location/by-id 536]
+                                         [:gas-at-location/by-id 537]
+                                         [:gas-at-location/by-id 538]
+                                         [:gas-at-location/by-id 539]]}}})
 
 (def real-project-empty-points
   {:tube/gases

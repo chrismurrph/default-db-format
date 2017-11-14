@@ -44,5 +44,5 @@
                      :entity/deleted? false,
                      :code/name       "Taha",
                      :code/type       [:code-type/by-id 17592186045423]}},
-   :clinic/by-id   {NaN {:db/id nil}}})
+   :clinic/by-id   {Double/NaN {:db/id nil}}})
 

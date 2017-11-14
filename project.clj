@@ -4,19 +4,13 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
-                 [org.clojure/clojurescript "1.9.854"]
+                 [org.clojure/clojurescript "1.9.854" :scope "provided"]
                  [org.omcljs/om "1.0.0-beta1" :scope "provided"]
-                 ; Surely om will be picking up what it needs
-                 ;[cljsjs/react "0.14.3-0"]
-                 ;[cljsjs/react-dom "0.14.3-1"]
-                 ;
-                 ;[devcards "0.2.1-4"]
-                 ;[figwheel-sidecar "0.5.0-SNAPSHOT"]
-                 [devcards "0.2.3"]
-                 [figwheel-sidecar "0.5.11" :exclusions [org.clojure/tools.reader]]
+                 [org.clojure/tools.namespace "0.3.0-alpha4"]
+                 [org.clojure/core.async "0.3.443"]
                  ]
 
-  :jar-exclusions [#"cards" #"examples" #"index.html" #"cards.html" #"public" #"repl.clj"]
+  :jar-exclusions [#"examples" #"test_helpers.clj"]
 
   :scm {:name "git"
         :url  "https://github.com/chrismurrph/default-db-format"}
@@ -26,13 +20,4 @@
   :clean-targets ^{:protect false} ["resources/public/js/"
                                     "target"]
 
-  :source-paths ["src" "script"]
-
-  :cljsbuild {:builds [{:id           "devcards"
-                        :source-paths ["src"]
-                        :figwheel     {:devcards    true}
-                        :compiler     {:main                 "cards.ui"
-                                       :asset-path           "js/devcards_out"
-                                       :output-to            "resources/public/js/devcards.js"
-                                       :output-dir           "resources/public/js/devcards_out"
-                                       :source-map-timestamp true}}]})
+  :source-paths ["src" "dev" "script" "test"])
