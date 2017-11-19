@@ -33,6 +33,11 @@
 ;; as a problem because further mutations will fix the state up later. Hence the
 ;; after-1500ms-forced-render does another check, quite likely on different state.
 ;;
+;; If the timeout is not long enough then the errors will persist in the HUD even
+;; although they have cleared from db state. To fix could have a number of times
+;; retry for any given error message. Most likely I'll never get round to that - just
+;; keep the timeout long enough!
+;;
 (defn watch-state
   ([config reconciler timeout]
    (let [timeout (or timeout 1500)

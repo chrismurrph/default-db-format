@@ -28,9 +28,9 @@ One way of using this library is to put some code into your root component's ren
 
 `check` makes sure that every join is an Ident or a vector of Idents. Conversely the one thing you don't want to see in a join is `{:db/id whatever}`. 
 
-You may have denormalized value objects in your data. Unless this library is told about these it will either incorrectly report a problem or let the data pass when it ought not. Simple hash maps are supported as value objects as long as they are specified in the config. Thus in the forthcoming example code `:okay-value-maps` is a set with `[:r :g :b]` in it. It is a vector that is used to recognise maps. Thus for example `{:g 255 :r 255 :b 255}` will no longer be interpreted as a missing Ident. Vectors are also supported as value objects with `:okay-value-vectors`.
+You may have denormalized value objects in your data. Unless this library is told about these it will either incorrectly report a problem or let the data pass when it ought not. Simple hash maps are supported as value objects as long as they are specified in the config. Thus in the forthcoming example code `:okay-value-maps` is a set with `[:r :g :b]` in it. It is a vector that is used to recognise maps. So for example `{:g 255 :r 255 :b 255}` will no longer be interpreted as a missing Ident. Vectors are also supported as value objects with `:okay-value-vectors`.
 
-Apart from hash maps, *false negatives* can still occur if you keep complex objects in your state. To remedy this **default-db-format** has been hard coded to accept common complex objects, for example `(chan)` and dates. But for other complex types the user has the ultimate say because a predicate function can be supplied. This function accepts the value and is supposed to return logical true if it is an acceptable particular complex, logical false otherwise. If you wanted to allow dates you could supply this map entry: 
+Apart from hash maps, *false negatives* can still occur if you keep complex objects in your state. To remedy this **default-db-format** has been hard coded to accept common complex objects, for example `(chan)` and dates. But for other complex types the user has the ultimate say because a predicate function can be supplied. This function accepts the value and is supposed to return logical true if it is an acceptable complex object, logical false otherwise. If you wanted to allow dates you could supply this map entry: 
 
 ````clojure
 :acceptable-table-value-fn? 
@@ -60,6 +60,8 @@ One thing that may be surprising on first use of **default-db-format** is that a
 (def excluded-keys #{:om.next/tables
                      :fulcro.client.routing/routing-tree
                      :fulcro/ready-to-load
+                     :fulcro/loads-in-progress
+                     :fulcro/server-error
                      :fulcro.ui.forms/form
                      :ui/react-key
                      :ui/locale
@@ -68,27 +70,26 @@ One thing that may be surprising on first use of **default-db-format** is that a
                      :root/components
                      })
 (def okay-val-maps #{})
-(def okay-val-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]})
+(def okay-val-vectors #{[:report/balance-sheet :report/profit-and-loss :report/trial-balance]})
 (def check-config {:excluded-keys      excluded-keys
                    :okay-value-maps    okay-val-maps
                    :okay-value-vectors okay-val-vectors
                    :by-id-kw           "by-id"
                    :routing-ns         "routed"})
   
-(defn check-default-db [state]
+(defn check-default-db [noisey? state]
   (assert (map? state))
   (let [version db-format/version
-        check-result (db-format/check check-config state)
-        ok? (db-format/ok? check-result)
         msg-boiler (str "normalized (default-db-format ver: " version ")")
-        message (if ok?
-                  (str "GOOD: state fully " msg-boiler)
-                  (str "BAD: state not fully " msg-boiler))]
-    (println message)
+        check-result (db-format/check dhs/check-config state)
+        ok? (db-format/ok? check-result)]
+    (when (and noisey? ok?)
+      (println (str "GOOD: state fully " msg-boiler)))
     (when (not ok?)
+      (println (str "BAD: state not fully " msg-boiler))
       (pprint check-result) ;; <- check-result is a summary of state, so print 'one or *the other*'
       ;(pprint state))      ;; <- *the other*
-      (db-format/show-hud check-result)))) ;; <- must be last, displays check-result in browser
+      (db-format/show-hud check-result))))
 
 (declare app)
 ````
@@ -99,12 +100,11 @@ The call to `check-default-db` can be in your root component's render method:
 (render [this]
   (let [rec (some-> app deref :reconciler deref)]
     (dom/div nil
-             (when rec (check-default-db rec))
+             (when rec (check-default-db true rec))
              ...)))
 ````
 
-The `show-hud` function returns an Om Next component, or `nil` when there are no issues. 
-`check-default-db` is also a *component function* since it returns what `show-hud` returns.
+The `show-hud` *component function* returns an Om Next component, or `nil` when there are no issues. `check-default-db` returns what `show-hud` returns.
   
 The intended workflow is that feedback from the HUD will alert you to do one or more of these fixes:
  
@@ -112,9 +112,23 @@ The intended workflow is that feedback from the HUD will alert you to do one or 
  2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
  3. re-code the bad mutation you just wrote. 
  
- Using the root component's render function is serving as a crude watch on app state. A better way (not documented because it hasn't yet been tried) would be to directly watch the app state atom and when `check` recognises a problem force a render by changing one of the root props, for instance `ui/react-key` in a Fulcro application. 
+ Using the root component's render function is serving as a crude watch on app state. A better way is to directly watch the app state atom and when `check` recognises a problem force a render by changing one of the root props, for instance `ui/react-key` in a Fulcro application. 
  
  As an example of potential confusion from using the root component's render function, consider the initial load causing a denormalization problem. If the updated keys are not currently on the screen then there won't be a render. And then when the end user (or a timer event) causes a render the HUD will display - but again what is on the screen may have no relationship to the denormalization problem.
+ 
+ To directly watch app state there is one more thing to do. Include this as a require:
+ 
+````clojure
+[default-db-format.watcher :as watcher]
+````
+ 
+ Then in the `:started-callback` function, where `app` is passed in, place the following:
+ 
+````clojure
+(let [reconciler (:reconciler app)] 
+  (watcher/watch-state check-config reconciler)
+  ...)
+````
   
 ##### Definitions
     
@@ -126,8 +140,9 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is **28**. Makes sense for when dealing with snapshots. 28 goes with "0.1.1-SNAPSHOT". 28 is displayed by the HUD. Version history:
+The current internal version is **29**. Makes sense for when dealing with snapshots. 29 goes with "0.1.1-SNAPSHOT". 29 is displayed by the HUD. Version history:
 
+ *  **29** Able to watch state changes and force a render
  *  **28** Works with Fulcro and on Clojars 
  *  **27** Om now *provided* and this one will be in Clojars
  *  **26** Any function now accepted

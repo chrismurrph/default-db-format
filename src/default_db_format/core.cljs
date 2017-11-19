@@ -204,7 +204,7 @@
 (def version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  28)
+  29)
 
 (defn- ret [m]
   (merge m {:version version}))
@@ -266,24 +266,20 @@
                  non-by-id (ref-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
                  all-keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id-table-entries)))
                  categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
-             (cond
-               (and (empty? table-names)
-                    (pos? all-keys-count)) (ret {:failed-assumption (incorrect "by-id normalized file required")})
-               (and (empty? categories)
-                    (pos? all-keys-count)) (ret {:failed-assumption (incorrect
-                                                                      "Expected to have categories - top level keywords should have a / in them,
-                                                                      and the LHS is the name of the category")})
-               :else (let [ref-entries-tester (ref-entry->error-hof ident-like? categories)
-                           okay-maps (help/setify okay-value-maps)
-                           okay-vectors (help/setify okay-value-vectors)
-                           id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
-                       (ret {:categories  categories
-                             :known-names table-names
-                             :not-normalized-ref-entries
-                                          (into #{}
-                                                (mapcat (fn [kv] (ref-entries-tester kv)) non-by-id))
-                             :not-normalized-table-entries
-                                          (into #{}
-                                                (into {} (mapcat (fn [kv] (id-tester kv)) by-id-table-entries)))}))))))))
+             (if (and (empty? table-names)
+                      (pos? all-keys-count))
+               (ret {:failed-assumption (incorrect "by-id normalized file required")})
+               (let [ref-entries-tester (ref-entry->error-hof ident-like? categories)
+                     okay-maps (help/setify okay-value-maps)
+                     okay-vectors (help/setify okay-value-vectors)
+                     id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
+                 (ret {:categories  categories
+                       :known-names table-names
+                       :not-normalized-ref-entries
+                                    (into #{}
+                                          (mapcat (fn [kv] (ref-entries-tester kv)) non-by-id))
+                       :not-normalized-table-entries
+                                    (into #{}
+                                          (into {} (mapcat (fn [kv] (id-tester kv)) by-id-table-entries)))}))))))))
   ([state]
    (check help/default-config state)))
