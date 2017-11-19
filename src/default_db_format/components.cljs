@@ -1,6 +1,6 @@
 (ns default-db-format.components
-  (:require [om.next :as om :refer-macros [defui]]
-            [om.dom :as dom]))
+  (:require [fulcro.client.primitives :as om :refer-macros [defui]]
+            [fulcro.client.dom :as dom]))
 
 (def reddish "#E11F1F")
 (def hard-left #js {:style #js {:margin 15 :padding 0}})

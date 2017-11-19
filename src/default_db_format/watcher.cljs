@@ -2,7 +2,7 @@
   (:require
     [default-db-format.core :as core]
     [default-db-format.helpers :as help]
-    [om.next :as om]))
+    [fulcro.client.primitives :as om]))
 
 (def bad-result (atom nil))
 

@@ -1,8 +1,6 @@
 (ns default-db-format.core
   (:require [clojure.string :as s]
             [cljs.pprint :refer [pprint]]
-            [om.core :include-macros true]
-            [om.dom :include-macros true]
             [default-db-format.components :as components :refer [display-db-component okay?]]
             [default-db-format.helpers :as help]))
 
