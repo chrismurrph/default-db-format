@@ -1,4 +1,4 @@
-(ns initial-app-state-card
+(ns default-db-format.initial-app-state-card
   (:require [devcards.core :as dc :refer-macros [defcard]]
             [fulcro.client.dom :as dom]
             [fulcro.client.core :as fc :refer [InitialAppState initial-state]]

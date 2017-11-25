@@ -8,8 +8,12 @@
                  ;;[org.omcljs/om "1.0.0-beta1" :scope "provided"]
                  ;;[fulcrologic/fulcro "1.1.1" :scope "provided"]
                  [fulcrologic/fulcro "2.0.0-SNAPSHOT" :scope "provided"]
-                 [org.clojure/tools.namespace "0.3.0-alpha4"]
-                 [org.clojure/core.async "0.3.443"]
+                 [org.clojure/tools.namespace "0.3.0-alpha4" :scope "provided"]
+                 [org.clojure/core.async "0.3.443" :scope "provided"]
+                 [lein-figwheel "0.5.14" :scope "provided"]
+                 [figwheel-sidecar "0.5.11" :exclusions [org.clojure/tools.reader] :scope "provided"]
+                 [devcards "0.2.3" :exclusions [cljsjs/react-dom cljsjs/react] :scope "provided"]
+                 [binaryage/devtools "0.9.4" :scope "provided"]
                  ]
 
   :jar-exclusions [#"examples" #"test_helpers.clj"]
@@ -22,4 +26,29 @@
   :clean-targets ^{:protect false} ["resources/public/js/"
                                     "target"]
 
-  :source-paths ["src" "dev" "script" "test"])
+  :source-paths ["src/main" "dev" "script" "test"]
+
+  :cljsbuild    {:builds
+                 [{:id           "cards"
+                   :source-paths ["src/main" "src/cards"]
+                   :figwheel     {:devcards true}
+                   :compiler     {:main                 default-db-format.card-ui
+                                  :output-to            "resources/public/js/cards.js"
+                                  :output-dir           "resources/public/js/cards"
+                                  :asset-path           "js/cards"
+                                  :preloads             [devtools.preload]
+                                  :parallel-build       true
+                                  :source-map-timestamp true
+                                  :optimizations        :none}}
+                  ;{:id           "dev"
+                  ; :figwheel     {:on-jsload "cljs.user/refresh"}
+                  ; :source-paths ["dev/client" "src/main"]
+                  ; :compiler     {:asset-path           "js/dev"
+                  ;                :main                 cljs.user
+                  ;                :optimizations        :none
+                  ;                :output-dir           "resources/public/js/dev"
+                  ;                :output-to            "resources/public/js/b00ks.js"
+                  ;                ;:preloads             [devtools.preload]
+                  ;                :source-map-timestamp true}}
+                  ]}
+  )

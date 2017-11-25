@@ -1,6 +1,6 @@
-(ns card-ui
+(ns default-db-format.card-ui
   (:require
-    load-cards
-    initial-app-state-card))
+    default-db-format.load-cards
+    default-db-format.initial-app-state-card))
 
 

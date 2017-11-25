@@ -1,4 +1,4 @@
-(ns load-cards
+(ns default-db-format.load-cards
   (:require
     [devcards.core :as dc :refer-macros [defcard]]
     [fulcro.client.core :as fc]
@@ -14,9 +14,9 @@
   net/FulcroNetwork
   (send [this edn done-callback error-callback]
     (js/setTimeout (fn []
-                     (if (= 'fulcro.client.load-cards/add-thing (ffirst edn))
+                     (if (= 'default-db-format.load-cards/add-thing (ffirst edn))
                        (let [tempid (-> edn first second :id)]
-                         (done-callback {'fulcro.client.load-cards/add-thing {:tempids {tempid 1010}}}))
+                         (done-callback {'default-db-format.load-cards/add-thing {:tempids {tempid 1010}}}))
                        (done-callback {[:thing/by-id 1010] {:id 1010 :label "B"}}))) 2000))
   (start [this] this))
 
@@ -71,7 +71,7 @@
                      (cond
                        (= [{:thing (om/get-query Thing)}] edn) (done-callback {:thing {:id 2 :label "UPDATED B"}})
                        :else (done-callback {[:thing/by-id 1] {:id 1 :label "UPDATED A"}}))) 500))
-  (start [this complete-app] this))
+  (start [this] this))
 
 (defcard ui-attribute-merge
   "# Merging

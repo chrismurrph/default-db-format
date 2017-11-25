@@ -1,5 +1,5 @@
 # default-db-format
-Checks that your Om Next client state is in **default db format**
+Checks that your Fulcro client state is in **default db format**
 
 #### Current release:
 
@@ -7,7 +7,7 @@ Checks that your Om Next client state is in **default db format**
 
 ##### Description
 
-One way of working with Om Next is to have it normalize your app's initial state. Here we check that this initial normalization - into 'default db format' - succeeds. And check that the state stays normalized in the face of your code's mutations.
+Checks that that initial normalization - into 'default db format' - succeeds. And checks that the state stays normalized in the face of your code's mutations.
   
 Any issues and a heads-up display (HUD) will pop up.
 
@@ -140,8 +140,9 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is **29**. Makes sense for when dealing with snapshots. 29 goes with "0.1.1-SNAPSHOT". 29 is displayed by the HUD. Version history:
+The current internal version is **30**. Makes sense for when dealing with snapshots. 30 goes with "0.1.1-SNAPSHOT". 30 is displayed by the HUD. Version history:
 
+ *  **30** Now only works with Fulcro
  *  **29** Able to watch state changes and force a render
  *  **28** Works with Fulcro and on Clojars 
  *  **27** Om now *provided* and this one will be in Clojars
