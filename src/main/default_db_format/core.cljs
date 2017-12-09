@@ -1,5 +1,6 @@
 (ns default-db-format.core
   (:require [clojure.string :as s]
+            [fulcro.client.primitives :as om]
             [cljs.pprint :refer [pprint]]
             [default-db-format.components :as components :refer [display-db-component okay?]]
             [default-db-format.helpers :as help]))
@@ -62,7 +63,8 @@
 
 (defn map-of-partic-format?
   [partic-vec-format test-map]
-  (= (set (keys test-map)) (set partic-vec-format)))
+  (and (map? test-map)
+       (= (set (keys test-map)) (set partic-vec-format))))
 
 (defn known-map?
   [okay-value-maps test-map]
@@ -124,6 +126,7 @@
         (number? val) :number
         (string? val) :string
         (ident-like? val) :ident-like
+        (om/tempid? val) :tempid
         (bool? val) :bool
         (keyword? val) :keyword
         (symbol? val) :symbol

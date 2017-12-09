@@ -11,3 +11,5 @@ pom.xml
 /out
 /.lein-plugins
 .lein-failures
+/src/main/general/replace.clj
+temp

@@ -1,5 +1,6 @@
 (ns default-db-format.helpers
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s]
+            [fulcro.client.primitives :as om]))
 
 (defn exclude-colon [s]
   (apply str (next s)))
@@ -44,7 +45,7 @@
            (and ns
                 (some #{ns} config-ns-strs))))))
 
-(def acceptable-id? (some-fn number? symbol? keyword?))
+(def acceptable-id? (some-fn number? symbol? om/tempid? keyword?))
 
 ;;
 ;; The outer function accepts the same config that check accepts.
