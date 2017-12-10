@@ -13,6 +13,7 @@
                  [figwheel-sidecar "0.5.11" :exclusions [org.clojure/tools.reader] :scope "provided"]
                  [devcards "0.2.3" :exclusions [cljsjs/react-dom cljsjs/react] :scope "provided"]
                  [binaryage/devtools "0.9.4" :scope "provided"]
+                 [default-db-format "0.1.1-SNAPSHOT"]
                  ]
 
   :jar-exclusions [#"examples" #"test_helpers.clj"]

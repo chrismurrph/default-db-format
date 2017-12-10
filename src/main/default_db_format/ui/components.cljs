@@ -1,5 +1,5 @@
-(ns default-db-format.components
-  (:require [fulcro.client.primitives :as om :refer-macros [defui]]
+(ns default-db-format.ui.components
+  (:require [fulcro.client.primitives :as prim :refer-macros [defui]]
             [fulcro.client.dom :as dom]))
 
 (def reddish "#E11F1F")
@@ -12,55 +12,55 @@
     (dom/pre nil (str k " " v))))
 
 (defui OneBad
-  static om/Ident
-  (ident [this props]
-    [:one-bad/by-id (:id props)])
-  Object
-  (render [this]
-    (let [{:keys [id bad]} (om/props this)]
-      (dom/li pad-in (format-bad bad)))))
-(def one-bad-component (om/factory OneBad {:keyfn :id}))
+       static prim/Ident
+       (ident [this props]
+              [:one-bad/by-id (:id props)])
+       Object
+       (render [this]
+               (let [{:keys [id bad]} (prim/props this)]
+                 (dom/li pad-in (format-bad bad)))))
+(def one-bad-component (prim/factory OneBad {:keyfn :id}))
 
 (def allow-follow-on #js {:style #js {:whiteSpace "pre"}})
 (def follow-on #js {:style #js {:display "inline-block"}})
 (def reddish-follow-on #js {:style #js {:display "inline-block" :color reddish}})
 
 (defui RefsTextItem
-  static om/Ident
-  (ident [this props]
-    [:item/by-id (:id props)])
-  Object
-  (render [this]
-    (let [{:keys [id text problem]} (om/props this)]
-      (dom/li nil (dom/span nil (dom/span nil text ": ") (dom/span reddish-follow-on (str problem)))))))
-(def refs-item-component (om/factory RefsTextItem {:keyfn :id}))
+       static prim/Ident
+       (ident [this props]
+              [:item/by-id (:id props)])
+       Object
+       (render [this]
+               (let [{:keys [id text problem]} (prim/props this)]
+                 (dom/li nil (dom/span nil (dom/span nil text ": ") (dom/span reddish-follow-on (str problem)))))))
+(def refs-item-component (prim/factory RefsTextItem {:keyfn :id}))
 
 (defui RefsTextList
-  static om/Ident
-  (ident [this props]
-    [:list/by-id (:id props)])
-  Object
-  (render [this]
-    (let [{:keys [id items]} (om/props this)]
-      (dom/ul nil
-              (for [item items
-                    :let [{:keys [text problem]} item
-                          _ (assert text)
-                          _ (assert problem)]]
-                (refs-item-component {:id (str text problem) :text text :problem problem}))))))
-(def refs-list-component (om/factory RefsTextList {:keyfn :id}))
+       static prim/Ident
+       (ident [this props]
+              [:list/by-id (:id props)])
+       Object
+       (render [this]
+               (let [{:keys [id items]} (prim/props this)]
+                 (dom/ul nil
+                         (for [item items
+                               :let [{:keys [text problem]} item
+                                     _ (assert text)
+                                     _ (assert problem)]]
+                           (refs-item-component {:id (str text problem) :text text :problem problem}))))))
+(def refs-list-component (prim/factory RefsTextList {:keyfn :id}))
 
 (defui BadTablesEntry
-  static om/Ident
-  (ident [this props]
-    [:bads/by-id (:id props)])
-  Object
-  (render [this]
-    (let [{:keys [id bads-map]} (om/props this)]
-      (dom/ul hard-left (dom/span reddish-style (str id))
-              (for [bad bads-map]
-                (one-bad-component {:id (first bad) :bad bad}))))))
-(def bad-table-entries-component (om/factory BadTablesEntry {:keyfn :id}))
+       static prim/Ident
+       (ident [this props]
+              [:bads/by-id (:id props)])
+       Object
+       (render [this]
+               (let [{:keys [id bads-map]} (prim/props this)]
+                 (dom/ul hard-left (dom/span reddish-style (str id))
+                         (for [bad bads-map]
+                           (one-bad-component {:id (first bad) :bad bad}))))))
+(def bad-table-entries-component (prim/factory BadTablesEntry {:keyfn :id}))
 
 (defn okay? [check-result]
   (let [{:keys [failed-assumption not-normalized-ref-entries not-normalized-table-entries]} check-result]
@@ -85,7 +85,7 @@
 (defui DisplayDb
        Object
        (render [this]
-               (let [props (om/props this)
+               (let [props (prim/props this)
                      {:keys [not-normalized-table-entries not-normalized-ref-entries failed-assumption version]} props
                      _ (assert version)
                      report-problem? (not (okay? props))
@@ -107,11 +107,11 @@
                                                   (for [by-id (into {} not-normalized-table-entries)
                                                         :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
                                                     (bad-table-entries-component present-lower)))))))))))
-(def display-db-component (om/factory DisplayDb {:keyfn :id}))
+(def display-db-component (prim/factory DisplayDb {:keyfn :id}))
 
 (defui GenericDisplayer
-  Object
-  (render [this]
-    (let [val (om/props this)]
-      (dom/pre nil (with-out-str (cljs.pprint/pprint val))))))
-(def display (om/factory GenericDisplayer))
+       Object
+       (render [this]
+               (let [val (prim/props this)]
+                 (dom/pre nil (with-out-str (cljs.pprint/pprint val))))))
+(def display (prim/factory GenericDisplayer))

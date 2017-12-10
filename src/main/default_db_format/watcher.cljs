@@ -2,7 +2,7 @@
   (:require
     [default-db-format.core :as core]
     [default-db-format.helpers :as help]
-    [fulcro.client.primitives :as om]))
+    [fulcro.client.primitives :as prim]))
 
 (def bad-result (atom nil))
 
@@ -36,12 +36,13 @@
 ;; If the timeout is not long enough then the errors will persist in the HUD even
 ;; although they have cleared from db state. To fix could have a number of times
 ;; retry for any given error message. Most likely I'll never get round to that - just
-;; keep the timeout long enough!
+;; keep the timeout long enough! A better solution is to have a button for the user to
+;; "Refresh", which means user can prove the current state, rather than some past state.
 ;;
 (defn watch-state
   ([config reconciler timeout]
    (let [timeout (or timeout 1500)
-         state (om/app-state reconciler)]
+         state (prim/app-state reconciler)]
      (add-watch state :watcher
                 (fn [key atom old-state new-state]
                   (let [[first-time? check-result] (check! config new-state)]

@@ -2,7 +2,7 @@
   (:require [clojure.string :as s]
             [fulcro.client.primitives :as om]
             [cljs.pprint :refer [pprint]]
-            [default-db-format.components :as components :refer [display-db-component okay?]]
+            [default-db-format.ui.components :as components :refer [display-db-component okay?]]
             [default-db-format.helpers :as help]))
 
 (enable-console-print!)
