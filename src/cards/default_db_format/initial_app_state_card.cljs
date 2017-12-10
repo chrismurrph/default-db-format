@@ -1,9 +1,8 @@
 (ns default-db-format.initial-app-state-card
   (:require [devcards.core :as dc :refer-macros [defcard]]
             [fulcro.client.dom :as dom]
-            [fulcro.client.core :as fc :refer [InitialAppState initial-state]]
-            [fulcro.client.cards :refer [fulcro-app]]
-            [fulcro.client.primitives :as om :refer [defui]]))
+            [fulcro.client.cards :refer [fulcro-application]]
+            [fulcro.client.primitives :as om :refer [defui InitialAppState initial-state]]))
 
 (defui ^:once ActiveUsersTab
   static InitialAppState
@@ -64,7 +63,7 @@
 
 (dc/defcard union-initial-app-state
   ""
-  (fulcro-app Root)
+  (fulcro-application union-initial-app-state Root)
   {}
   {:inspect-data true})
 

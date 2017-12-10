@@ -1,8 +1,7 @@
 (ns default-db-format.load-cards
   (:require
     [devcards.core :as dc :refer-macros [defcard]]
-    [fulcro.client.core :as fc]
-    [fulcro.client.cards :refer [fulcro-app]]
+    [fulcro.client.cards :refer [fulcro-application]]
     [fulcro.client.primitives :as om :refer [defui]]
     [fulcro.client.dom :as dom]
     [fulcro.client.network :as net]
@@ -55,7 +54,7 @@
     - Should see a load marker appear IN the entity
     - Should see no load markers at the end
   "
-  (fulcro-app Root
+  (fulcro-application load-with-follow-on-read Root
     :networking (MockNetwork.)
     :started-callback (fn [{:keys [reconciler]}]
                         (let [id (om/tempid)]
@@ -91,7 +90,7 @@
    :thing       [:thing/by-id 2]}
   ```
   "
-  (fulcro-app Root
+  (fulcro-application ui-attribute-merge Root
     :started-callback (fn [{:keys [reconciler]}]
                         (js/setTimeout #(df/load reconciler [:thing/by-id 1] Thing {:refresh [[:fake 1] :no-prop] :without #{:ui/value}}) 100)
                         (js/setTimeout #(df/load reconciler :thing Thing {:without #{:ui/value}}) 200))

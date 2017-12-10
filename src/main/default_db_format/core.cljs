@@ -53,7 +53,8 @@
       (cond
         k-err k-err
         (nil? v) nil
-        (not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
+        ;;Why would it have to be seqable? Single idents can be put at root level
+        ;;(not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
         (empty? v) nil
         (vec-of-idents? ident-like? v) (let [non-idents (remove ident-like? v)]
                                          (when (pos? (count non-idents))

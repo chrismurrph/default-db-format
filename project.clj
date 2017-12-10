@@ -5,9 +5,8 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0-alpha17" :scope "provided"]
                  [org.clojure/clojurescript "1.9.854" :scope "provided"]
-                 ;;[org.omcljs/om "1.0.0-beta1" :scope "provided"]
-                 ;;[fulcrologic/fulcro "1.1.1" :scope "provided"]
-                 [fulcrologic/fulcro "2.0.0-SNAPSHOT" :scope "provided"]
+                 [fulcrologic/fulcro "2.0.0-beta5" :scope "provided"]
+                 [fulcrologic/fulcro-css "2.0.0-beta1" :scope "provided"]
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "provided"]
                  [org.clojure/core.async "0.3.443" :scope "provided"]
                  [lein-figwheel "0.5.14" :scope "provided"]
