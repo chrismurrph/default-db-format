@@ -115,7 +115,7 @@
       (initial-state [_ params] {
                                  :general.card-helpers/app-id ::adult
                                  :ui/react-key                (random-uuid)
-                                 :ui/root                     (prim/get-initial-state Adult {})})
+                                 :ui/root                     (prim/get-initial-state Adult params)})
 
       static prim/IQuery
       (query [_] [:ui/react-key
@@ -135,8 +135,8 @@
                          (when rec (check-default-db true rec))
                          (factory root)))))
 
-(def initial-babies [{:db/id 2 :baby/first-name "Baby Shark 1"}
-                     {:db/id 3 :baby/first-name "Baby Shark 2"}])
+(def initial-babies [{:db/id 1 :baby/first-name "Baby Shark 1"}
+                     {:db/id 2 :baby/first-name "Baby Shark 2"}])
 (defcard-fulcro say-hello
                 AdultRoot
                 (card-helpers/init-state-atom AdultRoot
