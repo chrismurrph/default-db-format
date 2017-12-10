@@ -2,9 +2,10 @@
   (:require [fulcro.client.primitives :as prim]
             [fulcro.client.mutations :as m]
             [fulcro.client.dom :as dom]
+            [fulcro.client.util :as fu]
             [fulcro.client.cards :refer [defcard-fulcro fulcro-application]]
             [general.card-helpers :as card-helpers]
-            [fulcro.client.primitives :as prim :refer [defui InitialAppState initial-state]]
+            [fulcro.client.primitives :as prim :refer [defui defsc InitialAppState initial-state]]
             [fulcro-css.css :as css]
             [default-db-format.ui.domain :as ui-domain]
             [default-db-format.core :as db-format]
@@ -22,6 +23,7 @@
                      :ui/loading-data
                      :root/top-router
                      :root/components
+                     :general.card-helpers/app-id
                      })
 (def okay-val-maps #{[:debug-from]})
 (def okay-val-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]})
@@ -50,7 +52,7 @@
       ;(pprint state))      ;; <- *the other*
       (db-format/show-hud check-result))))                  ;; <- must be last, displays check-result in browser
 
-(prim/defsc Baby
+(defsc Baby
             [this props _]
             {:ident [:baby/by-id :db/id]
              :query [:db/id :baby/first-name]}
@@ -75,13 +77,18 @@
 ;;
 ;; Haven't got reconciler, so just do in a mutation
 ;;
-(m/defmutation force-root-render
+#_(m/defmutation force-root-render
   [{:keys []}]
   (action [{:keys [state]}]
           (swap! state assoc :ui/react-key (unique-key))
           ))
 
-(prim/defsc Adult
+(declare say-hello-fulcro-app)
+
+(defn get-reconciler []
+  (some-> say-hello-fulcro-app deref :reconciler))
+
+(defsc Adult
             [this {:adult/keys [first-name babies]} _]
             {:initial-state
                     (fn [{:keys [babies-in]}]
@@ -98,26 +105,42 @@
                                 (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
                                             "Restore order..."))
                        (dom/div nil
-                                (dom/button #js {:onClick #(prim/transact! this [`(force-root-render)])}
+                                (dom/button #js {:onClick #(if-let [rec (get-reconciler)]
+                                                             (fu/force-render rec)
+                                                             (println "No reconciler"))}
                                             "Force root render")))))
 
-(declare say-hello-fulcro-app)
+(defui ^:once AdultRoot
+      static prim/InitialAppState
+      (initial-state [_ params] {
+                                 :general.card-helpers/app-id ::adult
+                                 :ui/react-key                (random-uuid)
+                                 :ui/root                     (prim/get-initial-state Adult {})})
 
-;(def AdultRoot (card-helpers/make-root Adult ::adult))
-(def root-atom (atom nil))
-(defn get-adult-root []
-  (or @root-atom (reset! root-atom
-                         (card-helpers/make-root Adult
-                                                 ::adult
-                                                 say-hello-fulcro-app
-                                                 check-default-db))))
+      static prim/IQuery
+      (query [_] [:ui/react-key
+                  {:ui/root (prim/get-query Adult)}])
+
+      static css/CSS
+      (local-rules [_] [])
+      (include-children [_] [Adult])
+
+      Object
+      (render [this]
+              (let [rec (some-> (get-reconciler) deref)
+                    {:ui/keys [react-key root]} (prim/props this)
+                    factory (prim/factory Adult)]
+                (println "Have app?" (boolean say-hello-fulcro-app))
+                (dom/div #js {:key react-key}
+                         (when rec (check-default-db true rec))
+                         (factory root)))))
 
 (def initial-babies [{:db/id 2 :baby/first-name "Baby Shark 1"}
                      {:db/id 3 :baby/first-name "Baby Shark 2"}])
 (defcard-fulcro say-hello
-                (get-adult-root)
-                (card-helpers/init-state-atom (get-adult-root)
+                AdultRoot
+                (card-helpers/init-state-atom AdultRoot
                                               {:babies-in initial-babies})
                 {:inspect-data true})
 
-(css/upsert-css "adult" (get-adult-root))
+(css/upsert-css "adult" AdultRoot)
