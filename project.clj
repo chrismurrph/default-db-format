@@ -13,7 +13,7 @@
                  [figwheel-sidecar "0.5.11" :exclusions [org.clojure/tools.reader] :scope "provided"]
                  [devcards "0.2.3" :exclusions [cljsjs/react-dom cljsjs/react] :scope "provided"]
                  [binaryage/devtools "0.9.4" :scope "provided"]
-                 [default-db-format "0.1.1-SNAPSHOT"]
+                 [fulcrologic/fulcro-inspect "2.0.0-alpha1"]
                  ]
 
   :jar-exclusions [#"examples" #"test_helpers.clj"]
@@ -36,7 +36,11 @@
                                   :output-to            "resources/public/js/cards.js"
                                   :output-dir           "resources/public/js/cards"
                                   :asset-path           "js/cards"
-                                  :preloads             [devtools.preload]
+                                  :preloads             [devtools.preload
+                                                         fulcro.inspect.preload
+                                                         default-db-format.preload]
+                                  :external-config      {:fulcro.inspect/config {:launch-keystroke "ctrl-g"}
+                                                         :default-db-format/config {:launch-keystroke "ctrl-i"}}
                                   :parallel-build       true
                                   :source-map-timestamp true
                                   :optimizations        :none}}

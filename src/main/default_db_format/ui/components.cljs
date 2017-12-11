@@ -11,7 +11,7 @@
   (let [[k v] bad]
     (dom/pre nil (str k " " v))))
 
-(defui OneBad
+(defui ^:once OneBad
        static prim/Ident
        (ident [this props]
               [:one-bad/by-id (:id props)])
@@ -25,7 +25,7 @@
 (def follow-on #js {:style #js {:display "inline-block"}})
 (def reddish-follow-on #js {:style #js {:display "inline-block" :color reddish}})
 
-(defui RefsTextItem
+(defui ^:once RefsTextItem
        static prim/Ident
        (ident [this props]
               [:item/by-id (:id props)])
@@ -35,7 +35,7 @@
                  (dom/li nil (dom/span nil (dom/span nil text ": ") (dom/span reddish-follow-on (str problem)))))))
 (def refs-item-component (prim/factory RefsTextItem {:keyfn :id}))
 
-(defui RefsTextList
+(defui ^:once RefsTextList
        static prim/Ident
        (ident [this props]
               [:list/by-id (:id props)])
@@ -50,7 +50,7 @@
                            (refs-item-component {:id (str text problem) :text text :problem problem}))))))
 (def refs-list-component (prim/factory RefsTextList {:keyfn :id}))
 
-(defui BadTablesEntry
+(defui ^:once BadTablesEntry
        static prim/Ident
        (ident [this props]
               [:bads/by-id (:id props)])
@@ -82,7 +82,16 @@
                (dom/span follow-on (str boiler-text ", see: "))
                (dom/span reddish-follow-on (apply str (interpose ", " problems)))))))
 
-(defui DisplayDb
+(defui ^:once DisplayDb
+       static prim/InitialAppState
+       (initial-state [_ params] (merge params {::id (random-uuid)}))
+
+       static prim/Ident
+       (ident [_ props] [::id (::id props)])
+
+       static prim/IQuery
+       (query [_] [::id :version :not-normalized-table-entries :not-normalized-ref-entries :failed-assumption])
+
        Object
        (render [this]
                (let [props (prim/props this)
@@ -109,7 +118,7 @@
                                                     (bad-table-entries-component present-lower)))))))))))
 (def display-db-component (prim/factory DisplayDb {:keyfn :id}))
 
-(defui GenericDisplayer
+(defui ^:once GenericDisplayer
        Object
        (render [this]
                (let [val (prim/props this)]

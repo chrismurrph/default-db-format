@@ -1,6 +1,6 @@
 (ns default-db-format.core
   (:require [clojure.string :as s]
-            [fulcro.client.primitives :as om]
+            [fulcro.client.primitives :as prim]
             [cljs.pprint :refer [pprint]]
             [default-db-format.ui.components :as components :refer [display-db-component okay?]]
             [default-db-format.helpers :as help]))
@@ -50,17 +50,18 @@
     (let [k-err (when (not (known-category k knowns))
                   [{:text (str "Unknown category")
                     :problem (help/category-part (str k))}])]
-      (cond
-        k-err k-err
-        (nil? v) nil
-        ;;Why would it have to be seqable? Single idents can be put at root level
-        (not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
-        (empty? v) nil
-        (vec-of-idents? ident-like? v) (let [non-idents (remove ident-like? v)]
-                                         (when (pos? (count non-idents))
-                                           [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
-        (ident-like? v) nil
-        :else [{:text "Expect Idents" :problem k}]))))
+      (when (seqable? v)
+        (cond
+          k-err k-err
+          (nil? v) nil
+          ;;Why would it have to be seqable? Single idents can be put at root level
+          ;;(not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
+          (empty? v) nil
+          (vec-of-idents? ident-like? v) (let [non-idents (remove ident-like? v)]
+                                           (when (pos? (count non-idents))
+                                             [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
+          (ident-like? v) nil
+          :else [{:text "Expect Idents" :problem k}])))))
 
 (defn map-of-partic-format?
   [partic-vec-format test-map]
@@ -127,7 +128,7 @@
         (number? val) :number
         (string? val) :string
         (ident-like? val) :ident-like
-        (om/tempid? val) :tempid
+        (prim/tempid? val) :tempid
         (bool? val) :bool
         (keyword? val) :keyword
         (symbol? val) :symbol

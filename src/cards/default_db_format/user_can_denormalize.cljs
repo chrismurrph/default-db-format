@@ -11,7 +11,8 @@
             [default-db-format.core :as db-format]
             [default-db-format.watcher :as watcher]
             [cljs.pprint :refer [pprint]]
-            [fulcro.util :refer [unique-key]]))
+            [fulcro.util :refer [unique-key]]
+            [devcards.core]))
 
 (def excluded-keys #{:fulcro.client.routing/routing-tree
                      :fulcro/ready-to-load
@@ -23,7 +24,8 @@
                      :ui/loading-data
                      :root/top-router
                      :root/components
-                     :general.card-helpers/app-id
+                     ;Easier for every if we ignore top level keys that are not seq
+                     ;:general.card-helpers/app-id
                      })
 (def okay-val-maps #{[:debug-from]})
 (def okay-val-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]})
@@ -53,17 +55,17 @@
       (db-format/show-hud check-result))))                  ;; <- must be last, displays check-result in browser
 
 (defsc Baby
-            [this props _]
-            {:ident [:baby/by-id :db/id]
-             :query [:db/id :baby/first-name]}
-            (dom/div nil "Blab blab"))
+       [this props _]
+       {:ident [:baby/by-id :db/id]
+        :query [:db/id :baby/first-name]}
+       (dom/div nil "Blab blab"))
 
 (m/defmutation denormalize
-               "Put a thing"
-               [{:keys []}]
+  "Put a thing"
+  [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state assoc-in [:thing/by-id 1] {:label "I'm not at an id, so I'm not normalized"
-                                                  :bad-join {:db/id 1
+          (swap! state assoc-in [:thing/by-id 1] {:label    "I'm not at an id, so I'm not normalized"
+                                                  :bad-join {:db/id     1
                                                              :some/text "Surely I s/be in the tables"}})
           ))
 
@@ -74,66 +76,56 @@
           (swap! state dissoc :thing/by-id)
           ))
 
-;;
-;; Haven't got reconciler, so just do in a mutation
-;;
-#_(m/defmutation force-root-render
-  [{:keys []}]
-  (action [{:keys [state]}]
-          (swap! state assoc :ui/react-key (unique-key))
-          ))
-
 (declare say-hello-fulcro-app)
 
 (defn get-reconciler []
   (some-> say-hello-fulcro-app deref :reconciler))
 
 (defsc Adult
-            [this {:adult/keys [first-name babies]} _]
-            {:initial-state
-                    (fn [{:keys [babies-in]}]
-                      {:db/id 1 :adult/first-name "Mama Shark" :adult/babies babies-in})
-             :ident [:adult/by-id :db/id]
-             :query [:db/id :adult/first-name {:adult/babies (prim/get-query Baby)}]
-             :css-include   [ui-domain/CSS]}
-            (let [title (str "Good afternoon, my name is " first-name " with " (count babies) " shark babies")]
-              (dom/div nil
-                       (dom/div #js {:className (:display-name scss)} title)
-                       (dom/div nil
-                                (dom/button #js {:onClick #(prim/transact! this [`(denormalize)])}
-                                            "Cause state chaos!")
-                                (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
-                                            "Restore order..."))
-                       (dom/div nil
-                                (dom/button #js {:onClick #(if-let [rec (get-reconciler)]
-                                                             (fu/force-render rec)
-                                                             (println "No reconciler"))}
-                                            "Force root render")))))
+       [this {:adult/keys [first-name babies]} _]
+       {:initial-state
+                     (fn [{:keys [babies-in]}]
+                       {:db/id 1 :adult/first-name "Mama Shark" :adult/babies babies-in})
+        :ident       [:adult/by-id :db/id]
+        :query       [:db/id :adult/first-name {:adult/babies (prim/get-query Baby)}]
+        :css-include [ui-domain/CSS]}
+       (let [title (str "Good afternoon, my name is " first-name " with " (count babies) " shark babies")]
+         (dom/div nil
+                  (dom/div #js {:className (:display-name scss)} title)
+                  (dom/div nil
+                           (dom/button #js {:onClick #(prim/transact! this [`(denormalize)])}
+                                       "Cause state chaos!")
+                           (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
+                                       "Restore order..."))
+                  (dom/div nil
+                           (dom/button #js {:onClick #(if-let [rec (get-reconciler)]
+                                                        (fu/force-render rec)
+                                                        (println "No reconciler"))}
+                                       "Force root render")))))
 
 (defui ^:once AdultRoot
-      static prim/InitialAppState
-      (initial-state [_ params] {
-                                 :general.card-helpers/app-id ::adult
-                                 :ui/react-key                (random-uuid)
-                                 :ui/root                     (prim/get-initial-state Adult params)})
+       static prim/InitialAppState
+       (initial-state [_ params] {:default-db-format.core/app-id ::adult
+                                  :ui/react-key                  (random-uuid)
+                                  :ui/root                       (prim/get-initial-state Adult params)})
 
-      static prim/IQuery
-      (query [_] [:ui/react-key
-                  {:ui/root (prim/get-query Adult)}])
+       static prim/IQuery
+       (query [_] [:ui/react-key
+                   {:ui/root (prim/get-query Adult)}])
 
-      static css/CSS
-      (local-rules [_] [])
-      (include-children [_] [Adult])
+       static css/CSS
+       (local-rules [_] [])
+       (include-children [_] [Adult])
 
-      Object
-      (render [this]
-              (let [rec (some-> (get-reconciler) deref)
-                    {:ui/keys [react-key root]} (prim/props this)
-                    factory (prim/factory Adult)]
-                (println "Have app?" (boolean say-hello-fulcro-app))
-                (dom/div #js {:key react-key}
-                         (when rec (check-default-db true rec))
-                         (factory root)))))
+       Object
+       (render [this]
+               (let [rec (some-> (get-reconciler) deref)
+                     {:ui/keys [react-key root]} (prim/props this)
+                     adult-component (prim/factory Adult)]
+                 ;(println "Have app?" (boolean say-hello-fulcro-app))
+                 (dom/div #js {:key react-key}
+                          ;(when rec (check-default-db true rec))
+                          (adult-component root)))))
 
 (def initial-babies [{:db/id 1 :baby/first-name "Baby Shark 1"}
                      {:db/id 2 :baby/first-name "Baby Shark 2"}])
