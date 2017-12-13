@@ -13,6 +13,7 @@
             [default-db-format.ui.inspector :as inspector]
             [default-db-format.ui.multi-inspector :as multi-inspector]
             [default-db-format.core :as core]
+            [default-db-format.watcher :as watcher]
             [default-db-format.general.dev :as dev]
             [default-db-format.iframe :as iframe]))
 
@@ -26,7 +27,7 @@
                                   :ui/inspector    (prim/get-initial-state components/DisplayDb params)})
 
        static prim/Ident
-       (ident [_ props] [::floating-panel "main"])
+       (ident [_ props] [:floating-panel/by-id "main"])
 
        static prim/IQuery
        (query [_] [{:ui/inspector (prim/get-query components/DisplayDb)}
@@ -169,7 +170,7 @@
             (println "Check if there's a problem, and bring up UI if there is")
             (println "keys of ddf app" (keys st))
             (swap! state #(-> %
-                              (assoc-in [::floating-panel "main" :ui/visible?] true))))
+                              (assoc-in [:floating-panel/by-id "main" :ui/visible?] true))))
           ))
 
 #_(defn watch-state []
@@ -185,34 +186,40 @@
 #_(defn dump-fulcro-inspect []
   (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
-(defn inspect-tx [{:keys [reconciler] :as env} info]
-  (if (prim/app-root reconciler) ; ensure host/target app is initialized
-    (let [
-          ;tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
-          ;app-id    (app-id reconciler)
-          tool-reconciler (:reconciler (global-inspector))
-          shared-config (-> tool-reconciler prim/app-root prim/shared)
-          new-state (select-keys env [:new-state])
-          config (:edn shared-config)
-          timeout (-> shared-config :options :state-change-debounce-timeout)]
-      (prim/transact! tool-reconciler [`(open-inspector)])
-      (println "new-state" (dev/pp-str new-state))
-      (println "config:" (dev/pp-str config))
-      (println "timeout:" timeout)
-      ))
-  )
-
-(defn update-inspect-state [reconciler app-id state]
-  (println "Should be called whenever the state of " app-id " is changed. keys: " (keys state)))
+(defn update-inspect-state-hof [tool-reconciler app-id]
+  (let [shared-config (-> tool-reconciler prim/app-root prim/shared)
+        config (:edn shared-config)
+        timeout (-> shared-config :options :state-change-debounce-timeout)]
+    (println "config:" (dev/pp-str config))
+    (println "timeout:" timeout)
+    (fn [new-state]
+      (println "NEW STATE:" new-state)
+      (let [[did-fresh-check? check-result] (watcher/check! config new-state)]
+        (println "did-fresh-check?, check-result ok?: " did-fresh-check? (core/ok? check-result))
+        (when (and did-fresh-check? (not (core/ok? check-result)))
+          (println "new-state that is bad:" (dev/pp-str new-state))
+          (prim/transact! tool-reconciler [`(open-inspector)[:floating-panel/by-id "main"]]))
+        (js/setTimeout (fn []
+                         (watcher/un-check!))
+                       timeout)))))
 
 (defn install-app [app-id target-app]
-  (let [inspector (global-inspector)
-        state* (some-> target-app :reconciler :config :state)]
+  (let [tool-reconciler (:reconciler (global-inspector))
+        host-reconciler (some-> target-app :reconciler)
+        state* (some-> host-reconciler :config :state)
+        update-inspect-state (update-inspect-state-hof tool-reconciler app-id)
+        ]
     (add-watch state* app-id
-               #(update-inspect-state (:reconciler inspector) app-id %4))))
+               #(update-inspect-state %4))))
 
+;;
+;; We don't need to create an inspector that knows about app-id in it. I don't get
+;; the concept - perhaps there are multiple host/target fulcro client applications
+;;
 (defn inspect-app [app-id target-app]
-  (let [inspector     (global-inspector)
+  (let [tool-reconciler (:reconciler (global-inspector))
+        ;host-reconciler (some-> target-app :reconciler)
+        update-inspect-state (update-inspect-state-hof tool-reconciler app-id)
         state*        (some-> target-app :reconciler :config :state)
         new-inspector (-> (prim/get-initial-state inspector/Inspector @state*)
                           (assoc ::inspector/id app-id)
@@ -222,7 +229,7 @@
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
                           ;;(assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id])
                           )]
-    (prim/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+    (prim/transact! tool-reconciler [::multi-inspector/multi-inspector "main"]
                   [`(multi-inspector/add-inspector ~new-inspector)
                    ::inspectors])
 
@@ -230,11 +237,30 @@
                                                                :app       target-app})
 
     (add-watch state* app-id
-               #(update-inspect-state (:reconciler inspector) app-id %4))
+               #(update-inspect-state %4))
 
     new-inspector))
 
 (def edn-keys [:excluded-keys :okay-value-maps :okay-value-vectors :by-id-kw :routing-ns])
+
+;;
+;; Not using. Why check on every transact when can check on every change to state?
+;; (For instance react key changes are not picked up)
+;; Hmm - a very good reason is so don't check every time the developer saves his work!
+;;
+(defn inspect-tx [{:keys [reconciler] :as env} _]
+  (if (prim/app-root reconciler) ; ensure host/target app is initialized
+    (let [tool-reconciler (:reconciler (global-inspector))
+          shared-config (-> tool-reconciler prim/app-root prim/shared)
+          new-state (select-keys env [:new-state])
+          config (:edn shared-config)
+          timeout (-> shared-config :options :state-change-debounce-timeout)]
+      (prim/transact! tool-reconciler [`(open-inspector)[:floating-panel/by-id "main"]])
+      (println "new-state" (dev/pp-str new-state))
+      (println "config:" (dev/pp-str config))
+      (println "timeout:" timeout)
+      ))
+  )
 
 (defn install [options]
   (when-not @global-inspector*
@@ -252,5 +278,6 @@
            (install-app id app))
          app)
 
-       ::fulcro/tx-listen
-       #'inspect-tx})))
+       ;::fulcro/tx-listen
+       ;#'inspect-tx
+       })))
