@@ -1,0 +1,15 @@
+{:excluded-keys      #{:fulcro.client.routing/routing-tree
+                       :fulcro/ready-to-load
+                       :fulcro/loads-in-progress
+                       :fulcro/server-error
+                       :fulcro.ui.forms/form
+                       :ui/react-key
+                       :ui/locale
+                       :ui/loading-data
+                       :root/top-router
+                       :root/components
+                       }
+ :okay-value-maps    #{[:debug-from]}
+ :okay-value-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]}
+ :by-id-kw           "by-id"
+ :routing-ns         "routed"}

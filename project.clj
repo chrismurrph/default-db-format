@@ -41,7 +41,8 @@
                                                       default-db-format.preload
                                                       ]
                                :external-config      {:fulcro.inspect/config    {:launch-keystroke "ctrl-v"}
-                                                      :default-db-format/config {:launch-keystroke "ctrl-q"}}
+                                                      :default-db-format/config {:launch-keystroke "ctrl-q"
+                                                                                 :state-change-debounce-timeout 1500}}
                                :parallel-build       true
                                :source-map-timestamp true
                                :optimizations        :none}}

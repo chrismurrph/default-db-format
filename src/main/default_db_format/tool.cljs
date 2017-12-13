@@ -142,7 +142,8 @@
 (defonce ^:private global-inspector* (atom nil))
 
 (defn start-global-inspector [options]
-  (let [app (fulcro/new-fulcro-client :shared {:options options})
+  (let [app (fulcro/new-fulcro-client :shared {:options (dissoc options :edn)
+                                               :edn (:edn options)})
         node (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (css/upsert-css "default-db-format" GlobalRoot)
@@ -171,19 +172,33 @@
                               (assoc-in [::floating-panel "main" :ui/visible?] true))))
           ))
 
+#_(defn watch-state []
+  (when (and first-time? (not (core/ok? check-result)))
+    (js/setTimeout (fn []
+                     (fulcro.client.util/force-render reconciler)
+                     (un-check!))
+                   timeout)))
+
 (defn dump []
   (-> (global-inspector) :reconciler prim/app-state deref))
 
-(defn dump-fulcro-inspect []
+#_(defn dump-fulcro-inspect []
   (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
   (if (prim/app-root reconciler) ; ensure host/target app is initialized
-    (let [inspector (global-inspector)
-          tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
-          app-id    (app-id reconciler)]
-      (prim/transact! (:reconciler (global-inspector)) [`(open-inspector)])
-      ;(println "tx" (dev/pp-str tx))
+    (let [
+          ;tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
+          ;app-id    (app-id reconciler)
+          tool-reconciler (:reconciler (global-inspector))
+          shared-config (-> tool-reconciler prim/app-root prim/shared)
+          new-state (select-keys env [:new-state])
+          config (:edn shared-config)
+          timeout (-> shared-config :options :state-change-debounce-timeout)]
+      (prim/transact! tool-reconciler [`(open-inspector)])
+      (println "new-state" (dev/pp-str new-state))
+      (println "config:" (dev/pp-str config))
+      (println "timeout:" timeout)
       ))
   )
 
@@ -219,9 +234,11 @@
 
     new-inspector))
 
+(def edn-keys [:excluded-keys :okay-value-maps :okay-value-vectors :by-id-kw :routing-ns])
+
 (defn install [options]
   (when-not @global-inspector*
-    (js/console.log "Installing \"Default DB Format\"" options)
+    (js/console.log "Installing \"Default DB Format\"" (apply dissoc options edn-keys))
     (global-inspector options)
 
     (fulcro/register-tool
