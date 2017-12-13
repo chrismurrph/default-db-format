@@ -140,9 +140,10 @@ For examples of **default db format** take a look at any of the source files in 
 
 ##### Internal version
 
-The current internal version is **30**. Makes sense for when dealing with snapshots. 30 goes with "0.1.1-SNAPSHOT". 30 is displayed by the HUD. Version history:
+The current internal version is **30**. Having an internal version makes sense for when dealing with snapshots.
+30 (and all prior numbers) go with "0.1.1-SNAPSHOT". 30 is displayed by the HUD. Version history:
 
- *  **30** Now only works with Fulcro
+ *  **30** Fulcro tooling. Will need to get rid of much of the above doco
  *  **29** Able to watch state changes and force a render
  *  **28** Works with Fulcro and on Clojars 
  *  **27** Om now *provided* and this one will be in Clojars

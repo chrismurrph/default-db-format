@@ -100,7 +100,7 @@
                      report-problem? (not (okay? props))
                      ;_ (println "not-normalized-ref-entries: " not-normalized-ref-entries)
                      ]
-                 (when report-problem?
+                 (if report-problem?
                    (dom/div nil (dom/span allow-follow-on
                                           (dom/h3 coloured-follow-on (str "default-db-format"))
                                           (dom/h4 follow-on (str "  (ver: " version ")")))
@@ -115,7 +115,8 @@
                                          (dom/div nil "Not normalized in tables problems:"
                                                   (for [by-id (into {} not-normalized-table-entries)
                                                         :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
-                                                    (bad-table-entries-component present-lower)))))))))))
+                                                    (bad-table-entries-component present-lower)))))))
+                   (dom/div nil "No problem to report")))))
 (def display-db-component (prim/factory DisplayDb {:keyfn :id}))
 
 (defui ^:once GenericDisplayer

@@ -13,7 +13,7 @@
                  [figwheel-sidecar "0.5.11" :exclusions [org.clojure/tools.reader] :scope "provided"]
                  [devcards "0.2.3" :exclusions [cljsjs/react-dom cljsjs/react] :scope "provided"]
                  [binaryage/devtools "0.9.4" :scope "provided"]
-                 [fulcrologic/fulcro-inspect "2.0.0-alpha1"]
+                 [fulcrologic/fulcro-inspect "2.0.0-alpha2"]
                  ]
 
   :jar-exclusions [#"examples" #"test_helpers.clj"]
@@ -28,31 +28,32 @@
 
   :source-paths ["src/main" "dev" "script" "test"]
 
-  :cljsbuild    {:builds
-                 [{:id           "cards"
-                   :source-paths ["src/main" "src/cards"]
-                   :figwheel     {:devcards true}
-                   :compiler     {:main                 default-db-format.card-ui
-                                  :output-to            "resources/public/js/cards.js"
-                                  :output-dir           "resources/public/js/cards"
-                                  :asset-path           "js/cards"
-                                  :preloads             [devtools.preload
-                                                         fulcro.inspect.preload
-                                                         default-db-format.preload]
-                                  :external-config      {:fulcro.inspect/config {:launch-keystroke "ctrl-g"}
-                                                         :default-db-format/config {:launch-keystroke "ctrl-i"}}
-                                  :parallel-build       true
-                                  :source-map-timestamp true
-                                  :optimizations        :none}}
-                  ;{:id           "dev"
-                  ; :figwheel     {:on-jsload "cljs.user/refresh"}
-                  ; :source-paths ["dev/client" "src/main"]
-                  ; :compiler     {:asset-path           "js/dev"
-                  ;                :main                 cljs.user
-                  ;                :optimizations        :none
-                  ;                :output-dir           "resources/public/js/dev"
-                  ;                :output-to            "resources/public/js/b00ks.js"
-                  ;                ;:preloads             [devtools.preload]
-                  ;                :source-map-timestamp true}}
-                  ]}
+  :cljsbuild {:builds
+              [{:id           "cards"
+                :source-paths ["src/main" "src/cards"]
+                :figwheel     {:devcards true}
+                :compiler     {:main                 default-db-format.card-ui
+                               :output-to            "resources/public/js/cards.js"
+                               :output-dir           "resources/public/js/cards"
+                               :asset-path           "js/cards"
+                               :preloads             [devtools.preload
+                                                      fulcro.inspect.preload
+                                                      default-db-format.preload
+                                                      ]
+                               :external-config      {:fulcro.inspect/config    {:launch-keystroke "ctrl-v"}
+                                                      :default-db-format/config {:launch-keystroke "ctrl-q"}}
+                               :parallel-build       true
+                               :source-map-timestamp true
+                               :optimizations        :none}}
+               ;{:id           "dev"
+               ; :figwheel     {:on-jsload "cljs.user/refresh"}
+               ; :source-paths ["dev/client" "src/main"]
+               ; :compiler     {:asset-path           "js/dev"
+               ;                :main                 cljs.user
+               ;                :optimizations        :none
+               ;                :output-dir           "resources/public/js/dev"
+               ;                :output-to            "resources/public/js/b00ks.js"
+               ;                ;:preloads             [devtools.preload]
+               ;                :source-map-timestamp true}}
+               ]}
   )
