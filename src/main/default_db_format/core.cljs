@@ -61,6 +61,8 @@
                                            (when (pos? (count non-idents))
                                              [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
           (ident-like? v) nil
+          ;;:ui/react-key is a string
+          (string? v) nil
           :else [{:text "Expect Idents" :problem k}])))))
 
 (defn map-of-partic-format?

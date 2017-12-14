@@ -24,10 +24,11 @@
 ;; `set` constructor instead, which won't wrap a set it param might be given.
 ;;
 (defn setify [in]
-  (assert in)
-  (cond (set? in) in
-        (sequential? in) (into #{} in)
-        :else #{in}))
+  (if (seq in)
+    (cond (set? in) in
+          (sequential? in) (into #{} in)
+          :else #{in})
+    #{}))
 
 (defn by-id-kw-hof
   [config-kw-strs]

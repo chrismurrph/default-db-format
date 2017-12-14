@@ -8,11 +8,14 @@
             [default-db-format.ui.events :as events]
             [default-db-format.ui.element :as element]
             [default-db-format.ui.components :as components]
+            [default-db-format.general.dev :as dev]
             [goog.object :as gobj]
             [goog.functions :as gfun]
-            [default-db-format.ui.inspector :as inspector]
             [default-db-format.core :as core]
-            [default-db-format.iframe :as iframe]))
+            [default-db-format.iframe :as iframe]
+            [cljs.pprint :refer [pprint]]))
+
+(def tool-name "Default DB Format")
 
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
@@ -39,7 +42,7 @@
                                        :bottom     "0"
                                        :width      "50%"
                                        :overflow   "hidden"
-                                       :z-index    "9999999"}]
+                                       :z-index    "99999999"}]
                          [:.resizer {:position    "fixed"
                                      :cursor      "ew-resize"
                                      :top         "0"
@@ -47,7 +50,7 @@
                                      :margin-left "-5px"
                                      :width       "10px"
                                      :bottom      "0"
-                                     :z-index     "99999"}]
+                                     :z-index     "999999"}]
                          [:.frame {:width  "100%"
                                    :height "100%"
                                    :border "0"}]])
@@ -179,14 +182,18 @@
 ;; WARNING: Use of undeclared Var fulcro.inspect.core/global-inspector at line 180
 ;; /home/chris/IdeaProjects/default-db-format/src/main/default_db_format/tool.cljs
 ;;
+;; Regardless of the warning works fine to see another tool's state.
+;;
 #_(defn dump-fulcro-inspect []
   (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
 (defn update-inspect-state-hof [tool-reconciler]
   (let [shared-config (-> tool-reconciler prim/app-root prim/shared)
-        config (:edn shared-config)]
+        config (or (:edn shared-config) {})]
+    (println tool-name "edn config summary:" (dev/summarize-map config))
     (fn [new-state]
       (let [check-result (core/check config new-state)]
+        (pprint check-result)
         (prim/transact! tool-reconciler [`(state-inspection {:visible?     ~(-> check-result core/ok? not)
                                                              :check-result ~check-result}) [:floating-panel/by-id "main"]])))))
 
@@ -216,7 +223,7 @@
 
 (defn install [options]
   (when-not @global-inspector*
-    (js/console.log "Installing \"Default DB Format\""
+    (js/console.log "Installing" tool-name
                     (select-keys options [:launch-keystroke :state-change-debounce-timeout]))
     (global-inspector options)
 

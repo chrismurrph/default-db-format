@@ -190,6 +190,16 @@
 
 (defn log-off [txt])
 
+(defn summarize-map [m]
+  (assert (map? m))
+  (->> m
+       (map (fn [[k v]]
+              [k (if (coll? v)
+                   (count v)
+                   v)]))
+       (into {}))
+  )
+
 ;;
 ;; name - of the thing we are asserting on
 ;; value - of the thing we are asserting on

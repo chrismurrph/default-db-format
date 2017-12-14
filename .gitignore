@@ -1,6 +1,7 @@
 /target
 /.nrepl-port
 /resources/public/js
+/resources/default-db-format.*
 .lein-deps-sum
 .nrepl-history
 *.jar

@@ -64,10 +64,9 @@
   "Put a thing"
   [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state assoc-in [:thing/by-id 1] {:label    "I'm not at an id, so I'm not normalized"
+          (swap! state assoc-in [:thing/by-id 1] {:label    "I'm not at an id, which sometimes happens"
                                                   :bad-join {:db/id     1
-                                                             :some/text "Surely I s/be in the tables"}})
-          ))
+                                                             :some/text "Surely I s/be in the tables"}})))
 
 (m/defmutation normalize
   "Remove a thing"
