@@ -25,7 +25,7 @@
 ;; Un-toggle hold on some/none bad state. After call to this function next call to check!
 ;; will actually do a check.
 ;;
-(defn un-check! []
+(defn allow-fresh-checks! []
   (reset! bad-result nil))
 
 ;;
@@ -49,7 +49,7 @@
                     (when (and first-time? (not (core/ok? check-result)))
                       (js/setTimeout (fn []
                                        (fulcro.client.util/force-render reconciler)
-                                       (un-check!))
+                                       (allow-fresh-checks!))
                                      timeout)))))))
   ([config reconciler]
     (watch-state config reconciler nil)))
