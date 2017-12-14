@@ -20,10 +20,13 @@
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
 
+(def expanded-percentage-width 50)
+(def collapsed-percentage-width 3)
+
 (defui ^:once GlobalInspector
        static prim/InitialAppState
-       (initial-state [_ params] {:ui/size      50
-                                  :ui/visible?  false
+       (initial-state [_ params] {:ui/visible?  false
+                                  :ui/collapsed? true
                                   :ui/inspector (prim/get-initial-state components/DisplayDb params)})
 
        static prim/Ident
@@ -31,26 +34,18 @@
 
        static prim/IQuery
        (query [_] [{:ui/inspector (prim/get-query components/DisplayDb)}
-                   :ui/size :ui/visible?])
+                   :ui/visible? :ui/collapsed?])
 
        static css/CSS
        (local-rules [_] [[:.container {:background "#fff"
                                        :box-shadow "rgba(0, 0, 0, 0.3) 0px 0px 4px"
                                        :position   "fixed"
                                        :top        "0"
-                                       :right      "0"
+                                       :left       "0"
                                        :bottom     "0"
-                                       :width      "50%"
+                                       ;:width      (str expanded-percentage-width "%")
                                        :overflow   "hidden"
-                                       :z-index    "99999999"}]
-                         [:.resizer {:position    "fixed"
-                                     :cursor      "ew-resize"
-                                     :top         "0"
-                                     :left        "50%"
-                                     :margin-left "-5px"
-                                     :width       "10px"
-                                     :bottom      "0"
-                                     :z-index     "999999"}]
+                                       :z-index    "9999999"}]
                          [:.frame {:width  "100%"
                                    :height "100%"
                                    :border "0"}]])
@@ -59,47 +54,30 @@
        Object
        (componentDidMount [this]
                           (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node")))
-                          (gobj/set this "resize-debouncer"
+                          #_(gobj/set this "resize-debouncer"
                                     (gfun/debounce #(mutations/set-value! this :ui/size %) 300)))
 
        (componentDidUpdate [this _ _]
                            (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
        (render [this]
-               (let [{:ui/keys [size visible? inspector]} (prim/props this)
-                     keystroke (or (prim/shared this [:options :launch-keystroke]) "ctrl-a")
-                     size (or size 50)
+               (let [{:ui/keys [visible? collapsed? inspector]} (prim/props this)
+                     keystroke (or (prim/shared this [:options :collapse-keystroke]) "ctrl-q")
+                     size (if collapsed?
+                            collapsed-percentage-width
+                            expanded-percentage-width)
                      css (css/get-classnames GlobalInspector)]
-                 (dom/div #js {:className (:reset css)
-                               :style     (if visible? nil #js {:display "none"})}
-                          (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                 (println "width will be" size "as collapsed is" collapsed?)
+                 (dom/div #js {:style     (if visible? nil #js {:display "none"})}
+                          (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
                                                 ::events/keystroke keystroke})
-                          (dom/div #js {:className   (:resizer css)
-                                        :ref         #(gobj/set this "resizer" %)
-                                        :style       #js {:left (str size "%")}
-                                        :onMouseDown (fn [_]
-                                                       (let [handler (fn [e]
-                                                                       (let [mouse (.-clientX e)
-                                                                             vw js/document.body.clientWidth
-                                                                             pos (* (/ mouse vw) 100)]
-                                                                         (when (pos? pos)
-                                                                           (set-style! (gobj/get this "resizer") "left" (str pos "%"))
-                                                                           (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
-                                                                           ((gobj/get this "resize-debouncer") pos))))
-                                                             frame (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
-                                                         (set-style! frame "pointerEvents" "none")
-                                                         (js/document.addEventListener "mousemove" handler)
-                                                         (js/document.addEventListener "mouseup"
-                                                                                       (fn [e]
-                                                                                         (gobj/set (.-style frame) "pointerEvents" "initial")
-                                                                                         (js/document.removeEventListener "mousemove" handler)))))})
                           (dom/div #js {:className (:container css)
-                                        :style     #js {:width (str (- 100 size) "%")}
+                                        :style     #js {:width (str size "%")}
                                         :ref       #(gobj/set this "container" %)}
                                    (iframe/ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
                                                      (dom/div nil
                                                               (when-let [frame (gobj/get this "frame-dom")]
-                                                                (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                                                                (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
                                                                                       ::events/keystroke keystroke
                                                                                       ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
                                                               (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
