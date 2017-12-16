@@ -2,7 +2,10 @@
   (:require
     [fulcro.client.primitives :as prim]
     #?(:cljs [cljs.pprint :as pp])
-    #?(:clj [clojure.pprint :as pp])))
+    #?(:clj
+    [clojure.pprint :as pp])))
+
+#?(:cljs (enable-console-print!))
 
 ;;
 ;; About instrumentation and probing that is really useful during development. Lots
@@ -22,9 +25,7 @@
 ;; , which happens if you try nth on a map:
 ;; `(nth {1 2} 0)`
 ;; `(let [[a] {1 2}] a)`
-;; , the destructuring case being the common bug
-#_(defn n-able? [x]
-  ((every-pred coll? (complement map?)) x))
+;; , the vector destructuring case being the common bug
 
 (def n-able? (every-pred coll? (complement map?)))
 
@@ -190,15 +191,20 @@
 
 (defn log-off [txt])
 
-(defn summarize-map [m]
-  (assert (map? m))
-  (->> m
-       (map (fn [[k v]]
-              [k (if (coll? v)
-                   (count v)
-                   v)]))
-       (into {}))
-  )
+(defn summarize [x]
+  (cond
+    (map? x) (let [counted (count x)]
+               (if (> counted 5)
+                 (str counted " map-entries...")
+                 (->> x
+                      (map (fn [[k v]]
+                             [k (summarize v)]))
+                      (into {}))))
+    (coll? x) (let [counted (count x)]
+                (if (> counted 5)
+                  (str counted " items...")
+                  x))
+    :else x))
 
 ;;
 ;; name - of the thing we are asserting on

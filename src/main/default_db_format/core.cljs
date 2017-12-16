@@ -3,20 +3,17 @@
             [fulcro.client.primitives :as prim]
             [cljs.pprint :refer [pprint]]
             [default-db-format.ui.components :as components :refer [display-db-component okay?]]
-            [default-db-format.helpers :as help]))
+            [default-db-format.helpers :as help]
+            [default-db-format.general.dev :as dev]))
 
 (enable-console-print!)
-
-(defn- probe [msg obj]
-  (println (str (s/upper-case msg) ":\n" obj))
-  obj)
-
-(defn- probe-off [msg obj]
-  obj)
 
 (defn ok? [check-result]
   (okay? check-result))
 
+;;
+;; Not needed when HUD is brought up from the tool.
+;;
 (defn show-hud [check-result]
   "Brings up into the browser an Om Next defui component whose render method returns either nil
   or a description of the lack of full normalization. This method should be called at the beginning
@@ -29,9 +26,7 @@
   (or (true? v) (false? v)))
 
 (defn known-category [kw knowns]
-  (let [before-slash (help/category-part (str kw))
-        ;_ (println before-slash)
-        ]
+  (let [before-slash (help/category-part (str kw))]
     (first (filter #(= % before-slash) knowns))))
 
 (defn vec-of-idents? [ident-like? v]
@@ -42,7 +37,7 @@
       (and (vector? v)
            (empty? v))))
 
-(defn ref-entry->error-hof
+(defn join-entry->error-hof
   "Given non id top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
   [ident-like? knowns]
@@ -180,7 +175,7 @@
 (defn kw->str [kw]
   (-> kw str help/exclude-colon))
 
-(defn- ref-entries
+(defn- join-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
   the part after the / is not 'by-id' nor a routing ident"
   ([ident-like? state excluded-keys]
@@ -191,10 +186,11 @@
                     (not (ident-like? k)))))
            state))
   ([ident-like? state]
-   (ref-entries ident-like? state nil)))
+   (join-entries ident-like? state nil)))
 
 ;;
 ;; Making this a hard and fast rule, even for keys that are to be ignored
+;; Actually - no longer using!
 ;;
 (defn not-slashed-keys
   "Returns all the keys that are not namespaced"
@@ -255,10 +251,14 @@
                in that it is intended to be there, and does not indicate failed normalization."
   ([config state]
    (or (failed-state state)
-       (let [are-not-slashed (not-slashed-keys state)]
+       (let [are-not-slashed [] #_(not-slashed-keys state)]
          (if (seq are-not-slashed)
            (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-           (let [config (merge help/default-config config)
+           (let [
+                 ;; In the case of the tool this defaulting has already been done. But we can't assume that
+                 ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
+                 ;; do this without fear.
+                 config (merge help/default-config config)
                  {:keys [okay-value-maps okay-value-vectors excluded-keys acceptable-table-value-fn?]} config
                  ident-like? (help/ident-like-hof? config)
                  conformance-predicates {:ident-like?               ident-like?
@@ -268,21 +268,21 @@
                  by-id-table-entries (help/table-entries by-id-kw? state)
                  table-names (into #{} (map (comp help/category-part str key) by-id-table-entries))
                  keys-to-ignore (help/setify excluded-keys)
-                 non-by-id (ref-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
-                 all-keys-count (+ (probe-off "count non-by-id" (count non-by-id)) (probe-off "count by-id" (count by-id-table-entries)))
+                 non-by-id (join-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
+                 all-keys-count (+ (dev/probe-off-msg "count non-by-id" (count non-by-id)) (dev/probe-off-msg "count by-id" (count by-id-table-entries)))
                  categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
              (if (and (empty? table-names)
                       (pos? all-keys-count))
                (ret {:failed-assumption (incorrect "by-id normalized file required")})
-               (let [ref-entries-tester (ref-entry->error-hof ident-like? categories)
+               (let [join-entries-tester (join-entry->error-hof ident-like? categories)
                      okay-maps (help/setify okay-value-maps)
                      okay-vectors (help/setify okay-value-vectors)
                      id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
                  (ret {:categories  categories
                        :known-names table-names
-                       :not-normalized-ref-entries
+                       :not-normalized-join-entries
                                     (into #{}
-                                          (mapcat (fn [kv] (ref-entries-tester kv)) non-by-id))
+                                          (mapcat (fn [kv] (join-entries-tester kv)) non-by-id))
                        :not-normalized-table-entries
                                     (into #{}
                                           (into {} (mapcat (fn [kv] (id-tester kv)) by-id-table-entries)))}))))))))

@@ -1,4 +1,4 @@
-(ns general.card-helpers
+(ns default-db-format.general.card-helpers
   (:require [fulcro-css.css :as css]
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as prim]))

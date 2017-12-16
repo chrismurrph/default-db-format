@@ -25,7 +25,7 @@
 (def follow-on #js {:style #js {:display "inline-block"}})
 (def reddish-follow-on #js {:style #js {:display "inline-block" :color reddish}})
 
-(defui ^:once RefsTextItem
+(defui ^:once JoinsTextItem
        static prim/Ident
        (ident [this props]
               [:item/by-id (:id props)])
@@ -33,9 +33,9 @@
        (render [this]
                (let [{:keys [id text problem]} (prim/props this)]
                  (dom/li nil (dom/span nil (dom/span nil text ": ") (dom/span reddish-follow-on (str problem)))))))
-(def refs-item-component (prim/factory RefsTextItem {:keyfn :id}))
+(def joins-item-component (prim/factory JoinsTextItem {:keyfn :id}))
 
-(defui ^:once RefsTextList
+(defui ^:once JoinsTextList
        static prim/Ident
        (ident [this props]
               [:list/by-id (:id props)])
@@ -47,8 +47,8 @@
                                :let [{:keys [text problem]} item
                                      _ (assert text)
                                      _ (assert problem)]]
-                           (refs-item-component {:id (str text problem) :text text :problem problem}))))))
-(def refs-list-component (prim/factory RefsTextList {:keyfn :id}))
+                           (joins-item-component {:id (str text problem) :text text :problem problem}))))))
+(def joins-list-component (prim/factory JoinsTextList {:keyfn :id}))
 
 (defui ^:once BadTablesEntry
        static prim/Ident
@@ -63,8 +63,8 @@
 (def bad-table-entries-component (prim/factory BadTablesEntry {:keyfn :id}))
 
 (defn okay? [check-result]
-  (let [{:keys [failed-assumption not-normalized-ref-entries not-normalized-table-entries]} check-result]
-    (not (or failed-assumption (seq not-normalized-ref-entries) (seq not-normalized-table-entries)))))
+  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result]
+    (not (or failed-assumption (seq not-normalized-join-entries) (seq not-normalized-table-entries)))))
 
 (def coloured-follow-on #js {:style #js {:display "inline-block" :color "#0000FF"}})
 
@@ -90,15 +90,15 @@
        (ident [_ props] [::id (::id props)])
 
        static prim/IQuery
-       (query [_] [::id :version :not-normalized-table-entries :not-normalized-ref-entries :failed-assumption])
+       (query [_] [::id :version :not-normalized-table-entries :not-normalized-join-entries :failed-assumption])
 
        Object
        (render [this]
                (let [props (prim/props this)
-                     {:keys [not-normalized-table-entries not-normalized-ref-entries failed-assumption version]} props
+                     {:keys [not-normalized-table-entries not-normalized-join-entries failed-assumption version]} props
                      _ (assert version)
                      report-problem? (not (okay? props))
-                     ;_ (println "not-normalized-ref-entries: " not-normalized-ref-entries)
+                     ;_ (println "not-normalized-join-entries: " not-normalized-join-entries)
                      ]
                  (if report-problem?
                    (dom/div nil (dom/span allow-follow-on
@@ -107,9 +107,9 @@
                             (if failed-assumption
                               (poor-assump-div failed-assumption)
                               (dom/div nil
-                                       (when (seq not-normalized-ref-entries)
-                                         (dom/div nil "Normalization in refs problems (:excluded-keys in config one way to fix):"
-                                                  (refs-list-component {:id "Normalization in refs problems" :items not-normalized-ref-entries}))
+                                       (when (seq not-normalized-join-entries)
+                                         (dom/div nil "Normalization in joins problems (:excluded-keys in config one way to fix):"
+                                                  (joins-list-component {:id "Normalization in joins problems" :items not-normalized-join-entries}))
                                          )
                                        (when (seq not-normalized-table-entries)
                                          (dom/div nil "Not normalized in tables problems:"

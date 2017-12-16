@@ -1,6 +1,7 @@
 (ns default-db-format.helpers
   (:require [clojure.string :as s]
-            [fulcro.client.primitives :as prim]))
+            [fulcro.client.primitives :as prim]
+            [default-db-format.general.dev :as dev]))
 
 (defn exclude-colon [s]
   (apply str (next s)))
@@ -46,7 +47,7 @@
            (and ns
                 (some #{ns} config-ns-strs))))))
 
-(def acceptable-id? (some-fn number? symbol? prim/tempid? keyword?))
+(def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string?))
 
 ;;
 ;; The outer function accepts the same config that check accepts.
@@ -56,14 +57,18 @@
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
   [{:keys [by-id-kw routing-ns]}]
+  ;(dev/log (dev/assert-str "by-id-kw" by-id-kw))
+  ;(dev/log (dev/assert-str "routing-ns" routing-ns))
   (let [by-id-kw? (-> by-id-kw setify by-id-kw-hof)
         routed-ns? (-> routing-ns setify routed-ns-hof)]
     (fn [tuple]
       (when (and (vector? tuple)
                  (= 2 (count tuple)))
         (let [[cls id] tuple]
-          (and (or (by-id-kw? cls) (routed-ns? cls))
-               (acceptable-id? id)))))))
+          ;(println (dev/assert-str "tuple" tuple))
+          ;(println (dev/assert-str "cls" cls))
+          (and (or (dev/probe-off-msg "by-id-kw?" (by-id-kw? cls)) (dev/probe-off-msg "routed-ns?" (routed-ns? cls)))
+               (dev/probe-off-msg "acceptable-id?" (acceptable-id? id))))))))
 
 (def default-config
   "This default can be overridden using the config arg to the check function"

@@ -5,7 +5,8 @@
     #?(:clj
             [clojure.java.io :as io])
     #?(:clj
-            [clojure.tools.reader.edn :as edn])))
+            [clojure.tools.reader.edn :as edn])
+    #?(:clj [default-db-format.helpers :as help])))
 
 #?(:clj
    (defn read-external-config []
@@ -16,14 +17,14 @@
 
 #?(:clj
    (defn read-from-edn []
-     (some->> (io/resource "default-db-format.edn")
+     (some->> (io/resource "config/default-db-format.edn")
               slurp
               edn/read-string)))
 
 #?(:clj
    (defmacro emit-external-config []
      `'~(merge (or (read-external-config) {})
-               {:edn (or (read-from-edn) {})})))
+               {:edn (merge help/default-config (read-from-edn))})))
 
 #?(:cljs
    (def external-config (delay (emit-external-config))))

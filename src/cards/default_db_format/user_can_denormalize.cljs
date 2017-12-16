@@ -4,7 +4,7 @@
             [fulcro.client.dom :as dom]
             [fulcro.client.util :as fu]
             [fulcro.client.cards :refer [defcard-fulcro fulcro-application]]
-            [general.card-helpers :as card-helpers]
+            [default-db-format.general.card-helpers :as card-helpers]
             [fulcro.client.primitives :as prim :refer [defui defsc InitialAppState initial-state]]
             [fulcro-css.css :as css]
             [default-db-format.ui.domain :as ui-domain]
@@ -25,7 +25,7 @@
                      :root/top-router
                      :root/components
                      ;Easier for every if we ignore top level keys that are not seq
-                     ;:general.card-helpers/app-id
+                     ;:default-db-format.general.card-helpers/app-id
                      })
 (def okay-val-maps #{[:debug-from]})
 (def okay-val-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]})
@@ -128,6 +128,7 @@
                      adult-component (prim/factory Adult)]
                  ;(println "Have app?" (boolean say-hello-fulcro-app))
                  (dom/div #js {:key react-key}
+                          ;No longer do this because the tooling works
                           ;(when rec (check-default-db true rec))
                           (adult-component root)))))
 

@@ -12,22 +12,21 @@
             [goog.object :as gobj]
             [goog.functions :as gfun]
             [default-db-format.core :as core]
-            [default-db-format.iframe :as iframe]
-            [cljs.pprint :refer [pprint]]))
+            [default-db-format.iframe :as iframe]))
 
 (def tool-name "Default DB Format")
 
-(defn set-style! [node prop value]
-  (gobj/set (gobj/get node "style") prop value))
-
 (def expanded-percentage-width 50)
-(def collapsed-percentage-width 3)
+
+;; A red line on the right edge of the container will be a
+;; reminder to the user.
+(def collapsed-percentage-width 1)
 
 (defui ^:once GlobalInspector
        static prim/InitialAppState
-       (initial-state [_ params] {:ui/visible?  false
-                                  :ui/collapsed? true
-                                  :ui/inspector (prim/get-initial-state components/DisplayDb params)})
+       (initial-state [_ params] {:ui/visible?   false
+                                  :ui/collapsed? false
+                                  :ui/inspector  (prim/get-initial-state components/DisplayDb params)})
 
        static prim/Ident
        (ident [_ props] [:floating-panel/by-id "main"])
@@ -53,9 +52,7 @@
 
        Object
        (componentDidMount [this]
-                          (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node")))
-                          #_(gobj/set this "resize-debouncer"
-                                    (gfun/debounce #(mutations/set-value! this :ui/size %) 300)))
+                          (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
        (componentDidUpdate [this _ _]
                            (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
@@ -67,8 +64,7 @@
                             collapsed-percentage-width
                             expanded-percentage-width)
                      css (css/get-classnames GlobalInspector)]
-                 (println "width will be" size "as collapsed is" collapsed?)
-                 (dom/div #js {:style     (if visible? nil #js {:display "none"})}
+                 (dom/div #js {:style (if visible? nil #js {:display "none"})}
                           (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
                                                 ::events/keystroke keystroke})
                           (dom/div #js {:className (:container css)
@@ -121,8 +117,9 @@
 (defonce ^:private global-inspector* (atom nil))
 
 (defn start-global-inspector [options]
-  (let [app (fulcro/new-fulcro-client :shared {:options (dissoc options :edn)
-                                               :edn     (:edn options)})
+  (let [configuration {:options (dissoc options :edn)
+                       :edn     (:edn options)}
+        app (fulcro/new-fulcro-client :shared configuration)
         node (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (css/upsert-css "default-db-format" GlobalRoot)
@@ -133,6 +130,14 @@
   ([options]
    (or @global-inspector*
        (reset! global-inspector* (start-global-inspector options)))))
+
+(defn get-config
+  "The host/target application can use this when it wants know the configuration it
+  set at compile time (from lein and edn), at run-time. For example to call a function
+  such as default-db-format.helpers/ident-like-hof. Will return nil when called before the
+  app is initialized"
+  []
+  (some-> (global-inspector) :reconciler prim/app-root prim/shared))
 
 (defn dedupe-id [id]
   (let [ids-in-use (some-> (global-inspector) :reconciler prim/app-state deref ::components/id)]
@@ -163,15 +168,13 @@
 ;; Regardless of the warning works fine to see another tool's state.
 ;;
 #_(defn dump-fulcro-inspect []
-  (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
+    (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
 (defn update-inspect-state-hof [tool-reconciler]
-  (let [shared-config (-> tool-reconciler prim/app-root prim/shared)
-        config (or (:edn shared-config) {})]
-    (println tool-name "edn config summary:" (dev/summarize-map config))
+  (let [config (-> tool-reconciler prim/app-root prim/shared)]
+    (println tool-name "build tool and edn config summary:" (dev/summarize config))
     (fn [new-state]
-      (let [check-result (core/check config new-state)]
-        (pprint check-result)
+      (let [check-result (core/check (:edn config) new-state)]
         (prim/transact! tool-reconciler [`(state-inspection {:visible?     ~(-> check-result core/ok? not)
                                                              :check-result ~check-result}) [:floating-panel/by-id "main"]])))))
 
@@ -196,13 +199,18 @@
 ;; (For instance react key changes are not picked up when on every transact)
 ;; A good reason is so don't check every time the developer saves his work,
 ;; slowing the machine down at the worst possible time for no good reason!
+;; So we have chosen not to slow the developer's machine down at the expense
+;; of missing a change to app state that did not go through a `transact!`.
+;; Quite possibly there is no such thing - everything goes through `transact!`.
+;; Anyway it hinges on this def - so easy to make it an option in the lein
+;; project. KEEP false, until new information arrives.
 ;;
 (def all-state-changes? false)
 
 (defn install [options]
   (when-not @global-inspector*
     (js/console.log "Installing" tool-name
-                    (select-keys options [:launch-keystroke :state-change-debounce-timeout]))
+                    (select-keys options [:collapse-keystroke :state-change-debounce-timeout]))
     (global-inspector options)
 
     (fulcro/register-tool
