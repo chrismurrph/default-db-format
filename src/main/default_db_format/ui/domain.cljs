@@ -17,6 +17,7 @@
 (def color-text-faded "#bbb")
 
 (def reddish "#E11F1F")
+(def light-red "#cc3333")
 
 (def css-info-group
   {:border-top "1px solid #eee"
@@ -43,30 +44,37 @@
    :margin      "0 4px 0 7px"})
 
 (prim/defui ^:once CSS
-          static css/CSS
-          (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
-                                              :display        "flex"
-                                              :flex-direction "column"
-                                              :height         "50%"}]
-                            [:.focused-container {:flex     "1"
-                                                  :overflow "auto"
-                                                  :padding  "0 10px"}]
+            static css/CSS
+            (local-rules [_] [[:.red-coloured {:color reddish}]
+                              [:.light-red-coloured {:color light-red}]
+                              [:.flex {:display "flex"}]
+                              [:.vertical-container {:display        "flex"
+                                                     :flex-direction "column"}]
+                              [:.left-justified-container {:display         "flex"
+                                                           :justify-content "flex-start"}]
+                              [:.focused-panel {:border-top     "1px solid #a3a3a3"
+                                                :display        "flex"
+                                                :flex-direction "column"
+                                                :height         "50%"}]
+                              [:.focused-container {:flex     "1"
+                                                    :overflow "auto"
+                                                    :padding  "0 10px"}]
 
-                            [:.info-group css-info-group
-                             [(gs/& gs/first-child) {:border-top "0"}]]
-                            [:.info-label css-info-label]
-                            [:.alarm-label css-alarm-label]
-                            [:.ident {:padding     "5px 6px"
-                                      :background  "#f3f3f3"
-                                      :color       "#424242"
-                                      :display     "inline-block"
-                                      :font-family mono-font-family
-                                      :font-size   label-font-size}]
-                            [:.display-name {:background  "#e5efff"
-                                             :color       "#051d38"
-                                             :display     "inline-block"
-                                             :padding     "4px 8px"
-                                             :font-family mono-font-family
-                                             :font-size   "14px"}]])
-          (include-children [_] []))
+                              [:.info-group css-info-group
+                               [(gs/& gs/first-child) {:border-top "0"}]]
+                              [:.info-label css-info-label]
+                              [:.alarm-label css-alarm-label]
+                              [:.ident {:padding     "5px 6px"
+                                        :background  "#f3f3f3"
+                                        :color       "#424242"
+                                        :display     "inline-block"
+                                        :font-family mono-font-family
+                                        :font-size   label-font-size}]
+                              [:.display-name {:background  "#e5efff"
+                                               :color       "#051d38"
+                                               :display     "inline-block"
+                                               :padding     "4px 8px"
+                                               :font-family mono-font-family
+                                               :font-size   "14px"}]])
+            (include-children [_] []))
 

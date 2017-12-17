@@ -7,7 +7,7 @@
             [default-db-format.general.card-helpers :as card-helpers]
             [fulcro.client.primitives :as prim :refer [defui defsc InitialAppState initial-state]]
             [fulcro-css.css :as css]
-            [default-db-format.ui.domain :as ui-domain]
+            [default-db-format.ui.domain :as ui.domain]
             [default-db-format.core :as db-format]
             [default-db-format.watcher :as watcher]
             [cljs.pprint :refer [pprint]]
@@ -35,14 +35,14 @@
                    :by-id-kw           "by-id"
                    :routing-ns         "routed"})
 
-(def scss (css/get-classnames ui-domain/CSS))
+(def scss (css/get-classnames ui.domain/CSS))
 
 ;;
 ;; noisey? will show success.
 ;;
 (defn check-default-db [noisey? state]
   (assert (map? state))
-  (let [version db-format/version
+  (let [version db-format/tool-version
         msg-boiler (str "normalized (default-db-format ver: " version ")")
         check-result (db-format/check check-config state)
         ok? (db-format/ok? check-result)]
@@ -64,9 +64,20 @@
   "Put a thing"
   [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state assoc-in [:thing/by-id 1] {:label    "I'm not at an id, which sometimes happens"
-                                                  :bad-join {:db/id     1
-                                                             :some/text "Surely I s/be in the tables"}})))
+          (swap! state assoc-in [:thing/by-id 1]
+                 {:label                      "I'm not at an id, which sometimes happens"
+                  :some-kind-of-long/bad-join {:db/id     1
+                                               :some/text "Surely I s/be in the tables"
+                                               :a/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :b/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :c/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :d/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :e/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :f/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :g/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :h/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :i/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                               :j/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}})))
 
 (m/defmutation normalize
   "Remove a thing"
@@ -92,7 +103,7 @@
                        {:db/id 1 :adult/first-name "Mama Shark" :adult/babies babies-in})
         :ident       [:adult/by-id :db/id]
         :query       [:db/id :adult/first-name {:adult/babies (prim/get-query Baby)}]
-        :css-include [ui-domain/CSS]}
+        :css-include [ui.domain/CSS]}
        (let [title (str "Good afternoon, my name is " first-name " with " (count babies) " shark babies")]
          (dom/div nil
                   (dom/div #js {:className (:display-name scss)} title)
@@ -123,13 +134,9 @@
 
        Object
        (render [this]
-               (let [rec (some-> (get-reconciler) deref)
-                     {:ui/keys [react-key root]} (prim/props this)
+               (let [{:ui/keys [react-key root]} (prim/props this)
                      adult-component (prim/factory Adult)]
-                 ;(println "Have app?" (boolean say-hello-fulcro-app))
                  (dom/div #js {:key react-key}
-                          ;No longer do this because the tooling works
-                          ;(when rec (check-default-db true rec))
                           (adult-component root)))))
 
 (def initial-babies [{:db/id 1 :baby/first-name "Baby Shark 1"}

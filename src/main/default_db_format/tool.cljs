@@ -6,7 +6,6 @@
             [fulcro.client.dom :as dom]
             [garden.core :as g]
             [default-db-format.ui.events :as events]
-            [default-db-format.ui.element :as element]
             [default-db-format.ui.components :as components]
             [default-db-format.general.dev :as dev]
             [goog.object :as gobj]
@@ -14,12 +13,11 @@
             [default-db-format.core :as core]
             [default-db-format.iframe :as iframe]))
 
-(def tool-name "Default DB Format")
-
 (def expanded-percentage-width 50)
 
 ;; A red line on the right edge of the container will be a
 ;; reminder to the user.
+;; Hmm - mose well just have a red line rather than collapse it!
 (def collapsed-percentage-width 1)
 
 (defui ^:once GlobalInspector
@@ -36,19 +34,18 @@
                    :ui/visible? :ui/collapsed?])
 
        static css/CSS
-       (local-rules [_] [[:.container {:background "#fff"
+       (local-rules [_] [[:.container {:background "#f3f3f3"
                                        :box-shadow "rgba(0, 0, 0, 0.3) 0px 0px 4px"
                                        :position   "fixed"
                                        :top        "0"
                                        :left       "0"
                                        :bottom     "0"
-                                       ;:width      (str expanded-percentage-width "%")
                                        :overflow   "hidden"
                                        :z-index    "9999999"}]
                          [:.frame {:width  "100%"
                                    :height "100%"
                                    :border "0"}]])
-       (include-children [_] [element/MarkerCSS])
+       (include-children [_] [])
 
        Object
        (componentDidMount [this]
@@ -98,7 +95,8 @@
 (defui ^:once GlobalRoot
        static prim/InitialAppState
        (initial-state [_ _] {:ui/react-key (random-uuid)
-                             :ui/root      (prim/get-initial-state GlobalInspector {:version core/version})})
+                             :ui/root      (prim/get-initial-state GlobalInspector {:tool-version core/tool-version
+                                                                                    :tool-name    core/tool-name})})
 
        static prim/IQuery
        (query [_] [{:ui/root (prim/get-query GlobalInspector)}
@@ -150,10 +148,15 @@
   [{:keys [visible? check-result]}]
   (action [{:keys [state]}]
           (let [st @state
-                display-db-ident (get-in st [:floating-panel/by-id "main" :ui/inspector])]
-            (swap! state #(-> %
-                              (assoc-in [:floating-panel/by-id "main" :ui/visible?] visible?)
-                              (update-in display-db-ident merge check-result))))
+                floating-panel-ident [:floating-panel/by-id "main"]
+                inspector-join (conj floating-panel-ident :ui/inspector)
+                visible-join (conj floating-panel-ident :ui/visible?)
+                collapsed-join (conj floating-panel-ident :ui/collapsed?)
+                display-db-ident (get-in st inspector-join)]
+            (swap! state #(cond-> %
+                                  true (assoc-in visible-join visible?)
+                                  visible? (assoc-in collapsed-join false)
+                                  true (update-in display-db-ident merge check-result))))
           ))
 
 (defn dump []
@@ -172,7 +175,7 @@
 
 (defn update-inspect-state-hof [tool-reconciler]
   (let [config (-> tool-reconciler prim/app-root prim/shared)]
-    (println tool-name "build tool and edn config summary:" (dev/summarize config))
+    (println core/tool-name "build tool and edn config summary:" (dev/summarize config))
     (fn [new-state]
       (let [check-result (core/check (:edn config) new-state)]
         (prim/transact! tool-reconciler [`(state-inspection {:visible?     ~(-> check-result core/ok? not)
@@ -209,7 +212,7 @@
 
 (defn install [options]
   (when-not @global-inspector*
-    (js/console.log "Installing" tool-name
+    (js/console.log "Installing" core/tool-name
                     (select-keys options [:collapse-keystroke :state-change-debounce-timeout]))
     (global-inspector options)
 

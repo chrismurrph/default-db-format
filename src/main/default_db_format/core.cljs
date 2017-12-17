@@ -202,13 +202,14 @@
 
 (def always-false-fn (fn [_] false))
 
-(def version
+(def tool-name "Default DB Format")
+(def tool-version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
   30)
 
 (defn- ret [m]
-  (merge m {:version version}))
+  (merge m {:version tool-version}))
 
 (defn- incorrect
   ([text problems]

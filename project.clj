@@ -42,7 +42,7 @@
                                                       ]
                                :external-config      {:fulcro.inspect/config    {:launch-keystroke "ctrl-v"}
                                                       :default-db-format/config {:collapse-keystroke "ctrl-q"
-                                                                                 :state-change-debounce-timeout 1500}}
+                                                                                 :state-change-debounce-timeout 500}}
                                :parallel-build       true
                                :source-map-timestamp true
                                :optimizations        :none}}
