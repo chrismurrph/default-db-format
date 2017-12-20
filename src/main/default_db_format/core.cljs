@@ -270,7 +270,8 @@
                  table-names (into #{} (map (comp help/category-part str key) by-id-table-entries))
                  keys-to-ignore (help/setify excluded-keys)
                  non-by-id (join-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
-                 all-keys-count (+ (dev/probe-off-msg "count non-by-id" (count non-by-id)) (dev/probe-off-msg "count by-id" (count by-id-table-entries)))
+                 all-keys-count (+ (dev/probe-off-msg "count non-by-id" (count non-by-id))
+                                   (dev/probe-off-msg "count by-id" (count by-id-table-entries)))
                  categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
              (if (and (empty? table-names)
                       (pos? all-keys-count))

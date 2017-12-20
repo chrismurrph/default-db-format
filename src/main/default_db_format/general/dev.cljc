@@ -195,7 +195,7 @@
   (cond
     (map? x) (let [counted (count x)]
                (if (> counted 5)
-                 (str counted " map-entries...")
+                 (str counted " map-entries; keys: " (vec (keys x)))
                  (->> x
                       (map (fn [[k v]]
                              [k (summarize v)]))

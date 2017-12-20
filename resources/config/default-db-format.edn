@@ -11,5 +11,5 @@
                        }
  :okay-value-maps    #{[:debug-from]}
  :okay-value-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]}
- :by-id-kw           "by-id"
+ :by-id-kw           ["by-id" "id"]
  :routing-ns         "routed"}

@@ -6,7 +6,7 @@
             [fulcro.client.dom :as dom]))
 
 ;;
-;; Straight steal from fulcro-inspect, source of a lot of good stuff
+;; Some stealing from fulcro-inspect, source of a lot of good stuff
 ;;
 
 (def mono-font-family "monospace")
@@ -18,6 +18,15 @@
 
 (def reddish "#E11F1F")
 (def light-red "#cc3333")
+(def gray "#dddddd")
+(def darker-gray "#6f6f6f")
+(def white "#ffffff")
+(def purple "#881391")
+(def light-green "#f3f3f3")
+(def blue "#3366ff" #_"#0099ff")
+(def light-blue "#e5efff")
+(def very-light-blue "#f0ffff")
+(def close-to-black "#051d38")
 
 (def css-info-group
   {:border-top "1px solid #eee"
@@ -47,34 +56,23 @@
             static css/CSS
             (local-rules [_] [[:.red-coloured {:color reddish}]
                               [:.light-red-coloured {:color light-red}]
+                              [:.purple-coloured {:color purple}]
+                              [:.space-before {:margin-left "7px"}]
                               [:.flex {:display "flex"}]
                               [:.vertical-container {:display        "flex"
                                                      :flex-direction "column"}]
                               [:.left-justified-container {:display         "flex"
                                                            :justify-content "flex-start"}]
-                              [:.focused-panel {:border-top     "1px solid #a3a3a3"
-                                                :display        "flex"
-                                                :flex-direction "column"
-                                                :height         "50%"}]
-                              [:.focused-container {:flex     "1"
-                                                    :overflow "auto"
-                                                    :padding  "0 10px"}]
-
+                              [:.red-dot {:border        "5px solid red"
+                                          :border-radius "5px"
+                                          :position      "fixed"
+                                          :top           "6px"
+                                          :left          "6px"
+                                          :cursor        "pointer"}]
                               [:.info-group css-info-group
                                [(gs/& gs/first-child) {:border-top "0"}]]
                               [:.info-label css-info-label]
                               [:.alarm-label css-alarm-label]
-                              [:.ident {:padding     "5px 6px"
-                                        :background  "#f3f3f3"
-                                        :color       "#424242"
-                                        :display     "inline-block"
-                                        :font-family mono-font-family
-                                        :font-size   label-font-size}]
-                              [:.display-name {:background  "#e5efff"
-                                               :color       "#051d38"
-                                               :display     "inline-block"
-                                               :padding     "4px 8px"
-                                               :font-family mono-font-family
-                                               :font-size   "14px"}]])
+                              ])
             (include-children [_] []))
 

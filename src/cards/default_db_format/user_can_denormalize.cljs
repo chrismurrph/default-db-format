@@ -12,47 +12,10 @@
             [default-db-format.watcher :as watcher]
             [cljs.pprint :refer [pprint]]
             [fulcro.util :refer [unique-key]]
-            [devcards.core]))
-
-(def excluded-keys #{:fulcro.client.routing/routing-tree
-                     :fulcro/ready-to-load
-                     :fulcro/loads-in-progress
-                     :fulcro/server-error
-                     :fulcro.ui.forms/form
-                     :ui/react-key
-                     :ui/locale
-                     :ui/loading-data
-                     :root/top-router
-                     :root/components
-                     ;Easier for every if we ignore top level keys that are not seq
-                     ;:default-db-format.general.card-helpers/app-id
-                     })
-(def okay-val-maps #{[:debug-from]})
-(def okay-val-vectors #{[:report/balance-sheet :report/big-items-first :report/profit-and-loss :report/trial-balance]})
-(def check-config {:excluded-keys      excluded-keys
-                   :okay-value-maps    okay-val-maps
-                   :okay-value-vectors okay-val-vectors
-                   :by-id-kw           "by-id"
-                   :routing-ns         "routed"})
+            [devcards.core]
+            [default-db-format.general.dev :as dev]))
 
 (def scss (css/get-classnames ui.domain/CSS))
-
-;;
-;; noisey? will show success.
-;;
-(defn check-default-db [noisey? state]
-  (assert (map? state))
-  (let [version db-format/tool-version
-        msg-boiler (str "normalized (default-db-format ver: " version ")")
-        check-result (db-format/check check-config state)
-        ok? (db-format/ok? check-result)]
-    (when (and noisey? ok?)
-      (println (str "GOOD: state fully " msg-boiler)))
-    (when (not ok?)
-      (println (str "BAD: state not fully " msg-boiler))
-      (pprint check-result)                                 ;; <- check-result is a summary of state, so print 'one or *the other*'
-      ;(pprint state))      ;; <- *the other*
-      (db-format/show-hud check-result))))                  ;; <- must be last, displays check-result in browser
 
 (defsc Baby
        [this props _]
@@ -60,31 +23,44 @@
         :query [:db/id :baby/first-name]}
        (dom/div nil "Blab blab"))
 
+(def big-map {:db/id     1
+              :some/text "Surely I s/be in the tables"
+              :a/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :b/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :c/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :d/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :e/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :f/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :g/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :h/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :i/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              :j/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+
 (m/defmutation denormalize
-  "Put a thing"
+  "Put two bad things"
   [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state assoc-in [:thing/by-id 1]
-                 {:label                      "I'm not at an id, which sometimes happens"
-                  :some-kind-of-long/bad-join {:db/id     1
-                                               :some/text "Surely I s/be in the tables"
-                                               :a/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :b/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :c/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :d/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :e/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :f/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :g/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :h/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :i/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                                               :j/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}})))
+          (swap! state
+                 #(-> %
+                      (assoc-in [:thing/id 1]
+                                {:label                      "I'm not at an id, which sometimes happens"
+                                 :some-kind-of-long/bad-join big-map})
+                      ;; If didn't namespace this it wouldn't be caught
+                      (assoc :here-is/some-link {:a "b"})))))
+
+(defn x-1 []
+  (dev/summarize big-map))
 
 (m/defmutation normalize
-  "Remove a thing"
+  "Remove those bad things"
   [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state dissoc :thing/by-id)
-          ))
+          (swap! state dissoc :thing/id :here-is/some-link)))
+
+(m/defmutation state-is-vector
+  [{:keys []}]
+  (action [{:keys [state]}]
+          (reset! state [])))
 
 (declare say-hello-fulcro-app)
 
@@ -101,7 +77,7 @@
        {:initial-state
                      (fn [{:keys [babies-in]}]
                        {:db/id 1 :adult/first-name "Mama Shark" :adult/babies babies-in})
-        :ident       [:adult/by-id :db/id]
+        :ident       [:adult/id :db/id]
         :query       [:db/id :adult/first-name {:adult/babies (prim/get-query Baby)}]
         :css-include [ui.domain/CSS]}
        (let [title (str "Good afternoon, my name is " first-name " with " (count babies) " shark babies")]
@@ -112,6 +88,9 @@
                                        "Cause state chaos!")
                            (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
                                        "Restore order..."))
+                  (dom/div nil
+                           (dom/button #js {:onClick #(prim/transact! this [`(state-is-vector)])}
+                                       "Very bad state"))
                   (dom/div nil
                            (dom/button #js {:onClick #(if-let [rec (get-reconciler)]
                                                         (fu/force-render rec)

@@ -11,7 +11,8 @@
             [goog.object :as gobj]
             [goog.functions :as gfun]
             [default-db-format.core :as core]
-            [default-db-format.iframe :as iframe]))
+            [default-db-format.iframe :as iframe]
+            [default-db-format.ui.domain :as ui.domain]))
 
 (def expanded-percentage-width 50)
 
@@ -19,6 +20,8 @@
 ;; reminder to the user.
 ;; Hmm - mose well just have a red line rather than collapse it!
 (def collapsed-percentage-width 1)
+
+(def global-css (css/get-classnames ui.domain/CSS))
 
 (defui ^:once GlobalInspector
        static prim/InitialAppState
@@ -56,26 +59,28 @@
 
        (render [this]
                (let [{:ui/keys [visible? collapsed? inspector]} (prim/props this)
+                     toggle-collapse-f #(mutations/set-value! this :ui/collapsed? (not collapsed?))
                      keystroke (or (prim/shared this [:options :collapse-keystroke]) "ctrl-q")
-                     size (if collapsed?
-                            collapsed-percentage-width
-                            expanded-percentage-width)
                      css (css/get-classnames GlobalInspector)]
                  (dom/div #js {:style (if visible? nil #js {:display "none"})}
-                          (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
+                          (events/key-listener {::events/action    toggle-collapse-f
                                                 ::events/keystroke keystroke})
-                          (dom/div #js {:className (:container css)
-                                        :style     #js {:width (str size "%")}
-                                        :ref       #(gobj/set this "container" %)}
-                                   (iframe/ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-                                                     (dom/div nil
-                                                              (when-let [frame (gobj/get this "frame-dom")]
-                                                                (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
-                                                                                      ::events/keystroke keystroke
-                                                                                      ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
-                                                              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
-                                                              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css components/DisplayDb))}})
-                                                              (components/display-db-component inspector))))))))
+                          (if collapsed?
+                            (dom/div #js {:className (:red-dot global-css)
+                                          :onClick toggle-collapse-f} nil)
+                            (dom/div #js {:className (:container css)
+                                          :style     #js {:width (str expanded-percentage-width "%")}
+                                          :ref       #(gobj/set this "container" %)}
+                                     (iframe/ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+                                                       (dom/div nil
+                                                                (when-let [frame (gobj/get this "frame-dom")]
+                                                                  (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
+                                                                                        ::events/keystroke keystroke
+                                                                                        ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
+                                                                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
+                                                                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css components/DisplayDb))}})
+                                                                (components/display-db-component
+                                                                  (prim/computed inspector {:toggle-collapse-f toggle-collapse-f}))))))))))
 
 (def global-inspector-view (prim/factory GlobalInspector))
 
