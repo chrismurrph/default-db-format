@@ -19,16 +19,17 @@
                          ;;
                          [:.bad-key {
                                      :display          "flex"
-                                     :flex             "10"
+                                     :white-space      "nowrap"
+                                     ;:flex             "10"
                                      ;:min-width        "190px"
                                      :background-color ui.domain/gray
                                      :color            ui.domain/light-red
                                      :border-right     "2px solid rgba(100, 100, 100, 0.2)"
-                                     ;:margin-right     "5px"
+                                     :margin-right     "5px"
                                      :padding          "0 3px"}]
                          [:.bad-value {
                                        :display       "flex"
-                                       :flex          "24"
+                                       ;:flex          "24"
                                        :text-overflow "ellipsis"
                                        :overflow      "hidden"
                                        :white-space   "nowrap"
@@ -55,7 +56,7 @@
        (local-rules [_] [[:.problem {:background  ui.domain/gray
                                      :color       ui.domain/light-red
                                      :font-family ui.domain/mono-font-family
-                                     :margin-left "7px"
+                                     ;:margin-left "7px"
                                      }]])
        (include-children [_])
        Object
@@ -63,7 +64,7 @@
                (let [css (css/get-classnames JoinsTextItem)
                      {:keys [id text problem]} (prim/props this)]
                  (dom/div #js {:className (:left-justified-container global-css)}
-                          (dom/div #js {:className (:text-explanation global-css)} (str text))
+                          (dom/div #js {:className (:text-explanation-abutting global-css)} (str text))
                           (dom/div #js {:className (:problem css)} (str problem)))
                  )))
 (def joins-item-component (prim/factory JoinsTextItem {:keyfn :id}))
@@ -85,7 +86,7 @@
        (local-rules [_] [[:.list-header {:display          "flex"
                                          :background-color ui.domain/gray
                                          :color            ui.domain/purple
-                                         :border-right     "2px solid rgba(100, 100, 100, 0.2)"
+                                         ;:border-right     "2px solid rgba(100, 100, 100, 0.2)"
                                          :min-width        "35px"
                                          :margin-bottom    "1px"
                                          :margin-right     "5px"
@@ -148,13 +149,11 @@
                                        :cursor       "pointer"}
                           [:&:hover
                            {:text-decoration "underline"}]]
-                         [:.problem-sentence {:background      ui.domain/very-light-blue
-                                              :color           ui.domain/close-to-black
-                                              :display         "flex"
-                                              :justify-content "flex-start"
-                                              :padding         "4px 8px"
-                                              :font-family     ui.domain/mono-font-family
-                                              :font-size       "14px"}]
+                         [:.problem-sentence {:background   ui.domain/very-light-blue
+                                              :color        ui.domain/close-to-black
+                                              :display      "flex"
+                                              :font-family  ui.domain/mono-font-family
+                                              :font-size    "14px"}]
                          ])
        (include-children [_] [ui.domain/CSS BadTablesEntry OneBad JoinsTextItem])
        Object
@@ -184,7 +183,7 @@
                                 (dom/div #js {:className (:vertical-container global-css)}
                                          (dom/div #js {:className (:problem-sentence css)} boiler-text)
                                          (dom/div #js {:className (:left-justified-container global-css)}
-                                                  (dom/div #js {:className (:text-explanation global-css)} text))))
+                                                  (dom/div #js {:className (:text-explanation-simple global-css)} text))))
                               (dom/div nil
                                        (when join-entries-problems?
                                          (dom/div nil

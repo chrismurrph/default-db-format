@@ -69,11 +69,20 @@
                                           :top           "6px"
                                           :left          "6px"
                                           :cursor        "pointer"}]
-                              [:.text-explanation {:background  light-blue
-                                                   :color       close-to-black
-                                                   :font-family mono-font-family
-                                                   :margin-left "25px"
-                                                   }]
+                              [:.text-explanation-simple {:background  light-blue
+                                                          :color       close-to-black
+                                                          :font-family mono-font-family
+                                                          :margin-left "25px"
+                                                          }]
+                              [:.text-explanation-abutting {:display      "flex"
+                                                            :background   light-blue
+                                                            :color        close-to-black
+                                                            :font-family  mono-font-family
+                                                            :margin-left  "25px"
+                                                            :border-right "2px solid rgba(100, 100, 100, 0.2)"
+                                                            ;:margin-right "5px"
+                                                            :padding      "0 3px"
+                                                            }]
                               [:.info-group css-info-group
                                [(gs/& gs/first-child) {:border-top "0"}]]
                               [:.info-label css-info-label]
