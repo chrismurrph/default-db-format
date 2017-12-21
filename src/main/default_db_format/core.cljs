@@ -211,12 +211,8 @@
 (defn- ret [m]
   (merge m {:version tool-version}))
 
-(defn- incorrect
-  ([text problems]
-   (if (nil? problems)
-     {:text text}
-     {:text text :problems problems}))
-  ([text] (incorrect text nil)))
+(defn- incorrect [text]
+  {:text text})
 
 (defn- state-looks-like-config [state]
   (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} state]
@@ -224,16 +220,10 @@
 
 (defn- failed-state [state]
   (if (not (map? state))
-    (ret {:failed-assumption (incorrect "state param must be a map")})
+    (ret {:failed-assumption (incorrect "State must be in the form of a map")})
     (when (state-looks-like-config state)
       (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
-;;
-;; TODO
-;; :many-okay-map-keys-sets, that is a set of sets, and relax requirements that every must be included
-;; :many-okay-vector-vals-sets - same
-;; :excluded-keys - must be a set
-;;
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
@@ -252,41 +242,39 @@
                in that it is intended to be there, and does not indicate failed normalization."
   ([config state]
    (or (failed-state state)
-       (let [are-not-slashed [] #_(not-slashed-keys state)]
-         (if (seq are-not-slashed)
-           (ret {:failed-assumption (incorrect "All top level keys must be namespaced (have a slash)" are-not-slashed)})
-           (let [
-                 ;; In the case of the tool this defaulting has already been done. But we can't assume that
-                 ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
-                 ;; do this without fear.
-                 config (merge help/default-config config)
-                 {:keys [okay-value-maps okay-value-vectors excluded-keys acceptable-table-value-fn?]} config
-                 ident-like? (help/ident-like-hof? config)
-                 conformance-predicates {:ident-like?               ident-like?
-                                         :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
-                 by-id-kw? (-> config :by-id-kw help/setify help/by-id-kw-hof)
-                 routed-ns? (-> config :routing-ns help/setify help/routed-ns-hof)
-                 by-id-table-entries (help/table-entries by-id-kw? state)
-                 table-names (into #{} (map (comp help/category-part str key) by-id-table-entries))
-                 keys-to-ignore (help/setify excluded-keys)
-                 non-by-id (join-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
-                 all-keys-count (+ (dev/probe-off-msg "count non-by-id" (count non-by-id))
-                                   (dev/probe-off-msg "count by-id" (count by-id-table-entries)))
-                 categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
-             (if (and (empty? table-names)
-                      (pos? all-keys-count))
-               (ret {:failed-assumption (incorrect "by-id normalized file required")})
-               (let [join-entries-tester (join-entry->error-hof ident-like? categories)
-                     okay-maps (help/setify okay-value-maps)
-                     okay-vectors (help/setify okay-value-vectors)
-                     id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
-                 (ret {:categories  categories
-                       :known-names table-names
-                       :not-normalized-join-entries
-                                    (into #{}
-                                          (mapcat (fn [kv] (join-entries-tester kv)) non-by-id))
-                       :not-normalized-table-entries
-                                    (into #{}
-                                          (into {} (mapcat (fn [kv] (id-tester kv)) by-id-table-entries)))}))))))))
+       (let [
+             ;; In the case of the tool this defaulting has already been done. But we can't assume that
+             ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
+             ;; do this without fear.
+             config (merge help/default-config config)
+             {:keys [okay-value-maps okay-value-vectors excluded-keys acceptable-table-value-fn?]} config
+             ident-like? (help/ident-like-hof? config)
+             conformance-predicates {:ident-like?               ident-like?
+                                     :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
+             by-id-kw? (-> config :by-id-kw help/setify help/by-id-kw-hof)
+             routed-ns? (-> config :routing-ns help/setify help/routed-ns-hof)
+             by-id-table-entries (help/table-entries by-id-kw? state)
+             ;_ (println "by-id-table-entries" by-id-table-entries)
+             table-names (into #{} (map (comp help/category-part str key) by-id-table-entries))
+             keys-to-ignore (help/setify excluded-keys)
+             non-by-id (join-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
+             all-keys-count (+ (dev/probe-off-msg "count non-by-id" (count non-by-id))
+                               (dev/probe-off-msg "count by-id" (count by-id-table-entries)))
+             categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
+         (if (and (empty? table-names)
+                  (pos? all-keys-count))
+           (ret {:failed-assumption (incorrect "by-id normalized file required")})
+           (let [join-entries-tester (join-entry->error-hof ident-like? categories)
+                 okay-maps (help/setify okay-value-maps)
+                 okay-vectors (help/setify okay-value-vectors)
+                 id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
+             (ret {:categories  categories
+                   :known-names table-names
+                   :not-normalized-join-entries
+                                (into #{}
+                                      (mapcat (fn [kv] (join-entries-tester kv)) non-by-id))
+                   :not-normalized-table-entries
+                                (into #{}
+                                      (mapcat (fn [kv] (id-tester kv)) by-id-table-entries))}))))))
   ([state]
    (check help/default-config state)))

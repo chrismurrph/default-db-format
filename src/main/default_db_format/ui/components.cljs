@@ -18,22 +18,20 @@
                          ;; the value, which should only display as much as it can (i.e. truncation is fine)
                          ;;
                          [:.bad-key {
-                                     ;:display         "flex"
-                                     ;:flex-basis      "content"
-                                     ;:display         "inline-block"
-                                     :flex             "1"
-                                     :min-width        "100px"
+                                     :display          "flex"
+                                     :flex             "10"
+                                     ;:min-width        "190px"
                                      :background-color ui.domain/gray
                                      :color            ui.domain/light-red
                                      :border-right     "2px solid rgba(100, 100, 100, 0.2)"
-                                     :margin-right     "5px"
+                                     ;:margin-right     "5px"
                                      :padding          "0 3px"}]
                          [:.bad-value {
-                                       ;:display   "flex"
-                                       ;:display "inline-block"
-                                       :display  "flex"
-                                       :flex     "2"
-                                       :overflow "auto"
+                                       :display       "flex"
+                                       :flex          "24"
+                                       :text-overflow "ellipsis"
+                                       :overflow      "hidden"
+                                       :white-space   "nowrap"
                                        }]])
        (include-children [_] [])
        Object
@@ -54,12 +52,7 @@
 
 (defui ^:once JoinsTextItem
        static css/CSS
-       (local-rules [_] [[:.text {:background  ui.domain/light-blue
-                                  :color       ui.domain/close-to-black
-                                  :font-family ui.domain/mono-font-family
-                                  :margin-left "25px"
-                                  }]
-                         [:.problem {:background  ui.domain/gray
+       (local-rules [_] [[:.problem {:background  ui.domain/gray
                                      :color       ui.domain/light-red
                                      :font-family ui.domain/mono-font-family
                                      :margin-left "7px"
@@ -70,7 +63,7 @@
                (let [css (css/get-classnames JoinsTextItem)
                      {:keys [id text problem]} (prim/props this)]
                  (dom/div #js {:className (:left-justified-container global-css)}
-                          (dom/div #js {:className (:text css)} (str text))
+                          (dom/div #js {:className (:text-explanation global-css)} (str text))
                           (dom/div #js {:className (:problem css)} (str problem)))
                  )))
 (def joins-item-component (prim/factory JoinsTextItem {:keyfn :id}))
@@ -115,20 +108,6 @@
 (defn okay? [check-result]
   (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result]
     (not (or failed-assumption (seq not-normalized-join-entries) (seq not-normalized-table-entries)))))
-
-;;
-;; Later in html do equiv of this:
-;; (apply str (interpose ", " are-not-slashed))
-;; Also after comment might want to append: ", see: "
-;;
-(defn poor-assump-div [failed-assumption]
-  (let [{:keys [text problems]} failed-assumption
-        boiler-text (str "Failed assumption: \"" text "\"")]
-    (if (nil? problems)
-      (dom/div nil boiler-text)
-      (dom/div allow-follow-on
-               (dom/span follow-on (str boiler-text ", see: "))
-               (dom/span reddish-follow-on (apply str (interpose ", " problems)))))))
 
 (defui ^:once DisplayDb
        static prim/InitialAppState
@@ -198,9 +177,14 @@
                                               (dom/div #js {:className (:label css)} tool-name)
                                               (dom/div #js {:className (:minor-label css)} (str "ver " tool-version)))
                                      (dom/div #js {:className (:keystroke css)
-                                                   :onClick toggle-collapse-f} keystroke))
+                                                   :onClick   toggle-collapse-f} keystroke))
                             (if failed-assumption
-                              (poor-assump-div failed-assumption)
+                              (let [{:keys [text]} failed-assumption
+                                    boiler-text (str "Failed assumption")]
+                                (dom/div #js {:className (:vertical-container global-css)}
+                                         (dom/div #js {:className (:problem-sentence css)} boiler-text)
+                                         (dom/div #js {:className (:left-justified-container global-css)}
+                                                  (dom/div #js {:className (:text-explanation global-css)} text))))
                               (dom/div nil
                                        (when join-entries-problems?
                                          (dom/div nil
