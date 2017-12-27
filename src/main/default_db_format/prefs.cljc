@@ -1,12 +1,14 @@
 (ns default-db-format.prefs
   #?(:cljs (:require-macros [default-db-format.prefs :refer [emit-external-config]]))
   (:require
-    #?(:clj [cljs.env])
     #?(:clj
-            [clojure.java.io :as io])
+        [default-db-format.helpers :as help])
     #?(:clj
-            [clojure.tools.reader.edn :as edn])
-    #?(:clj [default-db-format.helpers :as help])))
+        [cljs.env])
+    #?(:clj
+        [clojure.java.io :as io])
+    #?(:clj
+        [clojure.tools.reader.edn :as edn])))
 
 #?(:clj
    (defn read-external-config []
@@ -17,9 +19,10 @@
 
 #?(:clj
    (defn read-from-edn []
-     (some->> (io/resource "config/default-db-format.edn")
-              slurp
-              edn/read-string)))
+     (some-> "config/default-db-format.edn"
+             io/resource
+             slurp
+             edn/read-string)))
 
 #?(:clj
    (defmacro emit-external-config []

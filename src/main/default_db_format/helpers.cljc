@@ -14,29 +14,44 @@
 
 (defn table-entries
   "There are only two types of top level keys in 'default db format'. This function returns the 'by id' ones,
-  where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured)"
-  [by-id-kw-fn? state]
+  where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured).
+  Also included are table names given to config that are not necessarily namespaced. A convention may develop
+  whereby 'one of' tables do not follow some /by-id or /id convention, as there isn't an id in these cases."
+  [by-id-kw-fn? table? state]
   (filter (fn [[k _]]
-            (by-id-kw-fn? k))
+            (println "EXAMINE:" k)
+            (or (by-id-kw-fn? k) (table? k)))
           state))
 
 ;;
 ;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use
 ;; `set` constructor instead, which won't wrap a set it param might be given.
 ;;
-(defn setify [in]
-  (if (seq in)
-    (cond (set? in) in
-          (sequential? in) (into #{} in)
-          :else #{in})
-    #{}))
+(defn -setify [in]
+  (cond
+    ((some-fn string? keyword?) in) #{in}
+    (seq in) (cond (set? in) in
+                   (sequential? in) (into #{} in)
+                   :else #{in})
+    :else #{}))
 
 (defn by-id-kw-hof
-  [config-kw-strs]
+  [config-kw-strs debug?]
   (assert (set? config-kw-strs))
+  ;'Unexpected identifier' JavaScript error, so can't debug here
+  ;(dev/log (str "by-id-kw-hof given " config-kw-strs))
   (fn [kw]
+    (when debug?
+      (dev/log (str "by-id-kw? for " kw)))
     (and (keyword? kw)
          (some #{(name kw)} config-kw-strs))))
+
+(defn not-by-id-table-hof
+  [config-kw-tables]
+  (assert (set? config-kw-tables))
+  (fn [kw]
+    (and (keyword? kw)
+         (some #{kw} config-kw-tables))))
 
 (defn routed-ns-hof
   [config-ns-strs]
@@ -56,25 +71,28 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw routing-ns]}]
+  [{:keys [by-id-kw routing-ns not-by-id-table]}]
   ;(dev/log (dev/assert-str "by-id-kw" by-id-kw))
   ;(dev/log (dev/assert-str "routing-ns" routing-ns))
-  (let [by-id-kw? (-> by-id-kw setify by-id-kw-hof)
-        routed-ns? (-> routing-ns setify routed-ns-hof)]
+  (let [by-id-kw? (-> by-id-kw -setify (by-id-kw-hof false))
+        routed-ns? (-> routing-ns -setify routed-ns-hof)
+        table? (-> not-by-id-table -setify not-by-id-table-hof)
+        ]
     (fn [tuple]
       (when (and (vector? tuple)
                  (= 2 (count tuple)))
         (let [[cls id] tuple]
-          ;(println (dev/assert-str "tuple" tuple))
-          ;(println (dev/assert-str "cls" cls))
-          (and (or (dev/probe-off-msg "by-id-kw?" (by-id-kw? cls)) (dev/probe-off-msg "routed-ns?" (routed-ns? cls)))
+          (and (or (dev/probe-off-msg "by-id-kw?" (by-id-kw? cls))
+                   (dev/probe-off-msg "routed-ns?" (routed-ns? cls))
+                   (dev/probe-off-msg "table?" (table? cls)))
                (dev/probe-off-msg "acceptable-id?" (acceptable-id? id))))))))
 
 (def default-config
-  "This default can be overridden using the config arg to the check function"
-  {:by-id-kw   "by-id"
+  "This default can be overridden using the config arg to the check function.
+  Each key here will be overridden by normal merge behaviour"
+  {:by-id-kw   #{"by-id" "BY-ID"}
    :routing-ns "routed"})
 
 (def ident-like?
-  "Rather use ident-like-hof? if you need to use other than default-config"
+  "Instead of this use ident-like-hof? if you need other than default-config"
   (ident-like-hof? default-config))

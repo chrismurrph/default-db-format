@@ -13,10 +13,10 @@
                  [figwheel-sidecar "0.5.11" :exclusions [org.clojure/tools.reader] :scope "provided"]
                  [devcards "0.2.3" :exclusions [cljsjs/react-dom cljsjs/react] :scope "provided"]
                  [binaryage/devtools "0.9.4" :scope "provided"]
-                 [fulcrologic/fulcro-inspect "2.0.0-alpha2"]
+                 [fulcrologic/fulcro-inspect "2.0.0-alpha2" :scope "provided"]
                  ]
 
-  :jar-exclusions [#"examples" #"test_helpers.clj"]
+  :jar-exclusions [#"config" #"client" #"examples" #"public" #"figwheel.clj" #"user.clj"]
 
   :scm {:name "git"
         :url  "https://github.com/chrismurrph/default-db-format"}
@@ -42,7 +42,7 @@
                                                       ]
                                :external-config      {:fulcro.inspect/config    {:launch-keystroke "ctrl-v"}
                                                       :default-db-format/config {:collapse-keystroke "ctrl-q"
-                                                                                 :state-change-debounce-timeout 500}}
+                                                                                 :debounce-timeout 500}}
                                :parallel-build       true
                                :source-map-timestamp true
                                :optimizations        :none}}

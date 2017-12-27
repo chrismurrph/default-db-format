@@ -185,26 +185,26 @@
   xs)
 
 (defn log [txt]
-  (println (str "LOG: " txt)))
+  (println txt))
 
 (def log-on log)
 
 (defn log-off [txt])
 
 (defn summarize [x]
-  (cond
-    (map? x) (let [counted (count x)]
-               (if (> counted 5)
-                 (str counted " map-entries; keys: " (vec (keys x)))
-                 (->> x
-                      (map (fn [[k v]]
-                             [k (summarize v)]))
-                      (into {}))))
-    (coll? x) (let [counted (count x)]
-                (if (> counted 5)
-                  (str counted " items...")
-                  x))
-    :else x))
+  (str (cond
+         (map? x) (let [counted (count x)]
+                    (if (> counted 5)
+                      (str counted " map-entries; keys: " (vec (keys x)))
+                      (->> x
+                           (map (fn [[k v]]
+                                  [k (summarize v)]))
+                           (into {}))))
+         (coll? x) (let [counted (count x)]
+                     (if (> counted 5)
+                       (str counted " items...")
+                       x))
+         :else x)))
 
 ;;
 ;; name - of the thing we are asserting on

@@ -99,9 +99,8 @@
 
 (defui ^:once AdultRoot
        static prim/InitialAppState
-       (initial-state [_ params] {:default-db-format.tool/app-id ::adult
-                                  :ui/react-key                  (random-uuid)
-                                  :ui/root                       (prim/get-initial-state Adult params)})
+       (initial-state [_ params] {:ui/react-key (random-uuid)
+                                  :ui/root      (prim/get-initial-state Adult params)})
 
        static prim/IQuery
        (query [_] [:ui/react-key

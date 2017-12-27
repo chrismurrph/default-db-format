@@ -1,26 +1,30 @@
 (ns default-db-format.core
   (:require [clojure.string :as s]
             [fulcro.client.primitives :as prim]
-            [cljs.pprint :refer [pprint]]
-            [default-db-format.ui.components :as components :refer [display-db-component okay?]]
+    #?(:cljs [cljs.pprint :refer [pprint]])
+    #?(:clj
+            [clojure.pprint :refer [pprint]])
+    #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component okay?]])
             [default-db-format.helpers :as help]
             [default-db-format.general.dev :as dev]))
 
-(enable-console-print!)
+#?(:cljs (enable-console-print!))
 
-(defn ok? [check-result]
-  (okay? check-result))
-
+#?(:cljs
+   (defn ok? [check-result]
+     (okay? check-result)))
 ;;
 ;; Not needed when HUD is brought up from the tool.
 ;;
-(defn show-hud [check-result]
-  "Brings up into the browser an Om Next defui component whose render method returns either nil
-  or a description of the lack of full normalization. This method should be called at the beginning
-  of the application's root component's render method, usually just inside a div"
-  (display-db-component check-result))
+#?(:cljs
+   (defn show-hud [check-result]
+     "Brings up into the browser an Om Next defui component whose render method returns either nil
+     or a description of the lack of full normalization. This method should be called at the beginning
+     of the application's root component's render method, usually just inside a div"
+     (display-db-component check-result)))
 
-(def display components/display)
+#?(:cljs
+   (def display components/display))
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -43,7 +47,7 @@
   [ident-like? knowns]
   (fn [[k v]]
     (let [k-err (when (not (known-category k knowns))
-                  [{:text (str "Unknown category")
+                  [{:text    (str "Unknown category")
                     :problem (help/category-part (str k))}])]
       (when (seqable? v)
         (cond
@@ -82,7 +86,8 @@
 (defn cljs-inst? [x]
   #_(inst? x)
   ;; Works for any version of cljs:
-  (instance? js/Date x))
+  #?(:cljs (instance? js/Date x)
+     :clj (instance? java.util.Date x)))
 
 (def goog-date "function (opt_year, opt_month, opt_date, opt_hours,")
 ;;
@@ -100,7 +105,11 @@
   (or (= "[object Object]" (subs (str v) 0 15))))
 
 (defn goog-date? [v]
-  (= goog-date (subs (str (type v)) 0 (count goog-date))))
+  (let [sz-goog-date (count goog-date)
+        type-as-str (str (type v))]
+    (and
+      (>= (count type-as-str) sz-goog-date)
+      (= goog-date (subs type-as-str 0 sz-goog-date)))))
 
 ;;
 ;; A temporary loading thing, not easily dumped
@@ -168,9 +177,9 @@
     (if (not (map? v))
       [(str "Value of " k " has to be a map")]
       (let [gathered (gather-table-entry-bads-inside conformance-predicates okays-maps okays-vectors keys-to-ignore v)
-            not-empty (not (empty? gathered))
-            res {k (into {} gathered)}]
-        (when not-empty res)))))
+            not-empty (seq gathered)]
+        (when not-empty
+          {k (into {} gathered)})))))
 
 (defn kw->str [kw]
   (-> kw str help/exclude-colon))
@@ -230,6 +239,9 @@
   :by-id-kw -> What comes after the slash in the Ident tuple-2's first position. As a String.
                By default is \"by-id\" as that's what the convention is.
                Can be a #{} or [] of Strings where > 1 required.
+  :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
+               namespaced. Legitimate convention when there is no 'id', when there is only going
+               to be one of these tables. Can be a #{} or [], usually but not necessarily keywords.
   :routing-ns -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
@@ -237,7 +249,7 @@
   :okay-value-vectors -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
                will mean that [:report-1] is accepted but [:report-1 :report-3] is not. Note that the order
                of the objects is not important. This is a #{} or [] of these.
-  :excluded-keys -> #{} (or []) of keys that we don't want to be part of normalization (must still be namespaced)
+  :excluded-keys -> #{} (or []) of keys that we don't want to be part of normalization.
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
                in that it is intended to be there, and does not indicate failed normalization."
   ([config state]
@@ -251,30 +263,34 @@
              ident-like? (help/ident-like-hof? config)
              conformance-predicates {:ident-like?               ident-like?
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
-             by-id-kw? (-> config :by-id-kw help/setify help/by-id-kw-hof)
-             routed-ns? (-> config :routing-ns help/setify help/routed-ns-hof)
-             by-id-table-entries (help/table-entries by-id-kw? state)
-             ;_ (println "by-id-table-entries" by-id-table-entries)
-             table-names (into #{} (map (comp help/category-part str key) by-id-table-entries))
-             keys-to-ignore (help/setify excluded-keys)
-             non-by-id (join-entries (some-fn by-id-kw? routed-ns?) state keys-to-ignore)
-             all-keys-count (+ (dev/probe-off-msg "count non-by-id" (count non-by-id))
-                               (dev/probe-off-msg "count by-id" (count by-id-table-entries)))
-             categories (into #{} (distinct (map (comp help/category-part str key) non-by-id)))]
+             by-id-kw? (-> config :by-id-kw help/-setify (help/by-id-kw-hof true))
+             table? (-> config :not-by-id-table help/-setify help/not-by-id-table-hof)
+             routed-ns? (-> config :routing-ns help/-setify help/routed-ns-hof)
+             somehow-table-entries (help/table-entries by-id-kw? table? state)
+             ;_ (println "table-entries" somehow-table-entries)
+             table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
+             keys-to-ignore (help/-setify excluded-keys)
+             joins (join-entries (some-fn by-id-kw? routed-ns? table?) state keys-to-ignore)
+             all-keys-count (+ (dev/probe-off-msg "count joins" (count joins))
+                               (dev/probe-off-msg "count tables" (count somehow-table-entries)))
+             categories (into #{} (distinct (map (comp help/category-part str key) joins)))]
          (if (and (empty? table-names)
                   (pos? all-keys-count))
-           (ret {:failed-assumption (incorrect "by-id normalized file required")})
+           (do
+             ;(println "joins:" joins)
+             (dev/log (str "tables:" somehow-table-entries))
+             (ret {:failed-assumption (incorrect "by-id normalized file required")}))
            (let [join-entries-tester (join-entry->error-hof ident-like? categories)
-                 okay-maps (help/setify okay-value-maps)
-                 okay-vectors (help/setify okay-value-vectors)
+                 okay-maps (help/-setify okay-value-maps)
+                 okay-vectors (help/-setify okay-value-vectors)
                  id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
              (ret {:categories  categories
                    :known-names table-names
                    :not-normalized-join-entries
                                 (into #{}
-                                      (mapcat (fn [kv] (join-entries-tester kv)) non-by-id))
+                                      (mapcat (fn [kv] (join-entries-tester kv)) joins))
                    :not-normalized-table-entries
                                 (into #{}
-                                      (mapcat (fn [kv] (id-tester kv)) by-id-table-entries))}))))))
+                                      (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
   ([state]
    (check help/default-config state)))

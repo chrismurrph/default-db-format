@@ -16,7 +16,7 @@
          (help/ident-like? [:my/by-by-id 10]))))
 
 (deftest table-categories
-  (let [by-id-kw? (-> help/default-config :by-id-kw help/setify help/by-id-kw-hof)
+  (let [by-id-kw? (-> help/default-config :by-id-kw help/-setify help/by-id-kw-hof)
         state gases/gas-norm-state]
     (is (= 3
            (->> state

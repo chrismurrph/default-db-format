@@ -12,13 +12,17 @@
             [goog.functions :as gfun]
             [default-db-format.core :as core]
             [default-db-format.iframe :as iframe]
-            [default-db-format.ui.domain :as ui.domain]))
+            [default-db-format.ui.domain :as ui.domain]
+            [clojure.string :as s]))
 
 (def expanded-percentage-width 50)
 
 ;; A red line on the right edge of the container will be a
 ;; reminder to the user.
 ;; Hmm - mose well just have a red line rather than collapse it!
+;; With some css (bootstrap) the css is overridden so that the red dot is not displayed
+;; For now we are living with it. But collapsing will work in such a situation, so perhaps
+;; we can make collapsing an option in a future version. Yak shaving - no red dot is still fine.
 (def collapsed-percentage-width 1)
 
 (def global-css (css/get-classnames ui.domain/CSS))
@@ -84,20 +88,7 @@
 
 (def global-inspector-view (prim/factory GlobalInspector))
 
-(defn app-id [reconciler]
-  (or (some-> reconciler prim/app-state deref ::app-id)
-      (some-> reconciler prim/app-root prim/react-type (gobj/get "displayName") symbol)))
-
-(defn inc-id [id]
-  (let [new-id (if-let [[_ prefix d] (re-find #"(.+?)(\d+)$" (str id))]
-                 (str prefix (inc (js/parseInt d)))
-                 (str id "-0"))]
-    (cond
-      (keyword? id) (keyword (subs new-id 1))
-      (symbol? id) (symbol new-id)
-      :else new-id)))
-
-(defui ^:once GlobalRoot
+(defui ^:once ToolRoot
        static prim/InitialAppState
        (initial-state [_ _] {:ui/react-key (random-uuid)
                              :ui/root      (prim/get-initial-state GlobalInspector {:tool-version core/tool-version
@@ -125,8 +116,8 @@
         app (fulcro/new-fulcro-client :shared configuration)
         node (js/document.createElement "div")]
     (js/document.body.appendChild node)
-    (css/upsert-css "default-db-format" GlobalRoot)
-    (fulcro/mount app GlobalRoot node)))
+    (css/upsert-css "default-db-format" ToolRoot)
+    (fulcro/mount app ToolRoot node)))
 
 (defn global-inspector
   ([] @global-inspector*)
@@ -142,13 +133,6 @@
   []
   (some-> (global-inspector) :reconciler prim/app-root prim/shared))
 
-(defn dedupe-id [id]
-  (let [ids-in-use (some-> (global-inspector) :reconciler prim/app-state deref ::components/id)]
-    (loop [new-id id]
-      (if (contains? ids-in-use new-id)
-        (recur (inc-id new-id))
-        new-id))))
-
 (defmutation state-inspection
   [{:keys [visible? check-result]}]
   (action [{:keys [state]}]
@@ -161,8 +145,7 @@
             (swap! state #(cond-> %
                                   true (assoc-in visible-join visible?)
                                   visible? (assoc-in collapsed-join false)
-                                  true (update-in display-db-ident merge check-result))))
-          ))
+                                  true (update-in display-db-ident merge check-result))))))
 
 (defn dump []
   (-> (global-inspector) :reconciler prim/app-state deref))
@@ -178,9 +161,9 @@
 #_(defn dump-fulcro-inspect []
     (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
-(defn update-inspect-state-hof [tool-reconciler]
+(defn update-inspect-state-hof [tool-reconciler host-app-path]
   (let [config (-> tool-reconciler prim/app-root prim/shared)]
-    (println core/tool-name "build tool and edn config summary:" (dev/summarize config))
+    (dev/log (str core/tool-name " on " (first host-app-path) " - install summary: " (dev/summarize config)))
     (fn [new-state]
       (let [check-result (core/check (:edn config) new-state)]
         (prim/transact! tool-reconciler [`(state-inspection {:visible?     ~(-> check-result core/ok? not)
@@ -191,16 +174,12 @@
 ;;
 (defonce ^:private state-inspector (atom nil))
 
-(defn install-app [app-id target-app only-transactions?]
-  (let [tool-reconciler (:reconciler (global-inspector))
-        shared-config (-> tool-reconciler prim/app-root prim/shared)
-        timeout (-> shared-config :options :state-change-debounce-timeout)
-        update-inspect-state (gfun/debounce (update-inspect-state-hof tool-reconciler) timeout)
-        ]
-    (if only-transactions?
-      (reset! state-inspector update-inspect-state)
-      (add-watch (some-> target-app :reconciler :config :state) app-id
-                 #(update-inspect-state %4)))))
+(defn app-path [app]
+  (let [display-name (some-> app :reconciler prim/app-root prim/react-type (gobj/get "displayName"))]
+    [display-name (-> display-name (s/split #"/") last)]))
+
+(def ignore-inspect "fulcro.inspect.core/GlobalRoot")
+(defonce ^:private host-root-path (atom nil))
 
 ;;
 ;; Why check on every transact when can check on every change to state?
@@ -212,13 +191,37 @@
 ;; Quite possibly there is no such thing - everything goes through `transact!`.
 ;; Anyway it hinges on this def - so easy to make it an option in the lein
 ;; project. KEEP false, until new information arrives.
+;; Changed to true, the new information being that the env that comes thru to
+;; ::fulcro/tx-listen is a bit of an unknown when there are many clients. It
+;; was listening to Fulcro Inspector! With the watching way (all-state-changes?
+;; being true) we can control which client we are listening to.
+;; (And the 'every time a developer saves his work' argument was not based on an
+;; empirical observation).
 ;;
-(def all-state-changes? false)
+(def all-state-changes? true)
+
+(defn install-app [target-app]
+  (let [tool-reconciler (:reconciler (global-inspector))
+        shared-config (-> tool-reconciler prim/app-root prim/shared)
+        timeout (-> shared-config :options :debounce-timeout)]
+    (if (-> host-root-path deref nil?)
+      (let [host-root (app-path target-app)]
+        (if (not= ignore-inspect (first host-root))
+          (let [inspect-new-state-f (update-inspect-state-hof tool-reconciler (reset! host-root-path host-root))
+                update-inspect-state-f (gfun/debounce inspect-new-state-f timeout)]
+            (if (not all-state-changes?)
+              (reset! state-inspector update-inspect-state-f)
+              (add-watch (some-> target-app :reconciler :config :state) :chrismurrph/default-db-format
+                         #(update-inspect-state-f %4))))
+          (dev/log (str "Discarding inspector root: " (first host-root)))))
+      ;; If the wanted one is being discarded then need to add host-root-path to config, such that
+      ;; the specified host-root-path will be the only one that is accepted.
+      (dev/log (str "Accepted a host already, so discarding: " (-> target-app app-path first))))))
 
 (defn install [options]
   (when-not @global-inspector*
     (js/console.log "Installing" core/tool-name
-                    (select-keys options [:collapse-keystroke :state-change-debounce-timeout]))
+                    (select-keys options [:collapse-keystroke :debounce-timeout]))
     (global-inspector options)
 
     (fulcro/register-tool
@@ -227,9 +230,7 @@
 
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
-         (let [id (-> reconciler app-id dedupe-id)]
-           (swap! (-> reconciler prim/app-state) assoc ::app-id id)
-           (install-app id app (not all-state-changes?)))
+         (install-app app (not all-state-changes?))
          app)
 
        ::fulcro/tx-listen

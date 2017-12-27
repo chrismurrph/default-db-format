@@ -68,7 +68,8 @@
                                           :position      "fixed"
                                           :top           "6px"
                                           :left          "6px"
-                                          :cursor        "pointer"}]
+                                          :cursor        "pointer"
+                                          :z-index       "9999999"}]
                               [:.text-explanation-simple {:background  light-blue
                                                           :color       close-to-black
                                                           :font-family mono-font-family
@@ -80,7 +81,6 @@
                                                             :font-family  mono-font-family
                                                             :margin-left  "25px"
                                                             :border-right "2px solid rgba(100, 100, 100, 0.2)"
-                                                            ;:margin-right "5px"
                                                             :padding      "0 3px"
                                                             }]
                               [:.info-group css-info-group

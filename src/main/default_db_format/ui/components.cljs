@@ -14,22 +14,17 @@
                                        :background-color ui.domain/darker-gray
                                        :margin-left      "50px"}]
                          ;;
-                         ;; I want the width of this bad-key to be done by content, and have priority over
-                         ;; the value, which should only display as much as it can (i.e. truncation is fine)
+                         ;; The width of this bad-key is done by content, and has priority over
+                         ;; the value, which only displays as much as it can (i.e. truncation is fine)
                          ;;
-                         [:.bad-key {
-                                     :display          "flex"
+                         [:.bad-key {:display          "flex"
                                      :white-space      "nowrap"
-                                     ;:flex             "10"
-                                     ;:min-width        "190px"
                                      :background-color ui.domain/gray
                                      :color            ui.domain/light-red
                                      :border-right     "2px solid rgba(100, 100, 100, 0.2)"
                                      :margin-right     "5px"
                                      :padding          "0 3px"}]
-                         [:.bad-value {
-                                       :display       "flex"
-                                       ;:flex          "24"
+                         [:.bad-value {:display       "flex"
                                        :text-overflow "ellipsis"
                                        :overflow      "hidden"
                                        :white-space   "nowrap"
@@ -47,16 +42,11 @@
                                               (dom/div #js {:className (:bad-value css)} (dev/summarize v)))))))))
 (def one-bad-component (prim/factory OneBad {:keyfn :id}))
 
-(def allow-follow-on #js {:style #js {:whiteSpace "pre"}})
-(def follow-on #js {:style #js {:display "inline-block"}})
-(def reddish-follow-on #js {:style #js {:display "inline-block" :color ui.domain/reddish}})
-
 (defui ^:once JoinsTextItem
        static css/CSS
        (local-rules [_] [[:.problem {:background  ui.domain/gray
                                      :color       ui.domain/light-red
                                      :font-family ui.domain/mono-font-family
-                                     ;:margin-left "7px"
                                      }]])
        (include-children [_])
        Object
@@ -86,7 +76,6 @@
        (local-rules [_] [[:.list-header {:display          "flex"
                                          :background-color ui.domain/gray
                                          :color            ui.domain/purple
-                                         ;:border-right     "2px solid rgba(100, 100, 100, 0.2)"
                                          :min-width        "35px"
                                          :margin-bottom    "1px"
                                          :margin-right     "5px"
