@@ -162,10 +162,10 @@
     (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
 (defn update-inspect-state-hof [tool-reconciler host-app-path]
-  (let [config (-> tool-reconciler prim/app-root prim/shared)]
-    (dev/log (str core/tool-name " on " (first host-app-path) " - install summary: " (dev/summarize config)))
+  (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
+    (js/console.log (str core/tool-name " on " (first host-app-path) " - config: " (dev/summarize config)))
     (fn [new-state]
-      (let [check-result (core/check (:edn config) new-state)]
+      (let [check-result (core/check config new-state)]
         (prim/transact! tool-reconciler [`(state-inspection {:visible?     ~(-> check-result core/ok? not)
                                                              :check-result ~check-result}) [:floating-panel/by-id "main"]])))))
 
@@ -176,52 +176,65 @@
 
 (defn app-path [app]
   (let [display-name (some-> app :reconciler prim/app-root prim/react-type (gobj/get "displayName"))]
-    [display-name (-> display-name (s/split #"/") last)]))
+    [display-name (some-> display-name (s/split #"/") last)]))
 
 (def ignore-inspect "fulcro.inspect.core/GlobalRoot")
-(defonce ^:private host-root-path (atom nil))
+(defonce ^:private host-root-path* (atom nil))
 
 ;;
 ;; Why check on every transact when can check on every change to state?
 ;; (For instance react key changes are not picked up when on every transact)
-;; A good reason is so don't check every time the developer saves his work,
-;; slowing the machine down at the worst possible time for no good reason!
-;; So we have chosen not to slow the developer's machine down at the expense
+;; One reason would be so don't check every time the developer saves his work,
+;; slowing the machine down at the worst possible time for no good reason.
+;; So a favourable choice is to not to slow the developer's machine down at the expense
 ;; of missing a change to app state that did not go through a `transact!`.
-;; Quite possibly there is no such thing - everything goes through `transact!`.
-;; Anyway it hinges on this def - so easy to make it an option in the lein
-;; project. KEEP false, until new information arrives.
-;; Changed to true, the new information being that the env that comes thru to
+;; And quite possibly there is no such thing - everything goes through `transact!`.
+;; So originally had this as false.
+;; Changed to true, when realising that the env that comes thru to
 ;; ::fulcro/tx-listen is a bit of an unknown when there are many clients. It
-;; was listening to Fulcro Inspector! With the watching way (all-state-changes?
+;; was listening to Fulcro Inspector! Conversely with the watching way (all-state-changes?
 ;; being true) we can control which client we are listening to.
 ;; (And the 'every time a developer saves his work' argument was not based on an
-;; empirical observation).
+;; empirical observation of an actual problem, which prolly doesn't exist because of
+;; React's virtual DOM).
 ;;
 (def all-state-changes? true)
+
+(defn watch-state [target-app tool-reconciler timeout host-root]
+  (let [inspect-new-state-f (update-inspect-state-hof tool-reconciler (reset! host-root-path* host-root))
+        update-inspect-state-f (gfun/debounce inspect-new-state-f timeout)]
+    (if (not all-state-changes?)
+      (reset! state-inspector update-inspect-state-f)
+      (add-watch (some-> target-app :reconciler :config :state) :chrismurrph/default-db-format
+                 #(update-inspect-state-f %4)))))
 
 (defn install-app [target-app]
   (let [tool-reconciler (:reconciler (global-inspector))
         shared-config (-> tool-reconciler prim/app-root prim/shared)
-        timeout (-> shared-config :options :debounce-timeout)]
-    (if (-> host-root-path deref nil?)
-      (let [host-root (app-path target-app)]
-        (if (not= ignore-inspect (first host-root))
-          (let [inspect-new-state-f (update-inspect-state-hof tool-reconciler (reset! host-root-path host-root))
-                update-inspect-state-f (gfun/debounce inspect-new-state-f timeout)]
-            (if (not all-state-changes?)
-              (reset! state-inspector update-inspect-state-f)
-              (add-watch (some-> target-app :reconciler :config :state) :chrismurrph/default-db-format
-                         #(update-inspect-state-f %4))))
-          (dev/log (str "Discarding inspector root: " (first host-root)))))
+        timeout (-> shared-config :options :debounce-timeout)
+        watch-st (partial watch-state target-app tool-reconciler timeout)
+        host-root-path-preference (-> shared-config :options :host-root-path)
+        msg-f (fn [whole-path]
+                (if (= ignore-inspect whole-path)
+                  (str "Discarding Fulcro Inspect root: " whole-path)
+                  (str "Discarding: " whole-path)))]
+    (if (-> host-root-path* deref nil?)
+      (let [[whole-path leaf :as host-root] (app-path target-app)]
+        (assert whole-path "Must be a host root")
+        (cond
+          (= host-root-path-preference whole-path) (watch-st host-root)
+          (not= ignore-inspect whole-path) (watch-st host-root)
+          :else (js/console.log (msg-f whole-path))))
       ;; If the wanted one is being discarded then need to add host-root-path to config, such that
-      ;; the specified host-root-path will be the only one that is accepted.
+      ;; the specified host-root-path will be the only one that is accepted. Will work as an
+      ;; override if need to examine the state of Fulcro Inspect for instance. In which case set
+      ;; host-root-path to "fulcro.inspect.core/GlobalRoot", equivalently default-db-format.tool/ignore-inspect
       (dev/log (str "Accepted a host already, so discarding: " (-> target-app app-path first))))))
 
 (defn install [options]
   (when-not @global-inspector*
     (js/console.log "Installing" core/tool-name
-                    (select-keys options [:collapse-keystroke :debounce-timeout]))
+                    (select-keys options [:collapse-keystroke :debounce-timeout :host-root-path]))
     (global-inspector options)
 
     (fulcro/register-tool
@@ -230,7 +243,7 @@
 
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
-         (install-app app (not all-state-changes?))
+         (install-app app)
          app)
 
        ::fulcro/tx-listen

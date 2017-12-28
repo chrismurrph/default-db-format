@@ -178,8 +178,8 @@
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
                                                            (dom/div nil "Normalization in joins (")
-                                                           (dom/div #js {:className (:purple-coloured global-css)} ":excluded-keys")
-                                                           (dom/div #js {:className (:space-before global-css)} "in config is one way to fix)"))
+                                                           (dom/div #js {:className (:purple-coloured global-css)} ":links")
+                                                           (dom/div #js {:className (:space-before global-css)} "in edn config is one way to fix)"))
                                                   (joins-list-component {:id "Normalization in joins problems" :items not-normalized-join-entries})))
                                        (when (and join-entries-problems? table-entries-problems?)
                                          (dom/br nil))

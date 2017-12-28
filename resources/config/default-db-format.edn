@@ -1,4 +1,4 @@
-{:excluded-keys      #{:fulcro.client.routing/routing-tree
+{:links              #{:fulcro.client.routing/routing-tree
                        :fulcro/ready-to-load
                        :fulcro/loads-in-progress
                        :fulcro/server-error

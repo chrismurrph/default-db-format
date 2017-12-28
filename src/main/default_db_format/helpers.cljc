@@ -19,7 +19,7 @@
   whereby 'one of' tables do not follow some /by-id or /id convention, as there isn't an id in these cases."
   [by-id-kw-fn? table? state]
   (filter (fn [[k _]]
-            (println "EXAMINE:" k)
+            ;(dev/log (str "EXAMINE: " k))
             (or (by-id-kw-fn? k) (table? k)))
           state))
 
@@ -42,17 +42,26 @@
   ;(dev/log (str "by-id-kw-hof given " config-kw-strs))
   (fn [kw]
     (when debug?
-      (dev/log (str "by-id-kw? for " kw)))
+      ;(dev/log (str "by-id-kw? for " kw))
+      )
     (and (keyword? kw)
          (some #{(name kw)} config-kw-strs))))
 
-(defn not-by-id-table-hof
-  [config-kw-tables]
-  (assert (set? config-kw-tables))
+(defn table-hof
+  [config-tables]
+  (assert (set? config-tables))
   (fn [kw]
-    (and (keyword? kw)
-         (some #{kw} config-kw-tables))))
+    (and
+      ;(keyword? kw)
+      (some #{kw} config-tables))))
 
+(def not-by-id-table-hof table-hof)
+(def routing-table-hof table-hof)
+
+;;
+;; ns means before the slash.
+;; After fn will be called routed-name-hof
+;;
 (defn routed-ns-hof
   [config-ns-strs]
   (assert (set? config-ns-strs))
@@ -71,12 +80,13 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw routing-ns not-by-id-table]}]
+  [{:keys [by-id-kw before-routing-ns not-by-id-table routing-tables]}]
   ;(dev/log (dev/assert-str "by-id-kw" by-id-kw))
-  ;(dev/log (dev/assert-str "routing-ns" routing-ns))
+  ;(dev/log (dev/assert-str "before-routing-ns" before-routing-ns))
   (let [by-id-kw? (-> by-id-kw -setify (by-id-kw-hof false))
-        routed-ns? (-> routing-ns -setify routed-ns-hof)
+        routed-ns? (-> before-routing-ns -setify routed-ns-hof)
         table? (-> not-by-id-table -setify not-by-id-table-hof)
+        routing-table? (-> routing-tables -setify routing-table-hof)
         ]
     (fn [tuple]
       (when (and (vector? tuple)
@@ -84,14 +94,15 @@
         (let [[cls id] tuple]
           (and (or (dev/probe-off-msg "by-id-kw?" (by-id-kw? cls))
                    (dev/probe-off-msg "routed-ns?" (routed-ns? cls))
-                   (dev/probe-off-msg "table?" (table? cls)))
+                   (dev/probe-off-msg "table?" (table? cls))
+                   (dev/probe-off-msg "routing-table?" (routing-table? cls)))
                (dev/probe-off-msg "acceptable-id?" (acceptable-id? id))))))))
 
 (def default-config
   "This default can be overridden using the config arg to the check function.
   Each key here will be overridden by normal merge behaviour"
-  {:by-id-kw   #{"by-id" "BY-ID"}
-   :routing-ns "routed"})
+  {:by-id-kw          #{"by-id" "BY-ID"}
+   :before-routing-ns "routed"})
 
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"

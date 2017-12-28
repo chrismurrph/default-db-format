@@ -186,13 +186,15 @@
 
 (defn- join-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
-  the part after the / is not 'by-id' nor a routing ident"
-  ([ident-like? state excluded-keys]
-   (filter (fn [kv]
-             (let [k (key kv)]
-               (and (= 2 (count (s/split (kw->str k) #"/")))
-                    (not (contains? excluded-keys k))
-                    (not (ident-like? k)))))
+  the part after the / is neither 'by-id' nor a routing ident"
+  ([ident-like? state links]
+   (filter (fn [[k v]]
+             (and (= 2 (count (s/split (kw->str k) #"/")))
+                  (not (contains? links k))
+                  (not (ident-like? k))
+                  (not= :fulcro.ui.forms/form k)
+                  (not= :fulcro.client.routing/routing-tree k)
+                  ))
            state))
   ([ident-like? state]
    (join-entries ident-like? state nil)))
@@ -224,8 +226,8 @@
   {:text text})
 
 (defn- state-looks-like-config [state]
-  (let [{:keys [okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?]} state]
-    (or okay-value-maps by-id-kw excluded-keys acceptable-table-value-fn?)))
+  (let [{:keys [okay-value-maps by-id-kw links acceptable-table-value-fn?]} state]
+    (or okay-value-maps by-id-kw links acceptable-table-value-fn?)))
 
 (defn- failed-state [state]
   (if (not (map? state))
@@ -241,15 +243,23 @@
                Can be a #{} or [] of Strings where > 1 required.
   :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
                namespaced. Legitimate convention when there is no 'id', when there is only going
-               to be one of these tables. Can be a #{} or [], usually but not necessarily keywords.
-  :routing-ns -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
+               to be one of these tables. Can be a #{} or []. Usually keyword/s.
+  :before-routing-ns -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
+  :routing-tables -> If not following a convention for routing idents. #{} or [] of these. Usually keywords
+               but doesn't have to be.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
   :okay-value-vectors -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
                will mean that [:report-1] is accepted but [:report-1 :report-3] is not. Note that the order
                of the objects is not important. This is a #{} or [] of these.
-  :excluded-keys -> #{} (or []) of keys that we don't want to be part of normalization.
+  :links -> #{} (or []) of keys that we don't want to be part of normalization. Both joins and links exist
+               at the top level, and we want to ensure that normalization checking is still done for the
+               top level joins. A top level join is a join in the root component. Links and joins are
+               indistinguishable when looking at state. Top level joins may contain non-normalized data,
+               and need to be 'fixed' by being included here. This might happen if the join in the root
+               component is to a component that does not have an ident. Note that top level keys that are
+               not namespaced or just contain simple data are ignored anyway (assumed to be links).
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
                in that it is intended to be there, and does not indicate failed normalization."
   ([config state]
@@ -259,26 +269,28 @@
              ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
              ;; do this without fear.
              config (merge help/default-config config)
-             {:keys [okay-value-maps okay-value-vectors excluded-keys acceptable-table-value-fn?]} config
+             {:keys [okay-value-maps okay-value-vectors links acceptable-table-value-fn?]} config
              ident-like? (help/ident-like-hof? config)
              conformance-predicates {:ident-like?               ident-like?
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
              by-id-kw? (-> config :by-id-kw help/-setify (help/by-id-kw-hof true))
              table? (-> config :not-by-id-table help/-setify help/not-by-id-table-hof)
-             routed-ns? (-> config :routing-ns help/-setify help/routed-ns-hof)
+             routed-ns? (-> config :before-routing-ns help/-setify help/routed-ns-hof)
+             routing-table? (-> config :routing-tables help/-setify help/routing-table-hof)
              somehow-table-entries (help/table-entries by-id-kw? table? state)
              ;_ (println "table-entries" somehow-table-entries)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
-             keys-to-ignore (help/-setify excluded-keys)
-             joins (join-entries (some-fn by-id-kw? routed-ns? table?) state keys-to-ignore)
-             all-keys-count (+ (dev/probe-off-msg "count joins" (count joins))
+             keys-to-ignore (help/-setify links)
+             ;; These are mostly links, and links can contain anything. Still I don't like links so
+             ;; going to make the user exclude them.
+             top-level-joins (join-entries (some-fn by-id-kw? routed-ns? routing-table? table?) state keys-to-ignore)
+             all-keys-count (+ (dev/probe-off-msg "count joins" (count top-level-joins))
                                (dev/probe-off-msg "count tables" (count somehow-table-entries)))
-             categories (into #{} (distinct (map (comp help/category-part str key) joins)))]
+             categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))]
          (if (and (empty? table-names)
                   (pos? all-keys-count))
            (do
-             ;(println "joins:" joins)
-             (dev/log (str "tables:" somehow-table-entries))
+             ;(dev/log (str "tables:" somehow-table-entries))
              (ret {:failed-assumption (incorrect "by-id normalized file required")}))
            (let [join-entries-tester (join-entry->error-hof ident-like? categories)
                  okay-maps (help/-setify okay-value-maps)
@@ -288,7 +300,7 @@
                    :known-names table-names
                    :not-normalized-join-entries
                                 (into #{}
-                                      (mapcat (fn [kv] (join-entries-tester kv)) joins))
+                                      (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
                    :not-normalized-table-entries
                                 (into #{}
                                       (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))

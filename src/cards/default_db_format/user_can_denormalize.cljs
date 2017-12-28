@@ -15,7 +15,7 @@
             [devcards.core]
             [default-db-format.general.dev :as dev]))
 
-(def scss (css/get-classnames ui.domain/CSS))
+(def global-css (css/get-classnames ui.domain/CSS))
 
 (defsc Baby
        [this props _]
@@ -57,10 +57,10 @@
   (action [{:keys [state]}]
           (swap! state dissoc :thing/id :here-is/some-link)))
 
-(m/defmutation state-is-vector
+(m/defmutation state-becomes-empty
   [{:keys []}]
   (action [{:keys [state]}]
-          (reset! state [])))
+          (reset! state {})))
 
 (declare say-hello-fulcro-app)
 
@@ -82,14 +82,15 @@
         :css-include [ui.domain/CSS]}
        (let [title (str "Good afternoon, my name is " first-name " with " (count babies) " shark babies")]
          (dom/div nil
-                  (dom/div #js {:className (:display-name scss)} title)
+                  (dom/div #js {:className (:display-name global-css)} title)
                   (dom/div nil
                            (dom/button #js {:onClick #(prim/transact! this [`(denormalize)])}
                                        "Cause state chaos!")
                            (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
                                        "Restore order..."))
                   (dom/div nil
-                           (dom/button #js {:onClick #(prim/transact! this [`(state-is-vector)])}
+                           ;; Making state a vector actually crashes Fulcro
+                           (dom/button #js {:onClick #(prim/transact! this [`(state-becomes-empty)])}
                                        "Very bad state"))
                   (dom/div nil
                            (dom/button #js {:onClick #(if-let [rec (get-reconciler)]
