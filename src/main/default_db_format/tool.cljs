@@ -15,19 +15,43 @@
             [default-db-format.ui.domain :as ui.domain]
             [clojure.string :as s]))
 
+(def ignore-fulcro-inspect "fulcro.inspect.core/GlobalRoot")
+
+(def possible-options [:collapse-keystroke :debounce-timeout :host-root-path])
+
+;;
+;; Why check on every transact when can check on every change to state?
+;; (For instance react key changes are not picked up when on every transact)
+;; One reason would be so don't check every time the developer saves his work,
+;; slowing the machine down at the worst possible time for no good reason.
+;; So a favourable choice is to not to slow the developer's machine down at the expense
+;; of missing a change to app state that did not go through a `transact!`.
+;; And quite possibly there is no such thing - everything goes through `transact!`.
+;; So originally had this as false.
+;; Changed to true, when realising that the env that comes thru to
+;; ::fulcro/tx-listen is a bit of an unknown when there are many clients. It
+;; was listening to Fulcro Inspector! Conversely with the watching way (all-state-changes?
+;; being true) we can control which client we are listening to.
+;; (And the 'every time a developer saves his work' argument was not based on an
+;; empirical observation of an actual problem, which prolly doesn't exist because of
+;; React's virtual DOM, and can be obviated by say setting :debounce-timeout to 10000
+;; i.e. 10 seconds).
+;;
+(def all-state-changes? true)
+
 (def expanded-percentage-width 50)
 
 ;; A red line on the right edge of the container will be a
 ;; reminder to the user.
 ;; Hmm - mose well just have a red line rather than collapse it!
-;; With some css (bootstrap) the css is overridden so that the red dot is not displayed
+;; With some css (bootstrap) the css seems to be overridden so that the red dot is not displayed
 ;; For now we are living with it. But collapsing will work in such a situation, so perhaps
 ;; we can make collapsing an option in a future version. Yak shaving - no red dot is still fine.
 (def collapsed-percentage-width 1)
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
-(defui ^:once GlobalInspector
+(defui ^:once CollapsibleFrame
        static prim/InitialAppState
        (initial-state [_ params] {:ui/visible?   false
                                   :ui/collapsed? false
@@ -65,13 +89,13 @@
                (let [{:ui/keys [visible? collapsed? inspector]} (prim/props this)
                      toggle-collapse-f #(mutations/set-value! this :ui/collapsed? (not collapsed?))
                      keystroke (or (prim/shared this [:options :collapse-keystroke]) "ctrl-q")
-                     css (css/get-classnames GlobalInspector)]
+                     css (css/get-classnames CollapsibleFrame)]
                  (dom/div #js {:style (if visible? nil #js {:display "none"})}
                           (events/key-listener {::events/action    toggle-collapse-f
                                                 ::events/keystroke keystroke})
                           (if collapsed?
                             (dom/div #js {:className (:red-dot global-css)
-                                          :onClick toggle-collapse-f} nil)
+                                          :onClick   toggle-collapse-f} nil)
                             (dom/div #js {:className (:container css)
                                           :style     #js {:width (str expanded-percentage-width "%")}
                                           :ref       #(gobj/set this "container" %)}
@@ -86,31 +110,31 @@
                                                                 (components/display-db-component
                                                                   (prim/computed inspector {:toggle-collapse-f toggle-collapse-f}))))))))))
 
-(def global-inspector-view (prim/factory GlobalInspector))
+(def ui-tool-view (prim/factory CollapsibleFrame))
 
 (defui ^:once ToolRoot
        static prim/InitialAppState
        (initial-state [_ _] {:ui/react-key (random-uuid)
-                             :ui/root      (prim/get-initial-state GlobalInspector {:tool-version core/tool-version
-                                                                                    :tool-name    core/tool-name})})
+                             :ui/root      (prim/get-initial-state CollapsibleFrame {:tool-version core/tool-version
+                                                                                     :tool-name    core/tool-name})})
 
        static prim/IQuery
-       (query [_] [{:ui/root (prim/get-query GlobalInspector)}
+       (query [_] [{:ui/root (prim/get-query CollapsibleFrame)}
                    :ui/react-key])
 
        static css/CSS
        (local-rules [_] [])
-       (include-children [_] [GlobalInspector])
+       (include-children [_] [CollapsibleFrame])
 
        Object
        (render [this]
                (let [{:keys [ui/react-key ui/root]} (prim/props this)]
                  (dom/div #js {:key react-key}
-                          (global-inspector-view root)))))
+                          (ui-tool-view root)))))
 
-(defonce ^:private global-inspector* (atom nil))
+(defonce ^:private tool* (atom nil))
 
-(defn start-global-inspector [options]
+(defn start-tool [options]
   (let [configuration {:options (dissoc options :edn)
                        :edn     (:edn options)}
         app (fulcro/new-fulcro-client :shared configuration)
@@ -119,11 +143,11 @@
     (css/upsert-css "default-db-format" ToolRoot)
     (fulcro/mount app ToolRoot node)))
 
-(defn global-inspector
-  ([] @global-inspector*)
+(defn tool
+  ([] @tool*)
   ([options]
-   (or @global-inspector*
-       (reset! global-inspector* (start-global-inspector options)))))
+   (or @tool*
+       (reset! tool* (start-tool options)))))
 
 (defn get-config
   "The host/target application can use this when it wants know the configuration it
@@ -131,7 +155,7 @@
   such as default-db-format.helpers/ident-like-hof. Will return nil when called before the
   app is initialized"
   []
-  (some-> (global-inspector) :reconciler prim/app-root prim/shared))
+  (some-> (tool) :reconciler prim/app-root prim/shared))
 
 (defmutation state-inspection
   [{:keys [visible? check-result]}]
@@ -148,7 +172,7 @@
                                   true (update-in display-db-ident merge check-result))))))
 
 (defn dump []
-  (-> (global-inspector) :reconciler prim/app-state deref))
+  (-> (tool) :reconciler prim/app-state deref))
 
 ;;
 ;; Only commented out because Figwheel issues a warning:
@@ -170,7 +194,7 @@
                                                              :check-result ~check-result}) [:floating-panel/by-id "main"]])))))
 
 ;;
-;; Stores a function that takes new-state. Will only be stored if we are listen-transactions-only?
+;; Stores a function that takes new-state. Not used when all-state-changes? is true
 ;;
 (defonce ^:private state-inspector (atom nil))
 
@@ -178,27 +202,7 @@
   (let [display-name (some-> app :reconciler prim/app-root prim/react-type (gobj/get "displayName"))]
     [display-name (some-> display-name (s/split #"/") last)]))
 
-(def ignore-inspect "fulcro.inspect.core/GlobalRoot")
 (defonce ^:private host-root-path* (atom nil))
-
-;;
-;; Why check on every transact when can check on every change to state?
-;; (For instance react key changes are not picked up when on every transact)
-;; One reason would be so don't check every time the developer saves his work,
-;; slowing the machine down at the worst possible time for no good reason.
-;; So a favourable choice is to not to slow the developer's machine down at the expense
-;; of missing a change to app state that did not go through a `transact!`.
-;; And quite possibly there is no such thing - everything goes through `transact!`.
-;; So originally had this as false.
-;; Changed to true, when realising that the env that comes thru to
-;; ::fulcro/tx-listen is a bit of an unknown when there are many clients. It
-;; was listening to Fulcro Inspector! Conversely with the watching way (all-state-changes?
-;; being true) we can control which client we are listening to.
-;; (And the 'every time a developer saves his work' argument was not based on an
-;; empirical observation of an actual problem, which prolly doesn't exist because of
-;; React's virtual DOM).
-;;
-(def all-state-changes? true)
 
 (defn watch-state [target-app tool-reconciler timeout host-root]
   (let [inspect-new-state-f (update-inspect-state-hof tool-reconciler (reset! host-root-path* host-root))
@@ -209,33 +213,33 @@
                  #(update-inspect-state-f %4)))))
 
 (defn install-app [target-app]
-  (let [tool-reconciler (:reconciler (global-inspector))
+  (let [tool-reconciler (:reconciler (tool))
         shared-config (-> tool-reconciler prim/app-root prim/shared)
         timeout (-> shared-config :options :debounce-timeout)
-        watch-st (partial watch-state target-app tool-reconciler timeout)
+        watch-st-f (partial watch-state target-app tool-reconciler timeout)
         host-root-path-preference (-> shared-config :options :host-root-path)
         msg-f (fn [whole-path]
-                (if (= ignore-inspect whole-path)
+                (if (= ignore-fulcro-inspect whole-path)
                   (str "Discarding Fulcro Inspect root: " whole-path)
                   (str "Discarding: " whole-path)))]
     (if (-> host-root-path* deref nil?)
       (let [[whole-path leaf :as host-root] (app-path target-app)]
         (assert whole-path "Must be a host root")
         (cond
-          (= host-root-path-preference whole-path) (watch-st host-root)
-          (not= ignore-inspect whole-path) (watch-st host-root)
+          (= host-root-path-preference whole-path) (watch-st-f host-root)
+          (not= ignore-fulcro-inspect whole-path) (watch-st-f host-root)
           :else (js/console.log (msg-f whole-path))))
       ;; If the wanted one is being discarded then need to add host-root-path to config, such that
       ;; the specified host-root-path will be the only one that is accepted. Will work as an
       ;; override if need to examine the state of Fulcro Inspect for instance. In which case set
-      ;; host-root-path to "fulcro.inspect.core/GlobalRoot", equivalently default-db-format.tool/ignore-inspect
+      ;; host-root-path to "fulcro.inspect.core/GlobalRoot", that's at default-db-format.tool/ignore-inspect
       (dev/log (str "Accepted a host already, so discarding: " (-> target-app app-path first))))))
 
 (defn install [options]
-  (when-not @global-inspector*
-    (js/console.log "Installing" core/tool-name
-                    (select-keys options [:collapse-keystroke :debounce-timeout :host-root-path]))
-    (global-inspector options)
+  (when-not @tool*
+    (js/console.log "Installing" core/tool-name "version" core/tool-version
+                    (select-keys options possible-options))
+    (tool options)
 
     (fulcro/register-tool
       {::fulcro/tool-id
@@ -249,5 +253,4 @@
        ::fulcro/tx-listen
        (fn [env _]
          (when-let [inspect-f @state-inspector]
-           (inspect-f (:new-state env))))
-       })))
+           (inspect-f (:new-state env))))})))

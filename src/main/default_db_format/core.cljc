@@ -8,6 +8,17 @@
             [default-db-format.helpers :as help]
             [default-db-format.general.dev :as dev]))
 
+(def tool-name "Default DB Format")
+(def tool-version
+  "`lein clean` helps make sure using the latest version of this library.
+  version value not changing alerts us to the fact that we have forgotten to `lein clean`"
+  30)
+
+(def always-false-fn (fn [_] false))
+
+(defn bool? [v]
+  (or (true? v) (false? v)))
+
 #?(:cljs (enable-console-print!))
 
 #?(:cljs
@@ -25,9 +36,6 @@
 
 #?(:cljs
    (def display components/display))
-
-(defn bool? [v]
-  (or (true? v) (false? v)))
 
 (defn known-category [kw knowns]
   (let [before-slash (help/category-part (str kw))]
@@ -197,8 +205,8 @@
    (join-entries ident-like? state nil)))
 
 ;;
-;; Making this a hard and fast rule, even for keys that are to be ignored
-;; Actually - no longer using!
+;; In the past made this a hard and fast rule, even for keys that are to be ignored
+;; Now no longer using!
 ;;
 (defn not-slashed-keys
   "Returns all the keys that are not namespaced"
@@ -207,14 +215,6 @@
                   (let [k (key kv)]
                     (not= 2 (count (s/split (kw->str k) #"/")))))
                 state)))
-
-(def always-false-fn (fn [_] false))
-
-(def tool-name "Default DB Format")
-(def tool-version
-  "`lein clean` helps make sure using the latest version of this library.
-  version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  102)
 
 (defn- ret [m]
   (merge m {:version tool-version}))
@@ -243,12 +243,8 @@
   :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
                namespaced. Legitimate convention when there is no 'id', when there is only going
                to be one of these tables. Can be a #{} or []. Usually keyword/s.
-  :before-slash-routing -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
-               \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
-  :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
-               \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
-  :routing-tables -> If not following a convention for routing idents. #{} or [] of these. Usually keywords
-               but doesn't have to be.
+  :routing-tables -> Any table used as the first/class part of a routing ident. #{} or [] of these.
+               Usually keywords but doesn't have to be.
   :okay-value-maps -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
   :okay-value-vectors -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
@@ -262,7 +258,13 @@
                component is to a component that does not have an ident. Note that top level keys that are
                not namespaced or just contain simple data are ignored anyway (assumed to be links).
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
-               in that it is intended to be there, and does not indicate failed normalization."
+               in that it is intended to be there, and does not indicate failed normalization.
+  These last two are 'undocumented' as easy to just use `:routing-tables`:
+  :before-slash-routing -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
+               \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
+  :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
+               \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
+"
   ([config state]
    (or (failed-state state)
        (let [
@@ -285,8 +287,8 @@
              keys-to-ignore (help/-setify (into links fulcro-links))
              not-join-key-f? (some-fn by-id-kw? routed-ns? routed-name? routing-table? table?)
              top-level-joins (join-entries not-join-key-f? state keys-to-ignore)
-             all-keys-count (+ (dev/probe-off-msg "count joins" (count top-level-joins))
-                               (dev/probe-off-msg "count tables" (count somehow-table-entries)))
+             all-keys-count (+ (count top-level-joins)
+                               (count somehow-table-entries))
              categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))]
          (if (and (empty? table-names)
                   (pos? all-keys-count))

@@ -102,18 +102,17 @@
       (when (and (vector? tuple)
                  (= 2 (count tuple)))
         (let [[cls id] tuple]
-          (and (or (dev/probe-off-msg "by-id-kw?" (by-id-kw? cls))
-                   (dev/probe-off-msg "routed-ns?" (routed-ns? cls))
-                   (dev/probe-off-msg "routed-name?" (routed-name? cls))
-                   (dev/probe-off-msg "table?" (table? cls))
-                   (dev/probe-off-msg "routing-table?" (routing-table? cls)))
-               (dev/probe-off-msg "acceptable-id?" (acceptable-id? id))))))))
+          (and (or (by-id-kw? cls)
+                   (routed-ns? cls)
+                   (routed-name? cls)
+                   (table? cls)
+                   (routing-table? cls))
+               (acceptable-id? id)))))))
 
 (def default-config
   "This default can be overridden using the config arg to the check function.
   Each key here will be overridden by normal merge behaviour"
-  {:by-id-kw          #{"by-id" "BY-ID"}
-   :before-slash-routing "routed"})
+  {:by-id-kw #{"by-id" "BY-ID"}})
 
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
