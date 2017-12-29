@@ -187,14 +187,11 @@
 (defn- join-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
   the part after the / is neither 'by-id' nor a routing ident"
-  ([ident-like? state links]
+  ([not-join-key-f? state links]
    (filter (fn [[k v]]
              (and (= 2 (count (s/split (kw->str k) #"/")))
                   (not (contains? links k))
-                  (not (ident-like? k))
-                  (not= :fulcro.ui.forms/form k)
-                  (not= :fulcro.client.routing/routing-tree k)
-                  ))
+                  (not (not-join-key-f? k))))
            state))
   ([ident-like? state]
    (join-entries ident-like? state nil)))
@@ -217,7 +214,7 @@
 (def tool-version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  30)
+  102)
 
 (defn- ret [m]
   (merge m {:version tool-version}))
@@ -235,6 +232,8 @@
     (when (state-looks-like-config state)
       (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
+(def fulcro-links [:fulcro/server-error :fulcro.ui.forms/form :fulcro.client.routing/routing-tree])
+
 (defn check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
@@ -244,7 +243,9 @@
   :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
                namespaced. Legitimate convention when there is no 'id', when there is only going
                to be one of these tables. Can be a #{} or []. Usually keyword/s.
-  :before-routing-ns -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
+  :before-slash-routing -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
+               \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
+  :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
   :routing-tables -> If not following a convention for routing idents. #{} or [] of these. Usually keywords
                but doesn't have to be.
@@ -275,15 +276,15 @@
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
              by-id-kw? (-> config :by-id-kw help/-setify (help/by-id-kw-hof true))
              table? (-> config :not-by-id-table help/-setify help/not-by-id-table-hof)
-             routed-ns? (-> config :before-routing-ns help/-setify help/routed-ns-hof)
+             routed-ns? (-> config :before-slash-routing help/-setify help/routed-ns-hof)
+             routed-name? (-> config :after-slash-routing help/-setify help/routed-name-hof)
              routing-table? (-> config :routing-tables help/-setify help/routing-table-hof)
              somehow-table-entries (help/table-entries by-id-kw? table? state)
              ;_ (println "table-entries" somehow-table-entries)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
-             keys-to-ignore (help/-setify links)
-             ;; These are mostly links, and links can contain anything. Still I don't like links so
-             ;; going to make the user exclude them.
-             top-level-joins (join-entries (some-fn by-id-kw? routed-ns? routing-table? table?) state keys-to-ignore)
+             keys-to-ignore (help/-setify (into links fulcro-links))
+             not-join-key-f? (some-fn by-id-kw? routed-ns? routed-name? routing-table? table?)
+             top-level-joins (join-entries not-join-key-f? state keys-to-ignore)
              all-keys-count (+ (dev/probe-off-msg "count joins" (count top-level-joins))
                                (dev/probe-off-msg "count tables" (count somehow-table-entries)))
              categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))]
@@ -299,10 +300,8 @@
              (ret {:categories  categories
                    :known-names table-names
                    :not-normalized-join-entries
-                                (into #{}
-                                      (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
+                                (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
                    :not-normalized-table-entries
-                                (into #{}
-                                      (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
+                                (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
   ([state]
    (check help/default-config state)))

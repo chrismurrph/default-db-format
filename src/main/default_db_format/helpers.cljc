@@ -71,6 +71,15 @@
            (and ns
                 (some #{ns} config-ns-strs))))))
 
+(defn routed-name-hof
+  [config-ns-strs]
+  (assert (set? config-ns-strs))
+  (fn [namespaced-kw]
+    (and (keyword? namespaced-kw)
+         (let [nm (name namespaced-kw)]
+           (and nm
+                (some #{nm} config-ns-strs))))))
+
 (def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string?))
 
 ;;
@@ -80,11 +89,12 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw before-routing-ns not-by-id-table routing-tables]}]
+  [{:keys [by-id-kw before-slash-routing after-slash-routing not-by-id-table routing-tables]}]
   ;(dev/log (dev/assert-str "by-id-kw" by-id-kw))
-  ;(dev/log (dev/assert-str "before-routing-ns" before-routing-ns))
+  ;(dev/log (dev/assert-str "before-slash-routing" before-slash-routing))
   (let [by-id-kw? (-> by-id-kw -setify (by-id-kw-hof false))
-        routed-ns? (-> before-routing-ns -setify routed-ns-hof)
+        routed-ns? (-> before-slash-routing -setify routed-ns-hof)
+        routed-name? (-> after-slash-routing -setify routed-name-hof)
         table? (-> not-by-id-table -setify not-by-id-table-hof)
         routing-table? (-> routing-tables -setify routing-table-hof)
         ]
@@ -94,6 +104,7 @@
         (let [[cls id] tuple]
           (and (or (dev/probe-off-msg "by-id-kw?" (by-id-kw? cls))
                    (dev/probe-off-msg "routed-ns?" (routed-ns? cls))
+                   (dev/probe-off-msg "routed-name?" (routed-name? cls))
                    (dev/probe-off-msg "table?" (table? cls))
                    (dev/probe-off-msg "routing-table?" (routing-table? cls)))
                (dev/probe-off-msg "acceptable-id?" (acceptable-id? id))))))))
@@ -102,7 +113,7 @@
   "This default can be overridden using the config arg to the check function.
   Each key here will be overridden by normal merge behaviour"
   {:by-id-kw          #{"by-id" "BY-ID"}
-   :before-routing-ns "routed"})
+   :before-slash-routing "routed"})
 
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
