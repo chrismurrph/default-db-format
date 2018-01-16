@@ -7,7 +7,7 @@ Checks that your Fulcro client state is formatted as per the normalized storage 
 
 ##### Description
 
-A development tool that checks that client state stays normalized in the face of your code's mutations. It does this with an understanding of the convention/s that the keys of the state map use. So for instance if a `by-id` field value (say `(get-in [my-table-name/by-id 14] :my/join)`) becomes a map rather than an Ident or vector of Idents then this will be recognised and a heads-up display (HUD) will pop up.
+**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the convention/s that the keys of the state map use. So for instance if a `by-id` field value (say `(get-in [my-table-name/by-id 14] :my/join)`) becomes a map rather than an Ident or vector of Idents then this will be recognised and a heads-up display (HUD) will pop up.
 
 This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inpect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` in the "dev" :cljsbuild:
 
@@ -20,11 +20,11 @@ This library is a Fulcro tool. As such the setup will be similar to that for [Fu
                                               :debounce-timeout   2000}}
 ```` 
 
-The collapse keystroke is a toggle to get the tool out of the way of the UI you are working on. Another thing to mention is that default-db-format introduces no other dependencies into your development environment. The thinking here is that it should *just work* with the versions of Clojure, Clojurescript, Fulcro etc you are already using.
+The collapse keystroke is a toggle to get the tool out of the way of the UI you are working on.
 
 ##### Configuration
 
-For a full reference of configuration options see the doc string for `default-db-format.core/check`. Here we will go through some examples that will cover most of them. The default configuration is `{:by-id-kw #{"by-id" "BY-ID"}}`, but it is very likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. Lets work out the configuration for a selection of readily available Fulcro applications.
+For a full reference of configuration options see the doc string for `default-db-format.core/check`. Here we will go through some examples that will cover most of them. The default configuration is `{:by-id-kw #{"by-id" "BY-ID"}}`, but it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. Lets work out the configuration for a selection of readily available Fulcro applications.
 
 ###### Fulcro Websocket Demo
 
@@ -46,7 +46,7 @@ You should see this message pop up in the browser:
 
 ![](imgs/20180117-055730.png)
 
-The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is telling us it thinks that `:root/application` is a join, and as such its value should be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't end in `by-id`:
+The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't end in `by-id`:
 
 ````
 {:not-by-id-table :application}
