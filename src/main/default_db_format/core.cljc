@@ -4,15 +4,16 @@
     #?(:cljs [cljs.pprint :refer [pprint]])
     #?(:clj
             [clojure.pprint :refer [pprint]])
-    #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component okay?]])
+    #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component okay? detail-okay?]])
             [default-db-format.helpers :as help]
-            [default-db-format.general.dev :as dev]))
+            [default-db-format.general.dev :as dev]
+            ))
 
 (def tool-name "Default DB Format")
 (def tool-version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  30)
+  101)
 
 (def always-false-fn (fn [_] false))
 
@@ -22,8 +23,11 @@
 #?(:cljs (enable-console-print!))
 
 #?(:cljs
-   (defn ok? [check-result]
-     (okay? check-result)))
+   (def ok? okay?))
+
+#?(:cljs
+   (def detail-ok? detail-okay?))
+
 ;;
 ;; Not needed when HUD is brought up from the tool.
 ;;
@@ -95,7 +99,7 @@
   #_(inst? x)
   ;; Works for any version of cljs:
   #?(:cljs (instance? js/Date x)
-     :clj (instance? java.util.Date x)))
+     :clj  (instance? java.util.Date x)))
 
 (def goog-date "function (opt_year, opt_month, opt_date, opt_hours,")
 ;;
@@ -194,15 +198,16 @@
 
 (defn- join-entries
   "There are only two types of top level keys in 'default db format'. This function returns those for which
-  the part after the / is neither 'by-id' nor a routing ident"
-  ([not-join-key-f? state links]
+  the part after the / is neither 'by-id' nor a routing ident nor a link nor a 'one of'"
+  ([ident-like? one-of? state links]
    (filter (fn [[k v]]
              (and (= 2 (count (s/split (kw->str k) #"/")))
                   (not (contains? links k))
-                  (not (not-join-key-f? k))))
+                  (not (ident-like? k))
+                  (not (one-of? k v))))
            state))
-  ([ident-like? state]
-   (join-entries ident-like? state nil)))
+  ([ident-like? one-of? state]
+   (join-entries ident-like? one-of? state nil)))
 
 ;;
 ;; In the past made this a hard and fast rule, even for keys that are to be ignored
@@ -234,12 +239,15 @@
 
 (def fulcro-links [:fulcro/server-error :fulcro.ui.forms/form :fulcro.client.routing/routing-tree])
 
-(defn check
+(defn -check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
   :by-id-kw -> What comes after the slash in the Ident tuple-2's first position. As a String.
                By default is \"by-id\" as that's what the convention is.
                Can be a #{} or [] of Strings where > 1 required.
+  :by-one-id -> Something standard in the Ident tuple-2's second position, for components that the
+               application only needs one of. Can be a #{} or [], just in case there are a few
+               different variations on this convention.
   :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
                namespaced. Legitimate convention when there is no 'id', when there is only going
                to be one of these tables. Can be a #{} or []. Usually keyword/s.
@@ -276,26 +284,26 @@
              ident-like? (help/ident-like-hof? config)
              conformance-predicates {:ident-like?               ident-like?
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
-             by-id-kw? (-> config :by-id-kw help/-setify (help/by-id-kw-hof true))
+             by-id-kw? (-> config :by-id-kw help/-setify help/by-id-kw-hof)
+             single-id? (-> config :by-one-id help/-setify help/map-entry-single-id-hof)
              table? (-> config :not-by-id-table help/-setify help/not-by-id-table-hof)
              routed-ns? (-> config :before-slash-routing help/-setify help/routed-ns-hof)
              routed-name? (-> config :after-slash-routing help/-setify help/routed-name-hof)
              routing-table? (-> config :routing-tables help/-setify help/routing-table-hof)
-             somehow-table-entries (help/table-entries by-id-kw? table? state)
-             ;_ (println "table-entries" somehow-table-entries)
+             somehow-table-entries (help/table-entries by-id-kw? single-id? table? state)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
              keys-to-ignore (help/-setify (into links fulcro-links))
              not-join-key-f? (some-fn by-id-kw? routed-ns? routed-name? routing-table? table?)
-             top-level-joins (join-entries not-join-key-f? state keys-to-ignore)
+             top-level-joins (join-entries not-join-key-f? single-id? state keys-to-ignore)
              all-keys-count (+ (count top-level-joins)
                                (count somehow-table-entries))
-             categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))]
-         (if (and (empty? table-names)
-                  (pos? all-keys-count))
+             no-tables? (and (empty? table-names)
+                             (pos? all-keys-count))]
+         (if no-tables?
            (do
-             ;(dev/log (str "tables:" somehow-table-entries))
              (ret {:failed-assumption (incorrect "by-id normalized file required")}))
-           (let [join-entries-tester (join-entry->error-hof ident-like? categories)
+           (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
+                 join-entries-tester (join-entry->error-hof ident-like? categories)
                  okay-maps (help/-setify okay-value-maps)
                  okay-vectors (help/-setify okay-value-vectors)
                  id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
@@ -306,4 +314,6 @@
                    :not-normalized-table-entries
                                 (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
   ([state]
-   (check help/default-config state)))
+   (-check help/default-config state)))
+
+(def check (memoize -check))

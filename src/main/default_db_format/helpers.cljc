@@ -17,15 +17,18 @@
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured).
   Also included are table names given to config that are not necessarily namespaced. A convention may develop
   whereby 'one of' tables do not follow some /by-id or /id convention, as there isn't an id in these cases."
-  [by-id-kw-fn? table? state]
-  (filter (fn [[k _]]
-            ;(dev/log (str "EXAMINE: " k))
-            (or (by-id-kw-fn? k) (table? k)))
-          state))
+  [by-id-kw-fn? single-id? table? state]
+  (let [table-like-key? (some-fn by-id-kw-fn? table?)]
+    (filter (fn [[k v]]
+              (when (or (nil? v) (and (map? v) (= 1 (count v))))
+                (dev/debug (str "EXAMINE: " k v)))
+              (or (table-like-key? k)
+                  (single-id? k v)))
+            state)))
 
 ;;
 ;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use
-;; `set` constructor instead, which won't wrap a set it param might be given.
+;; the normal `set` constructor instead. For interring developer-user given parameters.
 ;;
 (defn -setify [in]
   (cond
@@ -36,24 +39,35 @@
     :else #{}))
 
 (defn by-id-kw-hof
-  [config-kw-strs debug?]
+  [config-kw-strs]
   (assert (set? config-kw-strs))
   ;'Unexpected identifier' JavaScript error, so can't debug here
   ;(dev/log (str "by-id-kw-hof given " config-kw-strs))
   (fn [kw]
-    (when debug?
-      ;(dev/log (str "by-id-kw? for " kw))
-      )
     (and (keyword? kw)
          (some #{(name kw)} config-kw-strs))))
+
+(defn map-entry-single-id-hof
+  [config-ids]
+  (assert (set? config-ids))
+  (fn [_ v]
+    (and (map? v)
+         (= 1 (count v))
+         (-> v ffirst config-ids))
+    ))
+
+(defn single-id-hof
+  [config-ids]
+  (assert (set? config-ids))
+  (fn [cls id]
+    (config-ids id)
+    ))
 
 (defn table-hof
   [config-tables]
   (assert (set? config-tables))
   (fn [kw]
-    (and
-      ;(keyword? kw)
-      (some #{kw} config-tables))))
+    (some #{kw} config-tables)))
 
 (def not-by-id-table-hof table-hof)
 (def routing-table-hof table-hof)
@@ -89,25 +103,30 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw before-slash-routing after-slash-routing not-by-id-table routing-tables]}]
-  ;(dev/log (dev/assert-str "by-id-kw" by-id-kw))
-  ;(dev/log (dev/assert-str "before-slash-routing" before-slash-routing))
-  (let [by-id-kw? (-> by-id-kw -setify (by-id-kw-hof false))
+  [{:keys [by-id-kw by-one-id before-slash-routing after-slash-routing not-by-id-table routing-tables]}]
+  (let [by-id-kw? (-> by-id-kw -setify by-id-kw-hof)
+        by-one-id? (-> by-one-id -setify single-id-hof)
         routed-ns? (-> before-slash-routing -setify routed-ns-hof)
         routed-name? (-> after-slash-routing -setify routed-name-hof)
         table? (-> not-by-id-table -setify not-by-id-table-hof)
         routing-table? (-> routing-tables -setify routing-table-hof)
+        acceptable-key? (some-fn by-id-kw? routed-ns? routed-name? table? routing-table?)
+        okay-key? (fn [cls]
+                    (let [res (acceptable-key? cls)]
+                      (dev/log-off (str "acceptable key? " cls " " (boolean res)))
+                      res))
+        okay-id? (fn [id]
+                   (let [res (acceptable-id? id)]
+                     (dev/log-off (str "acceptable id? " id " " (boolean res)))
+                     res))
         ]
     (fn [tuple]
       (when (and (vector? tuple)
                  (= 2 (count tuple)))
         (let [[cls id] tuple]
-          (and (or (by-id-kw? cls)
-                   (routed-ns? cls)
-                   (routed-name? cls)
-                   (table? cls)
-                   (routing-table? cls))
-               (acceptable-id? id)))))))
+          (or (by-one-id? cls id)
+              (and (okay-key? cls)
+                   (okay-id? id))))))))
 
 (def default-config
   "This default can be overridden using the config arg to the check function.

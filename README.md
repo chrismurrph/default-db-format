@@ -1,5 +1,5 @@
 # default-db-format
-Checks that your Fulcro client state is in **default db format**
+Checks that your Fulcro client state is formatted as per the normalized storage format - aka: **default db format**
 
 #### Current release:
 
@@ -7,28 +7,54 @@ Checks that your Fulcro client state is in **default db format**
 
 ##### Description
 
-Checks that that initial normalization - into 'default db format' - succeeds. And checks that the state stays normalized in the face of your code's mutations.
-  
-Any issues and a heads-up display (HUD) will pop up.
+A development tool that checks that client state stays normalized in the face of your code's mutations. It does this with an understanding of the convention/s that the keys of the state map use. So for instance if a `by-id` field value (say `(get-in [my-table-name/by-id 14] :my/join)`) becomes a map rather than an Ident or vector of Idents then this will be recognised and a heads-up display (HUD) will pop up.
 
-One way of using this library is to put some code into your root component's render method:
+This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inpect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` in the "dev" :cljsbuild:
 
 ````clojure
-(:require [default-db-format.core :as db-format])
+:preloads         [devtools.preload
+                   fulcro.inspect.preload
+                   default-db-format.preload]
+:external-config  {:fulcro.inspect/config {:launch-keystroke "ctrl-f"}
+                   :default-db-format/config {:collapse-keystroke "ctrl-q"
+                                              :debounce-timeout   2000}}
+```` 
 
-(render [this]
-  (let [rec (some-> app deref :reconciler deref)]
-    (dom/div nil
-             (when rec 
-               (db-format/show-hud (db-format/check rec)))
-             ...)))
+The collapse keystroke is a toggle to get the tool out of the way of the UI you are working on. Another thing to mention is that default-db-format introduces no other dependencies into your development environment. The thinking here is that it should *just work* with the versions of Clojure, Clojurescript, Fulcro etc you are already using.
+
+##### Configuration
+
+For a full reference of configuration options see the doc string for `default-db-format.core/check`. Here we will go through some examples that will cover most of them. The default configuration is `{:by-id-kw #{"by-id" "BY-ID"}}`, but it is very likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. Lets work out the configuration for a selection of readily available Fulcro applications.
+
+###### Fulcro Websocket Demo
+
+You should see this message pop up in the browser:
+
+![](imgs/20180116-230833.png)
+
+The tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye: `:LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}`. Here `:LOGIN-FORM-UI` is obviously a table with only one instance of the class, signified by the only id being `:UI` rather than some number. Having `:UI` as the id part of Idents for *one of* components will most likely be a convention in this project. Armed with this insight we can now create our `default-db-format.edn` file. Changes to this file will only be picked up when you `(reload-config)` in Figwheel and Shift-F5 to directly load the page.
+
+````clojure
+{:by-one-id :UI}
 ````
 
-##### Inputs
+On browser reload there will be a message in the browser console you can use to verify that the new configuration has indeed been picked up. This time the HUD will briefly flash up, but when all state changes are complete we should find that there's nothing for **default-db-format** to complain about. 
 
-`check` makes sure that every join is an Ident or a vector of Idents. Conversely the one thing you don't want to see in a join is `{:db/id whatever}`. 
+###### Fulcro TodoMVC
 
-You may have denormalized value objects in your data. Unless this library is told about these it will either incorrectly report a problem or let the data pass when it ought not. Simple hash maps are supported as value objects as long as they are specified in the config. Thus in the forthcoming example code `:okay-value-maps` is a set with `[:r :g :b]` in it. It is a vector that is used to recognise maps. So for example `{:g 255 :r 255 :b 255}` will no longer be interpreted as a missing Ident. Vectors are also supported as value objects with `:okay-value-vectors`.
+You should see this message pop up in the browser:
+
+![](imgs/20180117-055730.png)
+
+The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is telling us it thinks that `:root/application` is a join, and as such its value should be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't end in `by-id`:
+
+````
+{:not-by-id-table :application}
+````
+
+Note that for all config values where it is sensible you can just give the singular version - `:application` will be translated internally into `#{:application}`. And `[:application]` would also have been okay.
+
+You may have denormalized values in your data. Unless this library is told about these it will either incorrectly report a problem or let the data pass when it ought not. Simple hash maps are supported as *scalar* value objects as long as they are specified in the config. Thus in the forthcoming example code `:okay-value-maps` is a set with `[:r :g :b]` in it. It is a vector that is used to recognise maps. So for example `{:g 255 :r 255 :b 255}` will no longer be interpreted as a missing Ident. Vectors are also supported as value objects with `:okay-value-vectors`. (Perhaps in the future Clojure Spec will be introduced here).
 
 Apart from hash maps, *false negatives* can still occur if you keep complex objects in your state. To remedy this **default-db-format** has been hard coded to accept common complex objects, for example `(chan)` and dates. But for other complex types the user has the ultimate say because a predicate function can be supplied. This function accepts the value and is supposed to return logical true if it is an acceptable complex object, logical false otherwise. If you wanted to allow dates you could supply this map entry: 
 
@@ -143,13 +169,13 @@ For examples of **default db format** take a look at any of the source files in 
 The current internal version is **30**. Having an internal version makes sense for when dealing with snapshots.
 30 (and all prior numbers) go with "0.1.1-SNAPSHOT". 30 is displayed by the HUD. Version history:
 
- *  **30** Fulcro tooling. Will need to get rid of much of the above doco
+ *  **30** Fulcro tooling.
  *  **29** Able to watch state changes and force a render
  *  **28** Works with Fulcro and on Clojars 
  *  **27** Om now *provided* and this one will be in Clojars
  *  **26** Any function now accepted
  *  **25** If ALL the keys are being ignored then `check` should pass (25 not released to Clojars)
- *  **24** Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-kw and excluded-keys
+ *  **24** Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-kw and not-by-id-table
  *  **23** Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
  *  **22** Fixed bug where a `:keyword` was not recognised as data
  *  **21** Released version (announced on Om Slack group)

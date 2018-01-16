@@ -96,8 +96,16 @@
 (def bad-table-entries-component (prim/factory BadTablesEntry {:keyfn :id}))
 
 (defn okay? [check-result]
-  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result]
-    (not (or failed-assumption (seq not-normalized-join-entries) (seq not-normalized-table-entries)))))
+  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result
+        un-normalized-joins-exist? (boolean (seq not-normalized-join-entries))
+        un-normalized-tables-exist? (boolean (seq not-normalized-table-entries))]
+    (not (or failed-assumption un-normalized-joins-exist? un-normalized-tables-exist?))))
+
+(defn detail-okay? [check-result]
+  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result
+        un-normalized-joins-exist? (boolean (seq not-normalized-join-entries))
+        un-normalized-tables-exist? (boolean (seq not-normalized-table-entries))]
+    [(not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
 
 (defui ^:once DisplayDb
        static prim/InitialAppState
@@ -138,11 +146,11 @@
                                        :cursor       "pointer"}
                           [:&:hover
                            {:text-decoration "underline"}]]
-                         [:.problem-sentence {:background   ui.domain/very-light-blue
-                                              :color        ui.domain/close-to-black
-                                              :display      "flex"
-                                              :font-family  ui.domain/mono-font-family
-                                              :font-size    "14px"}]
+                         [:.problem-sentence {:background  ui.domain/very-light-blue
+                                              :color       ui.domain/close-to-black
+                                              :display     "flex"
+                                              :font-family ui.domain/mono-font-family
+                                              :font-size   "14px"}]
                          ])
        (include-children [_] [ui.domain/CSS BadTablesEntry OneBad JoinsTextItem])
        Object
@@ -153,11 +161,9 @@
                      _ (assert tool-version)
                      keystroke (or (prim/shared this [:options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (okay? props))
-                     ;_ (println "not-normalized-join-entries: " not-normalized-join-entries)
                      css (css/get-classnames DisplayDb)
                      join-entries-problems? (seq not-normalized-join-entries)
-                     table-entries-problems? (seq not-normalized-table-entries)
-                     ]
+                     table-entries-problems? (seq not-normalized-table-entries)]
                  (if report-problem?
                    (dom/div #js {:className (:container css)}
                             (dom/div #js {:className (:header css)}

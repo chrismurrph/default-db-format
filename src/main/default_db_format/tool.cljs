@@ -158,9 +158,11 @@
   (some-> (tool) :reconciler prim/app-root prim/shared))
 
 (defmutation state-inspection
-  [{:keys [visible? check-result]}]
+  [{:keys [config new-state]}]
   (action [{:keys [state]}]
           (let [st @state
+                check-result (core/check config new-state)
+                visible? (-> check-result core/ok? not)
                 floating-panel-ident [:floating-panel/by-id "main"]
                 inspector-join (conj floating-panel-ident :ui/inspector)
                 visible-join (conj floating-panel-ident :ui/visible?)
@@ -189,9 +191,10 @@
   (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
     (js/console.log (str core/tool-name " on " (first host-app-path) " - config: " (dev/summarize config)))
     (fn [new-state]
-      (let [check-result (core/check config new-state)]
-        (prim/transact! tool-reconciler [`(state-inspection {:visible?     ~(-> check-result core/ok? not)
-                                                             :check-result ~check-result}) [:floating-panel/by-id "main"]])))))
+      (dev/debug (str "Listening to state change and it is okay? " (-> (core/check config new-state) core/detail-ok?)))
+      (prim/transact! tool-reconciler [`(state-inspection {:config    ~config
+                                                           :new-state ~new-state
+                                                           }) [:floating-panel/by-id "main"]]))))
 
 ;;
 ;; Stores a function that takes new-state. Not used when all-state-changes? is true
@@ -207,10 +210,10 @@
 (defn watch-state [target-app tool-reconciler timeout host-root]
   (let [inspect-new-state-f (update-inspect-state-hof tool-reconciler (reset! host-root-path* host-root))
         update-inspect-state-f (gfun/debounce inspect-new-state-f timeout)]
-    (if (not all-state-changes?)
-      (reset! state-inspector update-inspect-state-f)
+    (if all-state-changes?
       (add-watch (some-> target-app :reconciler :config :state) :chrismurrph/default-db-format
-                 #(update-inspect-state-f %4)))))
+                 #(update-inspect-state-f %4))
+      (reset! state-inspector update-inspect-state-f))))
 
 (defn install-app [target-app]
   (let [tool-reconciler (:reconciler (tool))
