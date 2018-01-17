@@ -7,9 +7,9 @@ Checks that your Fulcro client state is formatted as per the normalized storage 
 
 ##### Description
 
-**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the convention/s that the keys of the state map use. So for instance if a `by-id` field value (say `(get-in [my-table-name/by-id 14] :my/join)`) becomes a map rather than an Ident or vector of Idents then this will be recognised and a heads-up display (HUD) will pop up.
+**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the conventions that the keys of the state map use. So for instance if a `by-id` field value such as `(get-in [my-table-name/by-id 14] :my/join)` becomes a map rather than an Ident or vector of Idents, then this will be recognised and a heads-up display (HUD) will pop up.
 
-This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inpect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` in the "dev" :cljsbuild:
+This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inpect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` and `:external-config` in the "dev" :cljsbuild:
 
 ````clojure
 :preloads         [devtools.preload
@@ -20,11 +20,15 @@ This library is a Fulcro tool. As such the setup will be similar to that for [Fu
                                               :debounce-timeout   2000}}
 ```` 
 
-The collapse keystroke is a toggle to get the tool out of the way of the UI you are working on.
+The collapse keystroke is a toggle to get the tool out of the way of the UI you are working on. The debounce timeout ensures that when your application's state is being hammered with changes default-db-format will only be checking it every so often.
 
 ##### Configuration
 
-For a full reference of configuration options see the doc string for `default-db-format.core/check`. Here we will go through some examples that will cover most of them. The default configuration is `{:by-id-kw #{"by-id" "BY-ID"}}`, but it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. Lets work out the configuration for a selection of readily available Fulcro applications.
+For a full reference of configuration options see the doc string for `default-db-format.core/check`. Here we cover them through examples. The default configuration is: 
+````
+{:by-id-kw #{"by-id" "BY-ID"}}
+````
+However it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. We will work out the configuration for a selection of example Fulcro applications, then for some devcards within the default-db-format project itself.
 
 ###### Fulcro Websocket Demo
 
@@ -32,13 +36,19 @@ You should see this message pop up in the browser:
 
 ![](imgs/20180116-230833.png)
 
-The tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye: `:LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}`. Here `:LOGIN-FORM-UI` is obviously a table with only one instance of the class, signified by the only id being `:UI` rather than some number. Having `:UI` as the id part of Idents for *one of* components will most likely be a convention in this project. Armed with this insight we can now create our `default-db-format.edn` file. Changes to this file will only be picked up when you `(reload-config)` in Figwheel and Shift-F5 to directly load the page.
+The default-db-format tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye:
+
+````
+:LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}
+````
+Here `:LOGIN-FORM-UI` is obviously a table/component with only one instance of the class, signified by the second (or *id*) part of the Ident being `:UI` rather than some number. Thus we have probably discovered the convention for 'one of' components in this project. Armed with this insight we can now create our `default-db-format.edn` file:
 
 ````clojure
-{:by-one-id :UI}
+{:one-of-id :UI}
 ````
+Changes to this file will only be picked up when you `(reload-config)` in Figwheel and Shift-F5 in the browser to directly reload the page.
 
-On browser reload there will be a message in the browser console you can use to verify that the new configuration has indeed been picked up. This time the HUD will briefly flash up, but when all state changes are complete we should find that there's nothing for **default-db-format** to complain about. 
+On browser reload there will be a message in the console. Use it to verify the new configuration has indeed been picked up. This time the HUD may briefly flash up, but when all state changes are complete we should find that there's nothing for default-db-format to complain about. 
 
 ###### Fulcro TodoMVC
 
@@ -46,13 +56,35 @@ You should see this message pop up in the browser:
 
 ![](imgs/20180117-055730.png)
 
-The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't end in `by-id`:
+The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should either be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't end with `/by-id`:
 
 ````
 {:not-by-id-table :application}
 ````
 
-Note that for all config values where it is sensible you can just give the singular version - `:application` will be translated internally into `#{:application}`. And `[:application]` would also have been okay.
+Note that for all config values where it is sensible you can provide the value however you like. For instance here `:application` will be translated internally into `#{:application}`. Both `[:application]` and `#{:application}` would have been acceptable alternatives to `:application`.
+
+###### Baby Sharks (default-db-format devcard)
+
+![](imgs/20180118-034356.png)
+
+From the second message we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first message the tool has incorrectly assumed that a top level join called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is actually the name of a table. Here's what the table looks like in state:
+
+````
+:baby/id
+ {1 {:db/id 1
+     :baby/first-name "Baby Shark 1"}
+  2 {:db/id 2
+     :baby/first-name "Baby Shark 2"}}
+````
+If we can get the tool to understand that `:baby/id` is the name of a table both messages ought to clear:
+
+````
+{:by-id-kw #{"by-id" "BY-ID" "id"}}
+````
+Notice that we have chosen to keep the existing convention.
+
+##### OLD DOCUMENTATION
 
 You may have denormalized values in your data. Unless this library is told about these it will either incorrectly report a problem or let the data pass when it ought not. Simple hash maps are supported as *scalar* value objects as long as they are specified in the config. Thus in the forthcoming example code `:okay-value-maps` is a set with `[:r :g :b]` in it. It is a vector that is used to recognise maps. So for example `{:g 255 :r 255 :b 255}` will no longer be interpreted as a missing Ident. Vectors are also supported as value objects with `:okay-value-vectors`. (Perhaps in the future Clojure Spec will be introduced here).
 
@@ -74,91 +106,10 @@ Continuing on with config options,`:excluded-keys` are those that need to be ign
 `:by-id-kw` is how Idents are recognised. For instance if it is "by-id" then `:line/by-id` and `:graph-point/by-id` will be recognized in first position in an Ident. If all your Idents are `by-id` then you don't have to specify anything since "by-id" is the default. If your program has multiple ways of expressing an Ident then provide a set or a vector of strings rather than a single string.
 
 `:routing-ns` is a recent addition used for Idents that are used in union queries. While the default of "by-id" for `:by-id-kw` is borrowing from an accepted convention, "routed" for `:routing-ns` is just made up! The routing namespace is what comes before the slash for a routing Ident (e.g. `[:routed/banking :top]`). Again you can provide a vector or a set rather than a single string.
-
-One thing that may be surprising on first use of **default-db-format** is that all app state keywords must be namespaced, even `:excluded-keys`. The HUD will guide you towards namespacing them all. 
-    
-##### *Everything* Example
-
-````clojure
-(:require [default-db-format.core :as db-format]
-          [cljs.pprint :refer [pprint]])
-  
-(def excluded-keys #{:om.next/tables
-                     :fulcro.client.routing/routing-tree
-                     :fulcro/ready-to-load
-                     :fulcro/loads-in-progress
-                     :fulcro/server-error
-                     :fulcro.ui.forms/form
-                     :ui/react-key
-                     :ui/locale
-                     :ui/loading-data
-                     :root/top-router
-                     :root/components
-                     })
-(def okay-val-maps #{})
-(def okay-val-vectors #{[:report/balance-sheet :report/profit-and-loss :report/trial-balance]})
-(def check-config {:excluded-keys      excluded-keys
-                   :okay-value-maps    okay-val-maps
-                   :okay-value-vectors okay-val-vectors
-                   :by-id-kw           "by-id"
-                   :routing-ns         "routed"})
-  
-(defn check-default-db [noisey? state]
-  (assert (map? state))
-  (let [version db-format/version
-        msg-boiler (str "normalized (default-db-format ver: " version ")")
-        check-result (db-format/check dhs/check-config state)
-        ok? (db-format/ok? check-result)]
-    (when (and noisey? ok?)
-      (println (str "GOOD: state fully " msg-boiler)))
-    (when (not ok?)
-      (println (str "BAD: state not fully " msg-boiler))
-      (pprint check-result) ;; <- check-result is a summary of state, so print 'one or *the other*'
-      ;(pprint state))      ;; <- *the other*
-      (db-format/show-hud check-result))))
-
-(declare app)
-````
-
-The call to `check-default-db` can be in your root component's render method:
-
-````clojure
-(render [this]
-  (let [rec (some-> app deref :reconciler deref)]
-    (dom/div nil
-             (when rec (check-default-db true rec))
-             ...)))
-````
-
-The `show-hud` *component function* returns an Om Next component, or `nil` when there are no issues. `check-default-db` returns what `show-hud` returns.
-  
-The intended workflow is that feedback from the HUD will alert you to do one or more of these fixes:
- 
- 1. modify your application's initial state.
- 2. alter the configuration hashmap (`check-config` in the example above) that is given to `check`.
- 3. re-code the bad mutation you just wrote. 
- 
- Using the root component's render function is serving as a crude watch on app state. A better way is to directly watch the app state atom and when `check` recognises a problem force a render by changing one of the root props, for instance `ui/react-key` in a Fulcro application. 
- 
- As an example of potential confusion from using the root component's render function, consider the initial load causing a denormalization problem. If the updated keys are not currently on the screen then there won't be a render. And then when the end user (or a timer event) causes a render the HUD will display - but again what is on the screen may have no relationship to the denormalization problem.
- 
- To directly watch app state there is one more thing to do. Include this as a require:
- 
-````clojure
-[default-db-format.watcher :as watcher]
-````
- 
- Then in the `:started-callback` function, where `app` is passed in, place the following:
- 
-````clojure
-(let [reconciler (:reconciler app)] 
-  (watcher/watch-state check-config reconciler)
-  ...)
-````
-  
+      
 ##### Definitions
     
-A **false positive** is where `check` leads you think the state has attained 'default db format' when it has not. It is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you don't want it to - when the program should have recognised the value.
+A **false positive** is where `check` leads you to think the state has attained 'default db format' when it has not. It is where the program says: "I didn't see an Ident or a recognised value, so that's a problem", when you don't want it to - when the program should have recognised the value.
 
 With a **false negative** an issue will be reported, despite the fact that 'default db format' has been attained.
 

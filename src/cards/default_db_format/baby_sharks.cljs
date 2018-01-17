@@ -1,4 +1,4 @@
-(ns default-db-format.user-can-denormalize
+(ns default-db-format.baby-sharks
   (:require [fulcro.client.primitives :as prim]
             [fulcro.client.mutations :as m]
             [fulcro.client.dom :as dom]
@@ -7,9 +7,8 @@
             [default-db-format.general.card-helpers :as card-helpers]
             [fulcro.client.primitives :as prim :refer [defui defsc InitialAppState initial-state]]
             [fulcro-css.css :as css]
+            ;; Don't delete
             [default-db-format.ui.domain :as ui.domain]
-            [default-db-format.core :as db-format]
-            [default-db-format.watcher :as watcher]
             [cljs.pprint :refer [pprint]]
             [fulcro.util :refer [unique-key]]
             [devcards.core]
@@ -19,34 +18,27 @@
 
 (defsc Baby
        [this props _]
-       {:ident [:baby/by-id :db/id]
+       {:ident [:baby/id :db/id]
         :query [:db/id :baby/first-name]}
        (dom/div nil "Blab blab"))
 
 (def big-map {:db/id     1
               :some/text "Surely I s/be in the tables"
               :a/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :b/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :c/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :d/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :e/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :f/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :g/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :h/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :i/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-              :j/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+              :b/b       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
 
-(m/defmutation denormalize
-  "Put two bad things"
+(m/defmutation map-at-join
   [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state
-                 #(-> %
-                      (assoc-in [:thing/id 1]
-                                {:label                      "I'm not at an id, which sometimes happens"
-                                 :some-kind-of-long/bad-join big-map})
-                      ;; If didn't namespace this it wouldn't be caught
-                      (assoc :here-is/some-link {:a "b"})))))
+          (swap! state assoc-in [:thing/by-id 1]
+                 {:label                      "I'm not at an id, which sometimes happens"
+                  :some-kind-of-long/bad-join big-map})))
+
+(m/defmutation map-at-link
+  [{:keys []}]
+  (action [{:keys [state]}]
+          ;; If didn't namespace this it wouldn't be caught
+          (swap! state assoc :here-is/some-link {:a "b"})))
 
 (defn x-1 []
   (dev/summarize big-map))
@@ -55,7 +47,7 @@
   "Remove those bad things"
   [{:keys []}]
   (action [{:keys [state]}]
-          (swap! state dissoc :thing/id :here-is/some-link)))
+          (swap! state dissoc :thing/by-id :here-is/some-link)))
 
 (m/defmutation state-becomes-empty
   [{:keys []}]
@@ -77,26 +69,31 @@
        {:initial-state
                      (fn [{:keys [babies-in]}]
                        {:db/id 1 :adult/first-name "Mama Shark" :adult/babies babies-in})
-        :ident       [:adult/id :db/id]
+        :ident       [:adult/by-id :db/id]
         :query       [:db/id :adult/first-name {:adult/babies (prim/get-query Baby)}]
         :css-include [ui.domain/CSS]}
        (let [title (str "Good afternoon, my name is " first-name " with " (count babies) " shark babies")]
          (dom/div nil
                   (dom/div #js {:className (:display-name global-css)} title)
                   (dom/div nil
-                           (dom/button #js {:onClick #(prim/transact! this [`(denormalize)])}
-                                       "Cause state chaos!")
+                           (dom/button #js {:onClick #(prim/transact! this [`(map-at-join)])}
+                                       "Give a field-join a map")
+                           (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
+                                       "Restore order..."))
+                  (dom/div nil
+                           (dom/button #js {:onClick #(prim/transact! this [`(map-at-link)])}
+                                       "Give a link a map")
                            (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
                                        "Restore order..."))
                   (dom/div nil
                            ;; Making state a vector actually crashes Fulcro
                            (dom/button #js {:onClick #(prim/transact! this [`(state-becomes-empty)])}
-                                       "Very bad state"))
+                                       "Empty state (refresh page after)"))
                   (dom/div nil
                            (dom/button #js {:onClick #(if-let [rec (get-reconciler)]
                                                         (fu/force-render rec)
                                                         (println "No reconciler"))}
-                                       "Force root render")))))
+                                       "Force root render (just for fun)")))))
 
 (defui ^:once AdultRoot
        static prim/InitialAppState

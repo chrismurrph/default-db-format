@@ -183,10 +183,10 @@
                                        (when join-entries-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
-                                                           (dom/div nil "Normalization in joins (")
+                                                           (dom/div nil "Normalization in root level joins (")
                                                            (dom/div #js {:className (:purple-coloured global-css)} ":links")
                                                            (dom/div #js {:className (:space-before global-css)} "in edn config is one way to fix)"))
-                                                  (joins-list-component {:id "Normalization in joins problems" :items not-normalized-join-entries})))
+                                                  (joins-list-component {:id "Normalization in root level joins problems" :items not-normalized-join-entries})))
                                        (when (and join-entries-problems? table-entries-problems?)
                                          (dom/br nil))
                                        (when table-entries-problems?
@@ -205,3 +205,11 @@
                (let [val (prim/props this)]
                  (dom/pre nil (with-out-str (cljs.pprint/pprint val))))))
 (def display (prim/factory GenericDisplayer))
+
+[:baby/id
+ {1 {:db/id 1
+     :baby/first-name
+            "Baby Shark 1"}
+  2 {:db/id 2
+     :baby/first-name
+            "Baby Shark 2"}}]

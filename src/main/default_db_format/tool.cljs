@@ -12,6 +12,7 @@
             [goog.functions :as gfun]
             [default-db-format.core :as core]
             [default-db-format.iframe :as iframe]
+            ;; don't delete
             [default-db-format.ui.domain :as ui.domain]
             [clojure.string :as s]))
 
@@ -46,7 +47,7 @@
 ;; Hmm - mose well just have a red line rather than collapse it!
 ;; With some css (bootstrap) the css seems to be overridden so that the red dot is not displayed
 ;; For now we are living with it. But collapsing will work in such a situation, so perhaps
-;; we can make collapsing an option in a future version. Yak shaving - no red dot is still fine.
+;; we can make collapsing an option in a future version. Yak shaving - no red dot is still fine!
 (def collapsed-percentage-width 1)
 
 (def global-css (css/get-classnames ui.domain/CSS))

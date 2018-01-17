@@ -16,7 +16,7 @@
                  [fulcrologic/fulcro-inspect "2.0.0-alpha2" :scope "provided"]
                  ]
 
-  :jar-exclusions [#"config" #"client" #"examples" #"public" #"figwheel.clj" #"user.clj"]
+  :jar-exclusions [#"config" #"examples" #"public" #"figwheel.clj" #"user.clj"]
 
   :scm {:name "git"
         :url  "https://github.com/chrismurrph/default-db-format"}
@@ -30,7 +30,7 @@
 
   :cljsbuild {:builds
               [{:id           "cards"
-                :source-paths ["src/main" "src/cards"]
+                :source-paths ["src/main" "src/cards" "dev"]
                 :figwheel     {:devcards true}
                 :compiler     {:main                 default-db-format.card-ui
                                :output-to            "resources/public/js/cards.js"
@@ -46,15 +46,5 @@
                                :parallel-build       true
                                :source-map-timestamp true
                                :optimizations        :none}}
-               ;{:id           "dev"
-               ; :figwheel     {:on-jsload "cljs.user/refresh"}
-               ; :source-paths ["dev/client" "src/main"]
-               ; :compiler     {:asset-path           "js/dev"
-               ;                :main                 cljs.user
-               ;                :optimizations        :none
-               ;                :output-dir           "resources/public/js/dev"
-               ;                :output-to            "resources/public/js/b00ks.js"
-               ;                ;:preloads             [devtools.preload]
-               ;                :source-map-timestamp true}}
                ]}
   )

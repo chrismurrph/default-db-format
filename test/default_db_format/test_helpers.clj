@@ -13,10 +13,11 @@
 
 (deftest table-categories
   (let [by-id-kw? (-> help/default-config :by-id-kw help/-setify help/by-id-kw-hof)
+        single-id? (-> help/default-config :one-of-id help/-setify help/map-entry-single-id-hof)
         table? (-> help/default-config :by-id-kw help/-setify help/table-hof)
         state gases/gas-norm-state]
     (is (= 3
            (->> state
-                (help/table-entries by-id-kw? table?)
+                (help/table-entries by-id-kw? single-id? table?)
                 (into #{} (map (comp help/category-part str key)))
                 count)))))

@@ -103,9 +103,9 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw by-one-id before-slash-routing after-slash-routing not-by-id-table routing-tables]}]
+  [{:keys [by-id-kw one-of-id before-slash-routing after-slash-routing not-by-id-table routing-tables]}]
   (let [by-id-kw? (-> by-id-kw -setify by-id-kw-hof)
-        by-one-id? (-> by-one-id -setify single-id-hof)
+        one-of-id? (-> one-of-id -setify single-id-hof)
         routed-ns? (-> before-slash-routing -setify routed-ns-hof)
         routed-name? (-> after-slash-routing -setify routed-name-hof)
         table? (-> not-by-id-table -setify not-by-id-table-hof)
@@ -124,7 +124,7 @@
       (when (and (vector? tuple)
                  (= 2 (count tuple)))
         (let [[cls id] tuple]
-          (or (by-one-id? cls id)
+          (or (one-of-id? cls id)
               (and (okay-key? cls)
                    (okay-id? id))))))))
 

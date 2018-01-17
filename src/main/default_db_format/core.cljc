@@ -245,7 +245,7 @@
   :by-id-kw -> What comes after the slash in the Ident tuple-2's first position. As a String.
                By default is \"by-id\" as that's what the convention is.
                Can be a #{} or [] of Strings where > 1 required.
-  :by-one-id -> Something standard in the Ident tuple-2's second position, for components that the
+  :one-of-id -> Something standard in the Ident tuple-2's second position, for components that the
                application only needs one of. Can be a #{} or [], just in case there are a few
                different variations on this convention.
   :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
@@ -285,7 +285,7 @@
              conformance-predicates {:ident-like?               ident-like?
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? always-false-fn)}
              by-id-kw? (-> config :by-id-kw help/-setify help/by-id-kw-hof)
-             single-id? (-> config :by-one-id help/-setify help/map-entry-single-id-hof)
+             single-id? (-> config :one-of-id help/-setify help/map-entry-single-id-hof)
              table? (-> config :not-by-id-table help/-setify help/not-by-id-table-hof)
              routed-ns? (-> config :before-slash-routing help/-setify help/routed-ns-hof)
              routed-name? (-> config :after-slash-routing help/-setify help/routed-name-hof)
