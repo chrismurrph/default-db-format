@@ -62,7 +62,7 @@
 (defui ^:once JoinsTextList
        Object
        (render [this]
-               (let [{:keys [id items]} (prim/props this)]
+               (let [{:keys [items]} (prim/props this)]
                  (apply dom/div nil
                         (for [item items
                               :let [{:keys [text problem]} item
@@ -183,15 +183,18 @@
                                        (when join-entries-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
-                                                           (dom/div nil "Normalization in root level joins (")
+                                                           (dom/div nil
+                                                                    "Not normalized val in root join (")
                                                            (dom/div #js {:className (:purple-coloured global-css)} ":links")
-                                                           (dom/div #js {:className (:space-before global-css)} "in edn config is one way to fix)"))
-                                                  (joins-list-component {:id "Normalization in root level joins problems" :items not-normalized-join-entries})))
+                                                           (dom/div #js {:className (:space-before global-css)}
+                                                                    "in edn config is one solution)"))
+                                                  (joins-list-component {:items not-normalized-join-entries})))
                                        (when (and join-entries-problems? table-entries-problems?)
                                          (dom/br nil))
                                        (when table-entries-problems?
                                          (dom/div nil
-                                                  (dom/div #js {:className (:problem-sentence css)} "Not normalized in tables")
+                                                  (dom/div #js {:className (:problem-sentence css)}
+                                                           "Not normalized val in field join")
                                                   (dom/div nil
                                                            (for [by-id (into {} not-normalized-table-entries)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]

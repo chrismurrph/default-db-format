@@ -260,14 +260,17 @@
                of the objects is not important. This is a #{} or [] of these.
   :links -> #{} (or []) of keys that we don't want to be part of normalization. Both joins and links exist
                at the top level, and we want to ensure that normalization checking is still done for the
-               top level joins. A top level join is a join in the root component. Links and joins are
+               top level joins. A top level join is a join in the root component. Links and these joins are
                indistinguishable when looking at state. Top level joins may contain non-normalized data,
                and need to be 'fixed' by being included here. This might happen if the join in the root
                component is to a component that does not have an ident. Note that top level keys that are
                not namespaced or just contain simple data are ignored anyway (assumed to be links).
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid, 
-               in that it is intended to be there, and does not indicate failed normalization.
-  These last two are 'undocumented' as easy to just use `:routing-tables`:
+               in that it is intended to be there, and does not indicate failed normalization. Unfortunately I don't
+               know how to incorporate a user defined function into the Fulcro tooling. Will re-visit this functionality
+               if it is required. Hard-coding (as has been done for date instances) is a good idea for new things that
+               pop up.
+  These last two are also 'undocumented' as easy to just use `:routing-tables`:
   :before-slash-routing -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
   :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
