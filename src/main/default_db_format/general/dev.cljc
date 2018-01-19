@@ -35,10 +35,15 @@
 (defn log [txt]
   (println txt))
 
-(def debug? false)
+(def debug-check? false)
+(def debug-config? true)
 
-(defn debug [txt]
-  (when debug?
+(defn debug-check [txt]
+  (when debug-check?
+    (println txt)))
+
+(defn debug-config [txt]
+  (when debug-config?
     (println txt)))
 
 (defn summarize [x]

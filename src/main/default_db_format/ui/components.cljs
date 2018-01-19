@@ -110,15 +110,15 @@
 (defui ^:once DisplayDb
        static prim/InitialAppState
        (initial-state [_ {:keys [tool-name tool-version] :as params}]
-                      (merge params {::id          (random-uuid)
-                                     :tool-name    tool-name
-                                     :tool-version tool-version}))
+                      (assert tool-name (str "No tool name delivered to initial state: <" params ">"))
+                      {:tool-name    tool-name
+                       :tool-version tool-version})
 
        static prim/Ident
-       (ident [_ props] [::id (::id props)])
+       (ident [_ props] [:display-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [::id :tool-name :tool-version :not-normalized-table-entries :not-normalized-join-entries :failed-assumption])
+       (query [_] [:tool-name :tool-version :not-normalized-table-entries :not-normalized-join-entries :failed-assumption])
 
        static css/CSS
        (local-rules [_] [[:.container {:display          "flex"
@@ -158,8 +158,9 @@
                (let [props (prim/props this)
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
                      {:keys [tool-name tool-version not-normalized-table-entries not-normalized-join-entries failed-assumption]} props
-                     _ (assert tool-version)
-                     keystroke (or (prim/shared this [:options :collapse-keystroke]) "ctrl-q")
+                     _ (when (nil? tool-name)
+                         (dev/warn (str "No tool name when rendering. props: <" props "> - s/be impossible")))
+                     keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (okay? props))
                      css (css/get-classnames DisplayDb)
                      join-entries-problems? (seq not-normalized-join-entries)
@@ -184,8 +185,12 @@
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
                                                            (dom/div nil
-                                                                    "Not normalized val in root join (")
-                                                           (dom/div #js {:className (:purple-coloured global-css)} ":links")
+                                                                    "Not normalized val in "
+                                                                    (dom/span #js {:className (:red-coloured global-css)}
+                                                                              "root join")
+                                                                    " (")
+                                                           (dom/div #js {:className (:purple-coloured global-css)}
+                                                                    ":bad-join")
                                                            (dom/div #js {:className (:space-before global-css)}
                                                                     "in edn config is one solution)"))
                                                   (joins-list-component {:items not-normalized-join-entries})))
@@ -194,7 +199,9 @@
                                        (when table-entries-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
-                                                           "Not normalized val in field join")
+                                                           "Not normalized val in "
+                                                           (dom/span #js {:className (:red-coloured global-css)}
+                                                                     "field join"))
                                                   (dom/div nil
                                                            (for [by-id (into {} not-normalized-table-entries)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
@@ -208,11 +215,3 @@
                (let [val (prim/props this)]
                  (dom/pre nil (with-out-str (cljs.pprint/pprint val))))))
 (def display (prim/factory GenericDisplayer))
-
-[:baby/id
- {1 {:db/id 1
-     :baby/first-name
-            "Baby Shark 1"}
-  2 {:db/id 2
-     :baby/first-name
-            "Baby Shark 2"}}]

@@ -1,7 +1,8 @@
 (ns default-db-format.helpers
   (:require [clojure.string :as s]
             [fulcro.client.primitives :as prim]
-            [default-db-format.general.dev :as dev]))
+            [default-db-format.general.dev :as dev]
+            [default-db-format.hof :as hof]))
 
 (defn exclude-colon [s]
   (apply str (next s)))
@@ -21,80 +22,16 @@
   (let [table-like-key? (some-fn by-id-kw-fn? table?)]
     (filter (fn [[k v]]
               (when (or (nil? v) (and (map? v) (= 1 (count v))))
-                (dev/debug (str "EXAMINE: " k v)))
+                (dev/debug-check (str "EXAMINE: " k v)))
               (or (table-like-key? k)
                   (single-id? k v)))
             state)))
 
-;;
-;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use
-;; the normal `set` constructor instead. For interring developer-user given parameters.
-;;
-(defn -setify [in]
-  (cond
-    ((some-fn string? keyword?) in) #{in}
-    (seq in) (cond (set? in) in
-                   (sequential? in) (into #{} in)
-                   :else #{in})
-    :else #{}))
+(defn my-uuid? [x]
+  #?(:cljs (instance? UUID x)
+     :clj  (instance? java.util.UUID x)))
 
-(defn by-id-kw-hof
-  [config-kw-strs]
-  (assert (set? config-kw-strs))
-  ;'Unexpected identifier' JavaScript error, so can't debug here
-  ;(dev/log (str "by-id-kw-hof given " config-kw-strs))
-  (fn [kw]
-    (and (keyword? kw)
-         (some #{(name kw)} config-kw-strs))))
-
-(defn map-entry-single-id-hof
-  [config-ids]
-  (assert (set? config-ids))
-  (fn [_ v]
-    (and (map? v)
-         (= 1 (count v))
-         (-> v ffirst config-ids))
-    ))
-
-(defn single-id-hof
-  [config-ids]
-  (assert (set? config-ids))
-  (fn [cls id]
-    (config-ids id)
-    ))
-
-(defn table-hof
-  [config-tables]
-  (assert (set? config-tables))
-  (fn [kw]
-    (some #{kw} config-tables)))
-
-(def not-by-id-table-hof table-hof)
-(def routing-table-hof table-hof)
-
-;;
-;; ns means before the slash.
-;; After fn will be called routed-name-hof
-;;
-(defn routed-ns-hof
-  [config-ns-strs]
-  (assert (set? config-ns-strs))
-  (fn [namespaced-kw]
-    (and (keyword? namespaced-kw)
-         (let [ns (namespace namespaced-kw)]
-           (and ns
-                (some #{ns} config-ns-strs))))))
-
-(defn routed-name-hof
-  [config-ns-strs]
-  (assert (set? config-ns-strs))
-  (fn [namespaced-kw]
-    (and (keyword? namespaced-kw)
-         (let [nm (name namespaced-kw)]
-           (and nm
-                (some #{nm} config-ns-strs))))))
-
-(def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string?))
+(def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string? my-uuid?))
 
 ;;
 ;; The outer function accepts the same config that check accepts.
@@ -103,13 +40,13 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw one-of-id before-slash-routing after-slash-routing not-by-id-table routing-tables]}]
-  (let [by-id-kw? (-> by-id-kw -setify by-id-kw-hof)
-        one-of-id? (-> one-of-id -setify single-id-hof)
-        routed-ns? (-> before-slash-routing -setify routed-ns-hof)
-        routed-name? (-> after-slash-routing -setify routed-name-hof)
-        table? (-> not-by-id-table -setify not-by-id-table-hof)
-        routing-table? (-> routing-tables -setify routing-table-hof)
+  [{:keys [by-id-kw one-of-id before-slash-routing after-slash-routing not-by-id-table routing-table]}]
+  (let [by-id-kw? (-> by-id-kw hof/setify hof/by-id-kw-hof)
+        one-of-id? (-> one-of-id hof/setify hof/single-id-hof)
+        routed-ns? (-> before-slash-routing hof/setify hof/routed-ns-hof)
+        routed-name? (-> after-slash-routing hof/setify hof/routed-name-hof)
+        table? (-> not-by-id-table hof/setify hof/not-by-id-table-hof)
+        routing-table? (-> routing-table hof/setify hof/routing-table-hof)
         acceptable-key? (some-fn by-id-kw? routed-ns? routed-name? table? routing-table?)
         okay-key? (fn [cls]
                     (let [res (acceptable-key? cls)]
@@ -136,3 +73,18 @@
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
   (ident-like-hof? default-config))
+
+(defn kw->str [kw]
+  (-> kw str exclude-colon))
+
+;;
+;; In the past made this a hard and fast rule, even for keys that are to be ignored
+;; Now no longer using!
+;;
+(defn not-slashed-keys
+  "Returns all the keys that are not namespaced"
+  [state]
+  (keys (filter (fn [kv]
+                  (let [k (key kv)]
+                    (not= 2 (count (s/split (kw->str k) #"/")))))
+                state)))

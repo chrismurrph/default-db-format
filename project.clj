@@ -42,7 +42,8 @@
                                                       ]
                                :external-config      {:fulcro.inspect/config    {:launch-keystroke "ctrl-v"}
                                                       :default-db-format/config {:collapse-keystroke "ctrl-q"
-                                                                                 :debounce-timeout 500}}
+                                                                                 :debounce-timeout   500
+                                                                                 :host-root-path     "fulcro.inspect.core/GlobalRoot"}}
                                :parallel-build       true
                                :source-map-timestamp true
                                :optimizations        :none}}

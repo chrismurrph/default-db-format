@@ -12,13 +12,20 @@
             [goog.functions :as gfun]
             [default-db-format.core :as core]
             [default-db-format.iframe :as iframe]
-            ;; don't delete
+    ;; don't delete
             [default-db-format.ui.domain :as ui.domain]
             [clojure.string :as s]))
 
+;;
+;; TODO
+;; This used to be necessary. There is a way of overriding that works.
+;; However when overriding I could not get this 'app' to be picked up.
+;; I'm guessing there have been changes to Fulcro Inspect, and we can
+;; get rid of this. But lots of testing :-(
+;;
 (def ignore-fulcro-inspect "fulcro.inspect.core/GlobalRoot")
 
-(def possible-options [:collapse-keystroke :debounce-timeout :host-root-path])
+(def possible-lein-options [:collapse-keystroke :debounce-timeout :host-root-path])
 
 ;;
 ;; Why check on every transact when can check on every change to state?
@@ -56,13 +63,13 @@
        static prim/InitialAppState
        (initial-state [_ params] {:ui/visible?   false
                                   :ui/collapsed? false
-                                  :ui/inspector  (prim/get-initial-state components/DisplayDb params)})
+                                  :ui/display-db (prim/get-initial-state components/DisplayDb params)})
 
        static prim/Ident
-       (ident [_ props] [:floating-panel/by-id "main"])
+       (ident [_ props] [:floating-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [{:ui/inspector (prim/get-query components/DisplayDb)}
+       (query [_] [{:ui/display-db (prim/get-query components/DisplayDb)}
                    :ui/visible? :ui/collapsed?])
 
        static css/CSS
@@ -87,9 +94,11 @@
                            (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
        (render [this]
-               (let [{:ui/keys [visible? collapsed? inspector]} (prim/props this)
-                     toggle-collapse-f #(mutations/set-value! this :ui/collapsed? (not collapsed?))
-                     keystroke (or (prim/shared this [:options :collapse-keystroke]) "ctrl-q")
+               (let [{:ui/keys [visible? collapsed? display-db]} (prim/props this)
+                     toggle-collapse-f #(if (prim/props this)
+                                          (mutations/set-value! this :ui/collapsed? (not collapsed?))
+                                          (dev/warn (str "Collapse key is ignored when no state")))
+                     keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      css (css/get-classnames CollapsibleFrame)]
                  (dom/div #js {:style (if visible? nil #js {:display "none"})}
                           (events/key-listener {::events/action    toggle-collapse-f
@@ -109,7 +118,7 @@
                                                                 (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
                                                                 (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css components/DisplayDb))}})
                                                                 (components/display-db-component
-                                                                  (prim/computed inspector {:toggle-collapse-f toggle-collapse-f}))))))))))
+                                                                  (prim/computed display-db {:toggle-collapse-f toggle-collapse-f}))))))))))
 
 (def ui-tool-view (prim/factory CollapsibleFrame))
 
@@ -135,20 +144,26 @@
 
 (defonce ^:private tool* (atom nil))
 
-(defn start-tool [options]
-  (let [configuration {:options (dissoc options :edn)
-                       :edn     (:edn options)}
+(defn start-tool [lein-options]
+  (let [
+        ;; edn will include the `by-id` defaults, so there will be something for edn
+        ;; even if there isn't an edn file. On the other hand :lein-options are what you
+        ;; see in the file because merging onto the defaults (say for toggle keystroke)
+        ;; has not yet been done.
+        configuration {:lein-options (dissoc lein-options :edn)
+                       :edn          (:edn lein-options)}
         app (fulcro/new-fulcro-client :shared configuration)
         node (js/document.createElement "div")]
+    (dev/debug-config (str "Whole config in start-tool:\n" (dev/pp-str configuration)))
     (js/document.body.appendChild node)
     (css/upsert-css "default-db-format" ToolRoot)
     (fulcro/mount app ToolRoot node)))
 
 (defn tool
   ([] @tool*)
-  ([options]
+  ([lein-options]
    (or @tool*
-       (reset! tool* (start-tool options)))))
+       (reset! tool* (start-tool lein-options)))))
 
 (defn get-config
   "The host/target application can use this when it wants know the configuration it
@@ -164,8 +179,8 @@
           (let [st @state
                 check-result (core/check config new-state)
                 visible? (-> check-result core/ok? not)
-                floating-panel-ident [:floating-panel/by-id "main"]
-                inspector-join (conj floating-panel-ident :ui/inspector)
+                floating-panel-ident [:floating-panel/by-id :UI]
+                inspector-join (conj floating-panel-ident :ui/display-db)
                 visible-join (conj floating-panel-ident :ui/visible?)
                 collapsed-join (conj floating-panel-ident :ui/collapsed?)
                 display-db-ident (get-in st inspector-join)]
@@ -190,12 +205,12 @@
 
 (defn update-inspect-state-hof [tool-reconciler host-app-path]
   (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
-    (js/console.log (str core/tool-name " on " (first host-app-path) " - config: " (dev/summarize config)))
+    (js/console.log (str core/tool-name " on " (first host-app-path) " - edn config: " (dev/summarize config)))
     (fn [new-state]
-      (dev/debug (str "Listening to state change and it is okay? " (-> (core/check config new-state) core/detail-ok?)))
+      (dev/debug-check (str "Listening to state change and it is okay? " (-> (core/check config new-state) core/detail-ok?)))
       (prim/transact! tool-reconciler [`(state-inspection {:config    ~config
                                                            :new-state ~new-state
-                                                           }) [:floating-panel/by-id "main"]]))))
+                                                           }) [:floating-panel/by-id :UI]]))))
 
 ;;
 ;; Stores a function that takes new-state. Not used when all-state-changes? is true
@@ -206,44 +221,62 @@
   (let [display-name (some-> app :reconciler prim/app-root prim/react-type (gobj/get "displayName"))]
     [display-name (some-> display-name (s/split #"/") last)]))
 
+;;
+;; Only ever used for deref being nil or not. Happens to get set to a vector, example:
+;; ["default-db-format.baby-sharks/AdultRoot" "AdultRoot"]
+;;
 (defonce ^:private host-root-path* (atom nil))
 
-(defn watch-state [target-app tool-reconciler timeout host-root]
+(defn watch-state [get-target-state tool-reconciler timeout host-root]
   (let [inspect-new-state-f (update-inspect-state-hof tool-reconciler (reset! host-root-path* host-root))
         update-inspect-state-f (gfun/debounce inspect-new-state-f timeout)]
     (if all-state-changes?
-      (add-watch (some-> target-app :reconciler :config :state) :chrismurrph/default-db-format
+      (add-watch (get-target-state) :chrismurrph/default-db-format
                  #(update-inspect-state-f %4))
       (reset! state-inspector update-inspect-state-f))))
 
-(defn install-app [target-app]
+;;
+;; Assumption behind this function is that it is called for every possible
+;; target-app. This function accepts what the preference is, else the first.
+;; There's only any point in specifying a preference if this message is seen:
+;; "Accepted a host already, so discarding: ..."
+;;
+(defn install-app! [target-app]
   (let [tool-reconciler (:reconciler (tool))
-        shared-config (-> tool-reconciler prim/app-root prim/shared)
-        timeout (-> shared-config :options :debounce-timeout)
-        watch-st-f (partial watch-state target-app tool-reconciler timeout)
-        host-root-path-preference (-> shared-config :options :host-root-path)
-        msg-f (fn [whole-path]
-                (if (= ignore-fulcro-inspect whole-path)
-                  (str "Discarding Fulcro Inspect root: " whole-path)
-                  (str "Discarding: " whole-path)))]
+        lein-opts (-> tool-reconciler prim/app-root prim/shared :lein-options)
+        _ (dev/debug-config (str "install-app! lein options: " lein-opts))
+        get-target-state (fn []
+                           (some-> target-app :reconciler :config :state))
+        watch-st-f (partial watch-state get-target-state tool-reconciler (:debounce-timeout lein-opts))
+        host-root-path-preference (:host-root-path lein-opts)]
     (if (-> host-root-path* deref nil?)
-      (let [[whole-path leaf :as host-root] (app-path target-app)]
+      (let [[whole-path _ :as host-root] (app-path target-app)]
         (assert whole-path "Must be a host root")
+        (dev/debug-config (str "Examining: " whole-path))
         (cond
-          (= host-root-path-preference whole-path) (watch-st-f host-root)
+          (= host-root-path-preference whole-path)
+          (watch-st-f host-root)
+
+          (and (some? host-root-path-preference) (not= host-root-path-preference whole-path))
+          (dev/log (str whole-path " being ignored because :host-root-path (from lein) set to: "
+                        host-root-path-preference))
+
           (not= ignore-fulcro-inspect whole-path) (watch-st-f host-root)
-          :else (js/console.log (msg-f whole-path))))
+          :else (dev/log ((if (= ignore-fulcro-inspect whole-path)
+                            (str "Discarding Fulcro Inspect root: " whole-path)
+                            (str "Discarding: " whole-path))))))
       ;; If the wanted one is being discarded then need to add host-root-path to config, such that
       ;; the specified host-root-path will be the only one that is accepted. Will work as an
       ;; override if need to examine the state of Fulcro Inspect for instance. In which case set
       ;; host-root-path to "fulcro.inspect.core/GlobalRoot", that's at default-db-format.tool/ignore-inspect
       (dev/log (str "Accepted a host already, so discarding: " (-> target-app app-path first))))))
 
-(defn install [options]
+(defn install [lein-options]
   (when-not @tool*
-    (js/console.log "Installing" core/tool-name "version" core/tool-version
-                    (select-keys options possible-options))
-    (tool options)
+    (js/console.log "Installing" core/tool-name
+                    "version" core/tool-version
+                    "lein options" (select-keys lein-options possible-lein-options))
+    (tool lein-options)
 
     (fulcro/register-tool
       {::fulcro/tool-id
@@ -251,7 +284,7 @@
 
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
-         (install-app app)
+         (install-app! app)
          app)
 
        ::fulcro/tx-listen

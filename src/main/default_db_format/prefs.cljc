@@ -17,6 +17,9 @@
          (get-in @cljs.env/*compiler* [:options :external-config :default-db-format/config]) ; https://github.com/bhauman/lein-figwheel/commit/80f7306bf5e6bd1330287a6f3cc259ff645d899b
          (get-in @cljs.env/*compiler* [:options :tooling-config :default-db-format/config]))))) ; :tooling-config is deprecated
 
+;;
+;; If we didn't use edn/read-string then we could bring in a function.
+;;
 #?(:clj
    (defn read-from-edn []
      (some-> "config/default-db-format.edn"

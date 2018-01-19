@@ -24,11 +24,11 @@ The collapse keystroke is a toggle to get the tool out of the way of the UI you 
 
 #### Configuration
 
-For a full reference of configuration options see the doc string for `default-db-format.core/check`. Here we cover them through examples. The default configuration is: 
+Here we cover the configuration options for `default-db-format.core/check` using some example applications. The default configuration is: 
 ````clojure
 {:by-id-kw #{"by-id" "BY-ID"}}
 ````
-However it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. We will work out the configuration for a selection of example Fulcro applications, then for some devcards within the default-db-format project itself.
+However it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. 
 
 ##### Fulcro Websocket Demo
 
@@ -48,9 +48,9 @@ Here `:LOGIN-FORM-UI` is obviously a table/component with only one instance of t
 ````
 Changes to this file will only be picked up when you `(reload-config)` in Figwheel and Shift-F5 in the browser to directly reload the page.
 
-On browser reload there will be a message in the console. Use it to verify the new configuration has indeed been picked up. This time the HUD may briefly flash up, but when all state changes are complete we should find that there's nothing for default-db-format to complain about. 
+On browser reload a message from the console shows the new configuration has indeed been picked up. This time the HUD may briefly flash up, but when all state changes are complete there will be nothing for default-db-format to complain about. 
 
-##### Fulcro TodoMVC
+##### Fulcro ToDoMVC
 
 You should see this message pop up in the browser:
 
@@ -88,7 +88,13 @@ The Baby Sharks devcard consists of a series of buttons that intentionally affec
 
 ![](imgs/20180118-081221.png)
 
-If for some reason you did want to have maps as *scalar* value objects then `:okay-value-maps` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:okay-value-vectors`. (Perhaps in the future Clojure Spec can be introduced here).
+If for some reason you did want to have maps as *scalar* value objects then `:okay-value-maps` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:okay-value-vectors`.
+
+The next button is "Give a link a map", which produces:
+
+![](imgs/20180118-093402.png)
+
+Links are indistinguishable from root level joins. It is quite common to keep maps (or any other denormalized data) in links, which we can do now by setting the key `:links` to `:here-is/some-link`.
 
 #### Internal version
 
