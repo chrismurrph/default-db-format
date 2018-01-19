@@ -1,7 +1,8 @@
 (ns default-db-format.test-helpers
   (:require [clojure.test :refer :all]
             [default-db-format.helpers :as help]
-            [examples.gases :as gases]))
+            [examples.gases :as gases]
+            [default-db-format.hof :as hof]))
 
 (deftest is-ident
   (is (= true
@@ -12,9 +13,9 @@
          (help/ident-like? [:my/by-by-id 10]))))
 
 (deftest table-categories
-  (let [by-id-kw? (-> help/default-config :by-id-kw help/-setify help/by-id-kw-hof)
-        single-id? (-> help/default-config :one-of-id help/-setify help/map-entry-single-id-hof)
-        table? (-> help/default-config :by-id-kw help/-setify help/table-hof)
+  (let [by-id-kw? (hof/reveal-f :by-id-kw help/default-config)
+        single-id? (hof/reveal-f :one-of-id help/default-config)
+        table? (hof/reveal-f :by-id-kw help/default-config)
         state gases/gas-norm-state]
     (is (= 3
            (->> state

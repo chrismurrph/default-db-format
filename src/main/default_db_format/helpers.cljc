@@ -40,13 +40,13 @@
 ;;
 (defn ident-like-hof?
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [{:keys [by-id-kw one-of-id before-slash-routing after-slash-routing not-by-id-table routing-table]}]
-  (let [by-id-kw? (-> by-id-kw hof/setify hof/by-id-kw-hof)
-        one-of-id? (-> one-of-id hof/setify hof/single-id-hof)
-        routed-ns? (-> before-slash-routing hof/setify hof/routed-ns-hof)
-        routed-name? (-> after-slash-routing hof/setify hof/routed-name-hof)
-        table? (-> not-by-id-table hof/setify hof/not-by-id-table-hof)
-        routing-table? (-> routing-table hof/setify hof/routing-table-hof)
+  [config]
+  (let [by-id-kw? (hof/reveal-f :by-id-kw config)
+        one-of-id? (hof/reveal-f :one-of-id config)
+        routed-ns? (hof/reveal-f :before-slash-routing config)
+        routed-name? (hof/reveal-f :after-slash-routing config)
+        table? (hof/reveal-f :not-by-id-table config)
+        routing-table? (hof/reveal-f :routing-table config)
         acceptable-key? (some-fn by-id-kw? routed-ns? routed-name? table? routing-table?)
         okay-key? (fn [cls]
                     (let [res (acceptable-key? cls)]

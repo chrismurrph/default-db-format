@@ -1,9 +1,6 @@
 (ns default-db-format.ui.domain
   (:require [fulcro.client.primitives :as prim]
-            [fulcro-css.css :as css]
-            [fulcro.ui.icons :as icons]
-            [garden.selectors :as gs]
-            [fulcro.client.dom :as dom]))
+            [fulcro-css.css :as css]))
 
 ;;
 ;; Some stealing from fulcro-inspect, source of a lot of good stuff
@@ -46,18 +43,11 @@
   (merge -css-label
          {:color reddish}))
 
-(def css-timestamp
-  {:font-family "monospace"
-   :font-size   "11px"
-   :color       "#808080"
-   :margin      "0 4px 0 7px"})
-
 (prim/defui ^:once CSS
             static css/CSS
             (local-rules [_] [[:.red-coloured {:color reddish}]
                               [:.light-red-coloured {:color light-red}]
                               [:.purple-coloured {:color purple}]
-                              [:.space-before {:margin-left "7px"}]
                               [:.flex {:display "flex"}]
                               [:.vertical-container {:display        "flex"
                                                      :flex-direction "column"}]

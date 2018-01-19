@@ -7,6 +7,9 @@
 
 #?(:cljs (enable-console-print!))
 
+(defn init-state-atom [comp data]
+  (atom (prim/tree->db comp (prim/get-initial-state comp data) true)))
+
 (defn warn
   ([want? txt]
    (when-not want?
@@ -36,7 +39,7 @@
   (println txt))
 
 (def debug-check? false)
-(def debug-config? true)
+(def debug-config? false)
 
 (defn debug-check [txt]
   (when debug-check?

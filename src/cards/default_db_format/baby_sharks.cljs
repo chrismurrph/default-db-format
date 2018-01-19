@@ -4,10 +4,9 @@
             [fulcro.client.dom :as dom]
             [fulcro.client.util :as fu]
             [fulcro.client.cards :refer [defcard-fulcro fulcro-application]]
-            [default-db-format.general.card-helpers :as card-helpers]
             [fulcro.client.primitives :as prim :refer [defui defsc InitialAppState initial-state]]
             [fulcro-css.css :as css]
-            ;; Don't delete
+    ;; Don't delete
             [default-db-format.ui.domain :as ui.domain]
             [cljs.pprint :refer [pprint]]
             [fulcro.util :refer [unique-key]]
@@ -119,8 +118,8 @@
                      {:db/id 2 :baby/first-name "Baby Shark 2"}])
 (defcard-fulcro say-hello
                 AdultRoot
-                (card-helpers/init-state-atom AdultRoot
-                                              {:babies-in initial-babies})
+                (dev/init-state-atom AdultRoot
+                                     {:babies-in initial-babies})
                 {:inspect-data true})
 
 (css/upsert-css "adult" AdultRoot)

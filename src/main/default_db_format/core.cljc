@@ -14,7 +14,7 @@
 (def tool-version
   "`lein clean` helps make sure using the latest version of this library.
   version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  30)
+  101)
 
 (defn bool? [v]
   (or (true? v) (false? v)))

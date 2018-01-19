@@ -20,7 +20,7 @@ This library is a Fulcro tool. As such the setup will be similar to that for [Fu
                                               :debounce-timeout   2000}}
 ```` 
 
-The collapse keystroke is a toggle to get the tool out of the way of the UI you are working on. The debounce timeout ensures that when your application's state is being hammered with changes default-db-format will only be checking it every so often.
+The collapse keystroke is a toggle to get this tool out of the way of the application UI you are working on. The debounce timeout ensures that when your application's state is being hammered with changes default-db-format will only be checking it every so often.
 
 #### Configuration
 
@@ -41,7 +41,7 @@ The default-db-format tool has examined the state map and not found any tables. 
 ````clojure
 :LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}
 ````
-Here `:LOGIN-FORM-UI` is obviously a table/component with only one instance of the class, signified by the second (or *id*) part of the Ident being `:UI` rather than some number. Thus we have probably discovered the convention for 'one of' components in this project. Armed with this insight we can now create our `default-db-format.edn` file:
+Here `:LOGIN-FORM-UI` is obviously a table/component/class with only one instance possible, signified by the second (or *id*) part of the Ident being `:UI` rather than some number. Thus we have probably discovered the convention for 'one of' components in this project. Armed with this insight we can now create our `default-db-format.edn` file:
 
 ````clojure
 {:one-of-id :UI}
@@ -54,7 +54,7 @@ On browser reload a message from the console shows the new configuration has ind
 
 You should see this message pop up in the browser:
 
-![](imgs/20180118-074655.png)
+![](imgs/20180119-203746.png)
 
 The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should either be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't end with `/by-id`:
 
@@ -66,9 +66,9 @@ Note that for all config values where it is sensible you can provide the value h
 
 ##### Baby Sharks (a default-db-format devcard)
 
-![](imgs/20180118-080713.png)
+![](imgs/20180119-231155.png)
 
-From the second message we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first message the tool has incorrectly assumed that a top level join (a link) called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is actually the name of a table. Here's what the table looks like in state:
+From the second message we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first message the tool has incorrectly assumed that a root/top level join (a link) called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is actually a table. Here's what the table looks like in state:
 
 ````clojure
 :baby/id
@@ -86,15 +86,36 @@ Notice that we have chosen to keep the default convention.
 
 The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up default-db-format messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuation change. We've seen this one before, but not where the value is a map:
 
-![](imgs/20180118-081221.png)
+![](imgs/20180119-232357.png)
 
-If for some reason you did want to have maps as *scalar* value objects then `:okay-value-maps` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:okay-value-vectors`.
+If for some reason you did want to have maps as *scalar* value objects then `:okay-value-map` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:okay-value-vector`.
 
-The next button is "Give a link a map", which produces:
+If your objects are not simple enough to describe using `:okay-value-map` or `:okay-value-vector`, or the situation is more that a particular join is designated as a denormalized object holder, then `:bad-join` can come to the rescue. 
 
-![](imgs/20180118-093402.png)
+Press Control-Q to be able to see the UI again. There's a button that will restore the state, after which you should "Give a link a map":
 
-Links are indistinguishable from root level joins. It is quite common to keep maps (or any other denormalized data) in links, which we can do now by setting the key `:links` to `:here-is/some-link`.
+![](imgs/20180119-233547.png)
+
+Links are indistinguishable from root level joins. It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:bad-join` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we just make use of the "Restore order..." button.
+
+##### Fulcro Inspect
+
+````clojure
+{:one-of-id ["main" :singleton]
+ :by-id-kw  "id"
+ :bad-join  #{:fulcro.inspect.ui.data-viewer/content
+              :fulcro.inspect.ui.data-viewer/expanded
+              :fulcro.inspect.ui.data-history/history
+              :app-state}}
+````
+
+#### Development
+
+There is only one cljs build in `project.clj` and one HTML file in `resources/public`: `cards.html`. As this project is client side only create what IntelliJ calls a "Run/Debug Configuration" that has "Parameters" set to `script/figwheel.clj`. Once Figwheel is going use the browser to navigate to `http://localhost:3449/cards.html`.
+
+There are some tests that can be run using `lein run` from the command line. Or create a Server REPL to call them directly. At the REPL `(refresh)` (from `dev/user.clj`) will get you started.
+
+The workflow I used to test this tool against other applications was to `lein clean` `lein install` from default-db-format, then `lein clean` `lein deps` from the target application where default-db-format has already been installed as a tool.
 
 #### Internal version
 

@@ -188,20 +188,20 @@
                                                                     "Not normalized val in "
                                                                     (dom/span #js {:className (:red-coloured global-css)}
                                                                               "root join")
-                                                                    " (")
-                                                           (dom/div #js {:className (:purple-coloured global-css)}
-                                                                    ":bad-join")
-                                                           (dom/div #js {:className (:space-before global-css)}
-                                                                    "in edn config is one solution)"))
+                                                                    " ("
+                                                                    (dom/span #js {:className (:purple-coloured global-css)}
+                                                                              ":bad-join")
+                                                                    " in edn config is one solution)"))
                                                   (joins-list-component {:items not-normalized-join-entries})))
                                        (when (and join-entries-problems? table-entries-problems?)
                                          (dom/br nil))
                                        (when table-entries-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
-                                                           "Not normalized val in "
-                                                           (dom/span #js {:className (:red-coloured global-css)}
-                                                                     "field join"))
+                                                           (dom/div nil
+                                                                    "Not normalized val in "
+                                                                    (dom/span #js {:className (:red-coloured global-css)}
+                                                                              "field join")))
                                                   (dom/div nil
                                                            (for [by-id (into {} not-normalized-table-entries)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
