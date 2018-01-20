@@ -22,7 +22,7 @@
   (let [table-like-key? (some-fn by-id-kw-fn? table?)]
     (filter (fn [[k v]]
               (when (or (nil? v) (and (map? v) (= 1 (count v))))
-                (dev/debug-check (str "EXAMINE: " k v)))
+                (dev/debug-check "EXAMINE: " k v))
               (or (table-like-key? k)
                   (single-id? k v)))
             state)))
@@ -50,11 +50,11 @@
         acceptable-key? (some-fn by-id-kw? routed-ns? routed-name? table? routing-table?)
         okay-key? (fn [cls]
                     (let [res (acceptable-key? cls)]
-                      (dev/log-off (str "acceptable key? " cls " " (boolean res)))
+                      (dev/log-off "acceptable key? " cls " " (boolean res))
                       res))
         okay-id? (fn [id]
                    (let [res (acceptable-id? id)]
-                     (dev/log-off (str "acceptable id? " id " " (boolean res)))
+                     (dev/log-off "acceptable id? " id " " (boolean res))
                      res))
         ]
     (fn [tuple]

@@ -17,29 +17,27 @@
             [clojure.string :as s]))
 
 ;;
-;; This used to be necessary. There is a way of overriding that works.
-;; However when overriding I could not get the 'app' for Fulcro Inspect
-;; to be picked up. I'm guessing there have been changes to Fulcro Inspect,
-;; and we can get rid of this. But that would require manual testing :-(.
-;; Hmm - not necessarily Fulcro Inspect. There has to be an order in which
-;; Fulcro dishes out the apps to the tools. Perhaps Fulcro could (quite sensibly)
-;; not dish out tools to other tools. But I know it dishes out default-db-format
-;; to Inspect. Perhaps previously the order was different and Inspect was dished
-;; out to default-db-format, and this could of course happen again.
+;; There is an order in which Fulcro dishes out the apps to the tools.
+;; Perhaps Fulcro could (quite sensibly) not dish out tools to other tools.
+;; Default DB Format can be dished out to Fulcro Inspect, and when the Lein
+;; preloads order is different Fulcro Inspect can be dished out to Default DB Format.
+;; The order they are called in is the reverse of the preloads order. So to hide
+;; Default DB Format from Fulcro Inspect put Default DB Format before Fulcro Inspect.
 ;;
-;; What do I mean by 'dished out'? See default-db-format.preload - this must be
-;; called once each for every tool in some (? undefined) order. But order its't
-;; important for this call as is just 'registration'. More importantly this
-;; registration allows a tool to provide a callback at ::fulcro/app-started.
-;; I have noticed that the cb you give here is
-;; called for the other apps. Usually there are three altogether if you include the
-;; host app. My guess is that default-db-format is having its cb called second and
-;; is only seeing the host app. In the past default-db-format was third in order and
-;; so the cb at ::fulcro/app-started was being called twice. This also explains why
-;; Inspect is seeing default-db-format yet default-db-format not seeing Inspect.
+;; What is 'dished out'? See default-db-format.preload - this must be called once each
+;; for every tool in preloads order. But order is not important for this call as is just
+;; 'registration'. More importantly this registration allows a tool to provide a callback
+;; at ::fulcro/app-started. I have noticed that the cb you give here is called for the other
+;; apps (and a tool is an app). Usually there are three apps altogether if you include the
+;; host app. When Default DB Format is before Inspect (which means after in preloads) it is
+;; having its cb called second and is only seeing the host app, which is the first app. We can
+;; also make it so that Default DB Format is third in order and so the cb at
+;; ::fulcro/app-started is called twice. This explains the observation that either Inspect sees
+;; default-db-format yet default-db-format does not see Inspect, or the other way round!
 ;;
-;; In theory default-db-format will be able to handle a reversion because it takes
-;; the first app it is called with so long at that app is not ignore-fulcro-inspect.
+;; So default-db-format will be able to handle being first in preloads order because it takes
+;; the first app it is called with, so long at that app is not ignore-fulcro-inspect.
+;; Fulcro Inspect currently has no mechanism to ignore Default DB Format.
 ;;
 (def ignore-fulcro-inspect "fulcro.inspect.core/GlobalRoot")
 
@@ -48,10 +46,10 @@
 ;; (For instance react key changes are not picked up when on every transact)
 ;; One reason would be so don't check every time the developer saves his work,
 ;; slowing the machine down at the worst possible time for no good reason.
-;; So a favourable choice is to not to slow the developer's machine down at the expense
+;; So a favourable choice is to not slow the developer's machine down at the expense
 ;; of missing a change to app state that did not go through a `transact!`.
 ;; And quite possibly there is no such thing - everything goes through `transact!`.
-;; So originally had this as false.
+;; So originally I had this as false.
 ;; Changed to true, when realising that the env that comes thru to
 ;; ::fulcro/tx-listen is a bit of an unknown when there are many clients. It
 ;; was listening to Fulcro Inspector! Conversely with the watching way (all-state-changes?
@@ -176,7 +174,7 @@
         ;; has not yet been done.
         app (fulcro/new-fulcro-client :shared configuration)
         node (js/document.createElement "div")]
-    (dev/debug-config (str "Whole config in start-tool:\n" (dev/pp-str configuration)))
+    (dev/debug-config "Whole config in start-tool:\n" configuration)
     (js/document.body.appendChild node)
     (css/upsert-css "default-db-format" ToolRoot)
     (fulcro/mount app ToolRoot node)))
@@ -227,10 +225,10 @@
 
 (defn update-inspect-state-hof [tool-reconciler host-app-path]
   (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
-    (dev/log (str core/tool-name " on " (first host-app-path)
-                  " - edn config:") config)
+    (dev/log core/tool-name "on" (str (first host-app-path) ",") "edn config:" config)
     (fn [new-state]
-      (dev/debug-check (str "Listening to state change and it is okay? " (-> (core/check config new-state) core/detail-ok?)))
+      (dev/debug-check "Listening to state change and it is okay?"
+                       (-> (core/check config new-state) core/detail-ok?))
       (prim/transact! tool-reconciler [`(state-inspection {:config    ~config
                                                            :new-state ~new-state
                                                            }) [:floating-panel/by-id :UI]]))))
@@ -268,14 +266,14 @@
   (let [tool-reconciler (:reconciler (tool))
         _ (assert tool-reconciler "No reconciler found in tool")
         lein-opts (-> tool-reconciler prim/app-root prim/shared :lein-options)
-        _ (dev/debug-config (str "install-app! lein options: " lein-opts))
+        _ (dev/debug-config "install-app! lein options:" lein-opts)
         get-target-state #(some-> target-app :reconciler :config :state)
         watch-st-f (partial watch-state get-target-state tool-reconciler (:debounce-timeout lein-opts))
         host-root-path-preference (:host-root-path lein-opts)]
     (if (-> host-root-path* deref nil?)
       (let [[whole-path _ :as host-root] (app-path target-app)]
         (assert whole-path "Must be a host root")
-        (dev/debug-config (str "Examining: " whole-path))
+        (dev/debug-config "Examining:" whole-path)
         (cond
           (= host-root-path-preference whole-path)
           (watch-st-f host-root)
@@ -285,10 +283,10 @@
                    host-root-path-preference)
 
           (not= ignore-fulcro-inspect whole-path) (watch-st-f host-root)
-          :else (apply dev/log
-                       ((if (= ignore-fulcro-inspect whole-path)
-                          ["Discarding Fulcro Inspect root:" whole-path]
-                          ["Discarding:" whole-path])))))
+          :else (apply dev/debug-config
+                       (if (= ignore-fulcro-inspect whole-path)
+                         ["Discarding Fulcro Inspect root:" whole-path]
+                         ["Discarding:" whole-path]))))
       ;; If the wanted one is being discarded then need to add :host-root-path to config, such that
       ;; the specified host-root-path will be the only one that is accepted. Will work as an
       ;; override if need to examine the state of Fulcro Inspect for instance. In which case set
@@ -296,11 +294,11 @@
       ;; default-db-format.tool/ignore-fulcro-inspect
       (dev/log "Accepted a host already, so discarding:" (-> target-app app-path first)))))
 
-(defn install [{:keys [lein-options edn] :as configuration}]
-  (dev/debug-config (str "configuration: " (dev/pp-str configuration)))
+(defn install [{:keys [lein-options] :as configuration}]
+  (dev/debug-config "configuration:" configuration)
   (when-not @tool*
-    (dev/log "Installing" core/tool-name
-             ", version:" core/tool-version
+    (dev/log "Installing" (str core/tool-name ",")
+             "version:" core/tool-version
              (select-keys lein-options core/possible-lein-option-keys))
     (tool configuration)
 
@@ -309,7 +307,7 @@
        ::default-db-format
 
        ::fulcro/app-started
-       (fn [{:keys [reconciler] :as app}]
+       (fn [app]
          (install-app! app)
          app)
 

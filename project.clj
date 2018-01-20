@@ -37,8 +37,8 @@
                                :output-dir           "resources/public/js/cards"
                                :asset-path           "js/cards"
                                :preloads             [devtools.preload
-                                                      fulcro.inspect.preload
                                                       default-db-format.preload
+                                                      fulcro.inspect.preload
                                                       ]
                                :external-config      {:fulcro.inspect/config    {:launch-keystroke "ctrl-v"}
                                                       :default-db-format/config {:collapse-keystroke "ctrl-q"

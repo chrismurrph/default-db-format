@@ -35,24 +35,24 @@
   ([x]
    (pp width x)))
 
-(defn log-off [_])
+(defn log-off [& _])
 
 ;;
-;; Using apply to get devtools to format it properly
+;; Using log-pr to get devtools to format it properly
 ;;
 (defn log [& args]
   (apply log-pr args))
 
 (def debug-check? false)
-(def debug-config? false)
+(def debug-config? true)
 
-(defn debug-check [txt]
+(defn debug-check [& args]
   (when debug-check?
-    (println txt)))
+    (apply log-pr args)))
 
-(defn debug-config [txt]
+(defn debug-config [& args]
   (when debug-config?
-    (println txt)))
+    (apply log-pr args)))
 
 (defn summarize [x]
   (str (cond

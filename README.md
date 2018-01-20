@@ -1,43 +1,39 @@
 # default-db-format
 
-Checks that your Fulcro client state is formatted as per the normalized storage format - a.k.a.: **default db format**
+Checks that your Fulcro client state is formatted as per the normalized storage format - a.k.a.: **Default DB Format**
 
 #### Current release:
 
 [![Clojars Project](https://img.shields.io/clojars/v/default-db-format.svg)](https://clojars.org/default-db-format)
 
-#### Description
-
 **default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the conventions that the keys of the state map use. So for instance if a `by-id` field value such as `(get-in [my-table-name/by-id 14] :my/join)` becomes a map rather than an Ident or vector of Idents, then this will be recognised and a heads-up display (HUD) will pop up.
 
-This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inpect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` and `:external-config` in the "dev" :cljsbuild:
+This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inpect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` and `:external-config` in the `"dev"` `:cljsbuild`:
 
 ````clojure
 :preloads         [devtools.preload
-                   fulcro.inspect.preload
-                   default-db-format.preload]
+                   default-db-format.preload
+                   fulcro.inspect.preload]
 :external-config  {:fulcro.inspect/config {:launch-keystroke "ctrl-f"}
                    :default-db-format/config {:collapse-keystroke "ctrl-q"
                                               :debounce-timeout   2000}}
 ```` 
 
-The collapse keystroke is a toggle to get this tool out of the way of the application UI you are working on. The debounce timeout ensures that when your application's state is being hammered with changes default-db-format will only be checking it every so often.
+The collapse keystroke is a toggle to get this tool out of the way of the application UI you are working on. The debounce timeout ensures that when your application's state is being hammered with changes Default DB Format will only be checking it every so often. Note that `default-db-format.preload` should come before `fulcro.inspect.preload` (*).
 
-#### Configuration
-
-Here we cover the configuration options for `default-db-format.core/check` using some example applications. The default configuration is: 
+The default configuration for `default-db-format.core/check` is: 
 ````clojure
 {:by-id-kw #{"by-id" "BY-ID"}}
 ````
 However it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. 
 
-##### Fulcro Websocket Demo
+#### Fulcro Websocket Demo
 
 You should see this message pop up in the browser:
 
 ![](imgs/20180116-230833.png)
 
-The default-db-format tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye:
+The Default DB Format tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye:
 
 ````clojure
 :LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}
@@ -49,9 +45,9 @@ Here `:LOGIN-FORM-UI` is obviously a table/component/class with only one instanc
 ````
 Changes to this file will only be picked up when you `(reload-config)` in Figwheel and Shift-F5 in the browser to directly reload the page.
 
-On browser reload a message from the console shows the new configuration has indeed been picked up. This time the HUD may briefly flash up, but when all state changes are complete there will be nothing for default-db-format to complain about. 
+On browser reload a message from the console shows the new configuration has indeed been picked up. This time the HUD may briefly flash up, but when all state changes are complete there will be nothing for Default DB Format to complain about. 
 
-##### Fulcro ToDoMVC
+#### Fulcro ToDoMVC
 
 You should see this message pop up in the browser:
 
@@ -65,7 +61,7 @@ The state has a map-entry: `:root/application [:application :root]`, and one of 
 
 Note that for all config values where it is sensible you can provide the value however you like. For instance here `:application` will be translated internally into `#{:application}`. Both `[:application]` and `#{:application}` would have been acceptable alternatives to `:application`.
 
-##### Baby Sharks (a default-db-format devcard)
+#### Baby Sharks (a default-db-format devcard)
 
 ![](imgs/20180119-231155.png)
 
@@ -85,7 +81,7 @@ If we can get the tool to understand that `:baby/id` is the name of a table both
 ````
 Notice that we have chosen to keep the default convention.
 
-The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up default-db-format messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuation change. We've seen this one before, but not where the value is a map:
+The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up Default DB Format messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuation change. We've seen this one before, but not where the value is a map:
 
 ![](imgs/20180119-232357.png)
 
@@ -97,9 +93,9 @@ Press Control-Q to be able to see the UI again. There's a button that will resto
 
 ![](imgs/20180119-233547.png)
 
-Links are indistinguishable from root level joins. It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:bad-join` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we just make use of the "Restore order..." button.
+Links are indistinguishable from root level joins. It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:bad-join` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we can just make use of the "Restore order..." button. In reality this where Default DB Format is earning its keep - it is telling you about a problem your mutations have inadvertently caused.
 
-##### Fulcro Inspect
+#### Fulcro Inspect
 
 ````clojure
 {:one-of-id ["main" :singleton]
@@ -112,11 +108,11 @@ Links are indistinguishable from root level joins. It is quite common to keep ma
 
 #### Development
 
-There is only one cljs build in `project.clj` and one HTML file in `resources/public`: `cards.html`. As this project is 'client side only' create what IntelliJ calls a "Run/Debug Configuration" that has "Parameters" set to `script/figwheel.clj`. Once Figwheel (default port 3449) is going use the browser to navigate to `http://localhost:3449/cards.html`.
+There is only one cljs build in `project.clj` and one HTML file in `resources/public`: `cards.html`. As this project is 'client side only' create what IntelliJ calls a "Run/Debug Configuration" that has "Parameters" set to `script/figwheel.clj`. Once Figwheel is going use the browser to navigate to `http://localhost:3449/cards.html`.
 
 There are some tests that can be run using `lein run` from the command line. Or create a Server REPL to call them directly. At the REPL `(refresh)` (from `dev/user.clj`) will get you started. `clojure.test` can be used because the underlying logic (`default-db-format.core/check`) is in .cljc files.
 
-The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from default-db-format, then `lein clean` `lein deps` from the target application where default-db-format has already been installed as a tool.
+The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from Default DB Format, then `lein clean` `lein deps` from the target application where Default DB Format has already been installed as a tool. Testing against devcards is great in comparison because all can be handled by Figwheel. Often all you need to do is make a change and press F5 to reload. Of course you will still have to `(reload-config)` upon changing the edn file, but you will never have to execute the time consuming lein commands.
 
 #### Internal version
 
@@ -134,4 +130,4 @@ The current internal version is **30**. Having an internal version makes sense f
  *  **22** Fixed bug where a `:keyword` was not recognised as data
  *  **21** Released version (announced on Om Slack group)
 
-    
+**(*)** The reason it is better Default DB Format come before Fulcro Inspect is explained by comments in the source code above the def `default-db-format.tool/ignore-fulcro-inspect`.
