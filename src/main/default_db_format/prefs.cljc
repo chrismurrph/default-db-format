@@ -18,7 +18,8 @@
          (get-in @cljs.env/*compiler* [:options :tooling-config :default-db-format/config]))))) ; :tooling-config is deprecated
 
 ;;
-;; If we didn't use edn/read-string then we could bring in a function.
+;; If we didn't use edn/read-string then we could bring in a function - currently one of the
+;; check options can't be used. I'm not sure if it is actually necessary.
 ;;
 #?(:clj
    (defn read-from-edn []
@@ -29,8 +30,9 @@
 
 #?(:clj
    (defmacro emit-external-config []
-     `'~(merge (or (read-external-config) {})
-               {:edn (merge help/default-config (read-from-edn))})))
+     `'~(identity {:edn          (merge help/default-edn-config (read-from-edn))
+                   :lein-options (or (read-external-config) {})})))
+
 
 #?(:cljs
    (def external-config (delay (emit-external-config))))

@@ -13,9 +13,9 @@
          (help/ident-like? [:my/by-by-id 10]))))
 
 (deftest table-categories
-  (let [by-id-kw? (hof/reveal-f :by-id-kw help/default-config)
-        single-id? (hof/reveal-f :one-of-id help/default-config)
-        table? (hof/reveal-f :by-id-kw help/default-config)
+  (let [by-id-kw? (hof/reveal-f :by-id-kw help/default-edn-config)
+        single-id? (hof/reveal-f :one-of-id help/default-edn-config)
+        table? (hof/reveal-f :by-id-kw help/default-edn-config)
         state gases/gas-norm-state]
     (is (= 3
            (->> state

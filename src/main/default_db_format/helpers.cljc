@@ -1,7 +1,7 @@
 (ns default-db-format.helpers
   (:require [clojure.string :as s]
             [fulcro.client.primitives :as prim]
-            [default-db-format.general.dev :as dev]
+            [default-db-format.dev :as dev]
             [default-db-format.hof :as hof]))
 
 (defn exclude-colon [s]
@@ -65,14 +65,19 @@
               (and (okay-key? cls)
                    (okay-id? id))))))))
 
-(def default-config
+;;
+;; When using the tool default merging will be done twice. That's because
+;; `check` can be used all alone. And in messages we don't want the user to
+;; see nothing when 'by-id' is there - that's the reason for the early merge.
+;;
+(def default-edn-config
   "This default can be overridden using the config arg to the check function.
   Each key here will be overridden by normal merge behaviour"
   {:by-id-kw #{"by-id" "BY-ID"}})
 
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
-  (ident-like-hof? default-config))
+  (ident-like-hof? default-edn-config))
 
 (defn kw->str [kw]
   (-> kw str exclude-colon))

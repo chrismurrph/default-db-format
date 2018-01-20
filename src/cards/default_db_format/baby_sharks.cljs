@@ -11,7 +11,7 @@
             [cljs.pprint :refer [pprint]]
             [fulcro.util :refer [unique-key]]
             [devcards.core]
-            [default-db-format.general.dev :as dev]))
+            [default-db-format.dev :as dev]))
 
 (def global-css (css/get-classnames ui.domain/CSS))
 

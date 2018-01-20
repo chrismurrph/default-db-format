@@ -1,4 +1,5 @@
 # default-db-format
+
 Checks that your Fulcro client state is formatted as per the normalized storage format - a.k.a.: **default db format**
 
 #### Current release:
@@ -111,11 +112,11 @@ Links are indistinguishable from root level joins. It is quite common to keep ma
 
 #### Development
 
-There is only one cljs build in `project.clj` and one HTML file in `resources/public`: `cards.html`. As this project is client side only create what IntelliJ calls a "Run/Debug Configuration" that has "Parameters" set to `script/figwheel.clj`. Once Figwheel is going use the browser to navigate to `http://localhost:3449/cards.html`.
+There is only one cljs build in `project.clj` and one HTML file in `resources/public`: `cards.html`. As this project is 'client side only' create what IntelliJ calls a "Run/Debug Configuration" that has "Parameters" set to `script/figwheel.clj`. Once Figwheel (default port 3449) is going use the browser to navigate to `http://localhost:3449/cards.html`.
 
-There are some tests that can be run using `lein run` from the command line. Or create a Server REPL to call them directly. At the REPL `(refresh)` (from `dev/user.clj`) will get you started.
+There are some tests that can be run using `lein run` from the command line. Or create a Server REPL to call them directly. At the REPL `(refresh)` (from `dev/user.clj`) will get you started. `clojure.test` can be used because the underlying logic (`default-db-format.core/check`) is in .cljc files.
 
-The workflow I used to test this tool against other applications was to `lein clean` `lein install` from default-db-format, then `lein clean` `lein deps` from the target application where default-db-format has already been installed as a tool.
+The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from default-db-format, then `lein clean` `lein deps` from the target application where default-db-format has already been installed as a tool.
 
 #### Internal version
 

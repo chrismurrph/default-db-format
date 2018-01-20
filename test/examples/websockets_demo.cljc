@@ -1,7 +1,6 @@
 (ns examples.websockets-demo
   (:require [clojure.test :refer :all]
-            [default-db-format.core :as format]
-            [default-db-format.general.dev :as dev]))
+            [default-db-format.core :as format]))
 
 (def state {:USER/BY-ID                      {},
             :fulcro.inspect.core/app-id      :some-app-id,

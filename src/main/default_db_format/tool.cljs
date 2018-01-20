@@ -7,25 +7,41 @@
             [garden.core :as g]
             [default-db-format.ui.events :as events]
             [default-db-format.ui.components :as components]
-            [default-db-format.general.dev :as dev]
+            [default-db-format.dev :as dev]
             [goog.object :as gobj]
             [goog.functions :as gfun]
             [default-db-format.core :as core]
             [default-db-format.iframe :as iframe]
-    ;; don't delete
+    ;; don't delete ui.domain
             [default-db-format.ui.domain :as ui.domain]
             [clojure.string :as s]))
 
 ;;
-;; TODO
 ;; This used to be necessary. There is a way of overriding that works.
-;; However when overriding I could not get this 'app' to be picked up.
-;; I'm guessing there have been changes to Fulcro Inspect, and we can
-;; get rid of this. But lots of testing :-(
+;; However when overriding I could not get the 'app' for Fulcro Inspect
+;; to be picked up. I'm guessing there have been changes to Fulcro Inspect,
+;; and we can get rid of this. But that would require manual testing :-(.
+;; Hmm - not necessarily Fulcro Inspect. There has to be an order in which
+;; Fulcro dishes out the apps to the tools. Perhaps Fulcro could (quite sensibly)
+;; not dish out tools to other tools. But I know it dishes out default-db-format
+;; to Inspect. Perhaps previously the order was different and Inspect was dished
+;; out to default-db-format, and this could of course happen again.
+;;
+;; What do I mean by 'dished out'? See default-db-format.preload - this must be
+;; called once each for every tool in some (? undefined) order. But order its't
+;; important for this call as is just 'registration'. More importantly this
+;; registration allows a tool to provide a callback at ::fulcro/app-started.
+;; I have noticed that the cb you give here is
+;; called for the other apps. Usually there are three altogether if you include the
+;; host app. My guess is that default-db-format is having its cb called second and
+;; is only seeing the host app. In the past default-db-format was third in order and
+;; so the cb at ::fulcro/app-started was being called twice. This also explains why
+;; Inspect is seeing default-db-format yet default-db-format not seeing Inspect.
+;;
+;; In theory default-db-format will be able to handle a reversion because it takes
+;; the first app it is called with so long at that app is not ignore-fulcro-inspect.
 ;;
 (def ignore-fulcro-inspect "fulcro.inspect.core/GlobalRoot")
-
-(def possible-lein-options [:collapse-keystroke :debounce-timeout :host-root-path])
 
 ;;
 ;; Why check on every transact when can check on every change to state?
@@ -97,7 +113,7 @@
                (let [{:ui/keys [visible? collapsed? display-db]} (prim/props this)
                      toggle-collapse-f #(if (prim/props this)
                                           (mutations/set-value! this :ui/collapsed? (not collapsed?))
-                                          (dev/warn (str "Collapse key is ignored when no state")))
+                                          (dev/warn "Collapse key is ignored when no state"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      css (css/get-classnames CollapsibleFrame)]
                  (dom/div #js {:style (if visible? nil #js {:display "none"})}
@@ -144,14 +160,20 @@
 
 (defonce ^:private tool* (atom nil))
 
-(defn start-tool [lein-options]
+(defn missing-keys-warnings [{:keys [lein-options edn] :as configuration}]
+  (let [[unknown-lein-keys unknown-edn-keys] (core/find-incorrect-keys configuration)]
+    (when (seq unknown-lein-keys)
+      (dev/warn "Unsupported lein option keys" unknown-lein-keys))
+    (when (seq unknown-edn-keys)
+      (dev/warn "Unsupported edn option keys" unknown-edn-keys))))
+
+(defn start-tool [configuration]
+  (missing-keys-warnings configuration)
   (let [
         ;; edn will include the `by-id` defaults, so there will be something for edn
         ;; even if there isn't an edn file. On the other hand :lein-options are what you
         ;; see in the file because merging onto the defaults (say for toggle keystroke)
         ;; has not yet been done.
-        configuration {:lein-options (dissoc lein-options :edn)
-                       :edn          (:edn lein-options)}
         app (fulcro/new-fulcro-client :shared configuration)
         node (js/document.createElement "div")]
     (dev/debug-config (str "Whole config in start-tool:\n" (dev/pp-str configuration)))
@@ -161,9 +183,9 @@
 
 (defn tool
   ([] @tool*)
-  ([lein-options]
+  ([configuration]
    (or @tool*
-       (reset! tool* (start-tool lein-options)))))
+       (reset! tool* (start-tool configuration)))))
 
 (defn get-config
   "The host/target application can use this when it wants know the configuration it
@@ -205,7 +227,8 @@
 
 (defn update-inspect-state-hof [tool-reconciler host-app-path]
   (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
-    (js/console.log (str core/tool-name " on " (first host-app-path) " - edn config: " (dev/summarize config)))
+    (dev/log (str core/tool-name " on " (first host-app-path)
+                  " - edn config:") config)
     (fn [new-state]
       (dev/debug-check (str "Listening to state change and it is okay? " (-> (core/check config new-state) core/detail-ok?)))
       (prim/transact! tool-reconciler [`(state-inspection {:config    ~config
@@ -243,10 +266,10 @@
 ;;
 (defn install-app! [target-app]
   (let [tool-reconciler (:reconciler (tool))
+        _ (assert tool-reconciler "No reconciler found in tool")
         lein-opts (-> tool-reconciler prim/app-root prim/shared :lein-options)
         _ (dev/debug-config (str "install-app! lein options: " lein-opts))
-        get-target-state (fn []
-                           (some-> target-app :reconciler :config :state))
+        get-target-state #(some-> target-app :reconciler :config :state)
         watch-st-f (partial watch-state get-target-state tool-reconciler (:debounce-timeout lein-opts))
         host-root-path-preference (:host-root-path lein-opts)]
     (if (-> host-root-path* deref nil?)
@@ -258,25 +281,28 @@
           (watch-st-f host-root)
 
           (and (some? host-root-path-preference) (not= host-root-path-preference whole-path))
-          (dev/log (str whole-path " being ignored because :host-root-path (from lein) set to: "
-                        host-root-path-preference))
+          (dev/log whole-path "being ignored because" :host-root-path "(from lein) set to:"
+                   host-root-path-preference)
 
           (not= ignore-fulcro-inspect whole-path) (watch-st-f host-root)
-          :else (dev/log ((if (= ignore-fulcro-inspect whole-path)
-                            (str "Discarding Fulcro Inspect root: " whole-path)
-                            (str "Discarding: " whole-path))))))
-      ;; If the wanted one is being discarded then need to add host-root-path to config, such that
+          :else (apply dev/log
+                       ((if (= ignore-fulcro-inspect whole-path)
+                          ["Discarding Fulcro Inspect root:" whole-path]
+                          ["Discarding:" whole-path])))))
+      ;; If the wanted one is being discarded then need to add :host-root-path to config, such that
       ;; the specified host-root-path will be the only one that is accepted. Will work as an
       ;; override if need to examine the state of Fulcro Inspect for instance. In which case set
-      ;; host-root-path to "fulcro.inspect.core/GlobalRoot", that's at default-db-format.tool/ignore-inspect
-      (dev/log (str "Accepted a host already, so discarding: " (-> target-app app-path first))))))
+      ;; host-root-path to "fulcro.inspect.core/GlobalRoot", that's at
+      ;; default-db-format.tool/ignore-fulcro-inspect
+      (dev/log "Accepted a host already, so discarding:" (-> target-app app-path first)))))
 
-(defn install [lein-options]
+(defn install [{:keys [lein-options edn] :as configuration}]
+  (dev/debug-config (str "configuration: " (dev/pp-str configuration)))
   (when-not @tool*
-    (js/console.log "Installing" core/tool-name
-                    "version" core/tool-version
-                    "lein options" (select-keys lein-options possible-lein-options))
-    (tool lein-options)
+    (dev/log "Installing" core/tool-name
+             ", version:" core/tool-version
+             (select-keys lein-options core/possible-lein-option-keys))
+    (tool configuration)
 
     (fulcro/register-tool
       {::fulcro/tool-id

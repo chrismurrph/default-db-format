@@ -3,7 +3,7 @@
             [fulcro.client.dom :as dom]
             [fulcro-css.css :as css]
             [default-db-format.ui.domain :as ui.domain]
-            [default-db-format.general.dev :as dev]))
+            [default-db-format.dev :as dev]))
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
@@ -159,7 +159,7 @@
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
                      {:keys [tool-name tool-version not-normalized-table-entries not-normalized-join-entries failed-assumption]} props
                      _ (when (nil? tool-name)
-                         (dev/warn (str "No tool name when rendering. props: <" props "> - s/be impossible")))
+                         (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (okay? props))
                      css (css/get-classnames DisplayDb)

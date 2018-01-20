@@ -1,6 +1,7 @@
 (ns default-db-format.ui.domain
   (:require [fulcro.client.primitives :as prim]
-            [fulcro-css.css :as css]))
+            [fulcro-css.css :as css]
+            [garden.selectors :as gs]))
 
 ;;
 ;; Some stealing from fulcro-inspect, source of a lot of good stuff

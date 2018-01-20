@@ -6,15 +6,11 @@
             [clojure.pprint :refer [pprint]])
     #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component okay? detail-okay?]])
             [default-db-format.helpers :as help]
-            [default-db-format.general.dev :as dev]
             [default-db-format.hof :as hof]
             ))
 
 (def tool-name "Default DB Format")
-(def tool-version
-  "`lein clean` helps make sure using the latest version of this library.
-  version value not changing alerts us to the fact that we have forgotten to `lein clean`"
-  101)
+(def tool-version 30)
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -222,6 +218,23 @@
 
 (def fulcro-bad-joins [:fulcro/server-error :fulcro.ui.forms/form :fulcro.client.routing/routing-tree])
 
+;;
+;; check takes keys of two types, function keys and collection keys
+;;
+(def collection-keys [:okay-value-map :okay-value-vector :bad-join])
+(def check-keys (into #{} (concat collection-keys (keys hof/kw->hof))))
+
+;;
+;; Just so it is obvious. edn file contents goes straight to `check`.
+;;
+(def possible-edn-option-keys check-keys)
+(def possible-lein-option-keys #{:collapse-keystroke :debounce-timeout :host-root-path})
+
+(defn find-incorrect-keys [{:keys [lein-options edn]}]
+  (let [unknown-lein-keys (clojure.set/difference (-> lein-options keys set) possible-lein-option-keys)
+        unknown-edn-keys (clojure.set/difference (-> edn keys set) possible-edn-option-keys)]
+    [unknown-lein-keys unknown-edn-keys]))
+
 (defn -check
   "Checks to see if normalization works as expected. Returns a hash-map you can pprint
   config param keys:
@@ -237,7 +250,7 @@
   :routing-table -> Any table used as the first/class part of a routing ident. #{} or [] of these.
                Usually keywords but doesn't have to be.
   :bad-join -> #{} (or []) of field and root level join keys that we don't want to be part of normalization.
-               Includes root level joins, often called links. A root level join is a join in the root component.
+               Root level joins are often links. A root level join is a join in the root component.
                Links and these joins are indistinguishable when looking at state. Top level joins may contain
                non-normalized data, and need to be 'fixed' by being included here. This might happen if the join
                in the root component is to a component that does not have an ident. Note that join keys
@@ -265,7 +278,7 @@
              ;; In the case of the tool this defaulting has already been done. But we can't assume that
              ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
              ;; do this without fear.
-             config (merge help/default-config config)
+             config (merge help/default-edn-config config)
              {:keys [okay-value-map okay-value-vector bad-join acceptable-table-value-fn?]} config
              ident-like? (help/ident-like-hof? config)
              conformance-predicates {:ident-like?               ident-like?
@@ -300,6 +313,6 @@
                    :not-normalized-table-entries
                                 (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
   ([state]
-   (-check help/default-config state)))
+   (-check help/default-edn-config state)))
 
 (def check (memoize -check))

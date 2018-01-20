@@ -1,4 +1,4 @@
-(ns default-db-format.general.dev
+(ns default-db-format.dev
   (:require
     [fulcro.client.primitives :as prim]
     #?(:cljs [cljs.pprint :as pp])
@@ -7,15 +7,17 @@
 
 #?(:cljs (enable-console-print!))
 
+#?(:cljs (def log-pr js/console.log)
+   :clj (def log-pr println))
+
 (defn init-state-atom [comp data]
   (atom (prim/tree->db comp (prim/get-initial-state comp data) true)))
 
-(defn warn
-  ([want? txt]
-   (when-not want?
-     (println (str "WARN: " txt #_" -> >" #_want? #_"<"))))
-  ([txt]
-   (warn true txt)))
+;;
+;; Using apply to get devtools to format it properly
+;;
+(defn warn [& args]
+  (apply log-pr "WARN:" args))
 
 (def width 120)
 
@@ -35,8 +37,11 @@
 
 (defn log-off [_])
 
-(defn log [txt]
-  (println txt))
+;;
+;; Using apply to get devtools to format it properly
+;;
+(defn log [& args]
+  (apply log-pr args))
 
 (def debug-check? false)
 (def debug-config? false)
