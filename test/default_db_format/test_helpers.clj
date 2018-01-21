@@ -14,19 +14,19 @@
          (help/ident-like? [:my/by-by-id 10]))))
 
 (deftest table-categories
-  (let [by-id-kw? (hof/reveal-f :by-id-kw help/default-edn-config)
+  (let [by-id-ending? (hof/reveal-f :by-id-ending help/default-edn-config)
         single-id? (hof/reveal-f :one-of-id help/default-edn-config)
-        table? (hof/reveal-f :by-id-kw help/default-edn-config)
+        table? (hof/reveal-f :by-id-ending help/default-edn-config)
         state gases/gas-norm-state]
     (is (= 3
            (->> state
-                (help/table-entries by-id-kw? single-id? table?)
+                (help/table-entries by-id-ending? single-id? table?)
                 (into #{} (map (comp help/category-part str key)))
                 count)))))
 
 (deftest apply-log
-  (is (= (comment ["Discarding Fulcro Inspect root:" :c])
+  (is (= (comment ["Sally:" :c])
          (apply dev/log
                 (if (= :a :a)
-                  ["Discarding Fulcro Inspect root:" :c]
-                  ["Discarding:" :d])))))
+                  ["Sally:" :c]
+                  ["Brian:" :d])))))

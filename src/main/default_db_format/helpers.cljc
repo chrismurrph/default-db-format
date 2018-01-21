@@ -18,8 +18,8 @@
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured).
   Also included are table names given to config that are not necessarily namespaced. A convention may develop
   whereby 'one of' tables do not follow some /by-id or /id convention, as there isn't an id in these cases."
-  [by-id-kw-fn? single-id? table? state]
-  (let [table-like-key? (some-fn by-id-kw-fn? table?)]
+  [by-id-ending-fn? single-id? table? state]
+  (let [table-like-key? (some-fn by-id-ending-fn? table?)]
     (filter (fn [[k v]]
               (when (or (nil? v) (and (map? v) (= 1 (count v))))
                 (dev/debug-check "EXAMINE: " k v))
@@ -31,25 +31,36 @@
   #?(:cljs (instance? UUID x)
      :clj  (instance? java.util.UUID x)))
 
-(def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string? my-uuid?))
+;;
+;; Including vector? seems controversial, but that's what Fulcro Inspector uses for ids,
+;; for example for the table :fulcro.inspect.ui.element/panel-id. A vector is a fair
+;; enough way to keep an index. Of course this shows a bit of a hole in our conceptualisation.
+;; Basically any type can be used as an id, so why are we bothering to check at all?
+;;
+(def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string? my-uuid? vector?))
+
+(defn config->fns [config]
+  (let [by-id-ending? (hof/reveal-f :by-id-ending config)
+        table? (hof/reveal-f :not-by-id-table config)
+        routed-ns? (hof/reveal-f :before-slash-routing config)
+        routed-name? (hof/reveal-f :after-slash-routing config)
+        routing-table? (hof/reveal-f :routing-table config)
+        not-join-key-f? (some-fn by-id-ending? routed-ns? routed-name? routing-table? table?)
+        one-of-id? (hof/reveal-f :one-of-id config)]
+    {:one-of-id? one-of-id?
+     :by-id-ending? by-id-ending?
+     :table? table?
+     :not-join-key-f? not-join-key-f?}))
 
 ;;
 ;; The outer function accepts the same config that check accepts.
 ;; Thus externally it can be used relatively easily.
 ;; [:graph-point/by-id 2003]
 ;;
-(defn ident-like-hof?
-  "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  [config]
-  (let [by-id-kw? (hof/reveal-f :by-id-kw config)
-        one-of-id? (hof/reveal-f :one-of-id config)
-        routed-ns? (hof/reveal-f :before-slash-routing config)
-        routed-name? (hof/reveal-f :after-slash-routing config)
-        table? (hof/reveal-f :not-by-id-table config)
-        routing-table? (hof/reveal-f :routing-table config)
-        acceptable-key? (some-fn by-id-kw? routed-ns? routed-name? table? routing-table?)
-        okay-key? (fn [cls]
-                    (let [res (acceptable-key? cls)]
+(defn -ident-like-hof?
+  [{:keys [not-join-key-f? one-of-id?]}]
+  (let [okay-key? (fn [cls]
+                    (let [res (not-join-key-f? cls)]
                       (dev/log-off "acceptable key? " cls " " (boolean res))
                       res))
         okay-id? (fn [id]
@@ -73,11 +84,15 @@
 (def default-edn-config
   "This default can be overridden using the config arg to the check function.
   Each key here will be overridden by normal merge behaviour"
-  {:by-id-kw #{"by-id" "BY-ID"}})
+  {:by-id-ending #{"by-id" "BY-ID"}})
+
+(defn ident-like-hof? [config]
+  "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
+  (-ident-like-hof? (config->fns (merge default-edn-config config))))
 
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
-  (ident-like-hof? default-edn-config))
+  (-ident-like-hof? (config->fns default-edn-config)))
 
 (defn kw->str [kw]
   (-> kw str exclude-colon))

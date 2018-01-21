@@ -5,17 +5,20 @@
     #?(:clj
     [clojure.pprint :as pp])))
 
+(def debug-check? false)
+(def debug-config? false)
+
 #?(:cljs (enable-console-print!))
 
-#?(:cljs (def log-pr js/console.log)
-   :clj (def log-pr println))
+;;
+;; Use apply on args to js/console.log to get devtools to format it properly
+;;
+(def log-pr #?(:cljs js/console.log
+               :clj  println))
 
 (defn init-state-atom [comp data]
   (atom (prim/tree->db comp (prim/get-initial-state comp data) true)))
 
-;;
-;; Using apply to get devtools to format it properly
-;;
 (defn warn [& args]
   (apply log-pr "WARN:" args))
 
@@ -37,14 +40,8 @@
 
 (defn log-off [& _])
 
-;;
-;; Using log-pr to get devtools to format it properly
-;;
 (defn log [& args]
   (apply log-pr args))
-
-(def debug-check? false)
-(def debug-config? true)
 
 (defn debug-check [& args]
   (when debug-check?

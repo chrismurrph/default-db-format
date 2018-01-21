@@ -4,11 +4,11 @@
 ;; hof stands for 'higher order function'
 ;;
 
-(defn by-id-kw-hof
+(defn by-id-ending-hof
   [config-kw-strs]
   (assert (set? config-kw-strs))
   ;'Unexpected identifier' JavaScript error, so can't debug here
-  ;(dev/log (str "by-id-kw-hof given " config-kw-strs))
+  ;(dev/log (str "by-id-ending-hof given " config-kw-strs))
   (fn [kw]
     (and (keyword? kw)
          (some #{(name kw)} config-kw-strs))))
@@ -59,12 +59,12 @@
                 (some #{nm} config-ns-strs))))))
 
 (def kw->hof
-  {:by-id-kw by-id-kw-hof
-   :one-of-id map-entry-single-id-hof
-   :not-by-id-table not-by-id-table-hof
+  {:by-id-ending         by-id-ending-hof
+   :one-of-id            map-entry-single-id-hof
+   :not-by-id-table      not-by-id-table-hof
    :before-slash-routing routed-ns-hof
-   :after-slash-routing routed-name-hof
-   :routing-table routing-table-hof})
+   :after-slash-routing  routed-name-hof
+   :routing-table        routing-table-hof})
 
 ;;
 ;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use

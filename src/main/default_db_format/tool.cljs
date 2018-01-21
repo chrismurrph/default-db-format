@@ -14,20 +14,20 @@
             [default-db-format.iframe :as iframe]
     ;; don't delete ui.domain
             [default-db-format.ui.domain :as ui.domain]
-            [clojure.string :as s]))
+            [clojure.string :as s]
+            [default-db-format.hof :as hof]))
 
 ;;
 ;; There is an order in which Fulcro dishes out the apps to the tools.
-;; Perhaps Fulcro could (quite sensibly) not dish out tools to other tools.
 ;; Default DB Format can be dished out to Fulcro Inspect, and when the Lein
 ;; preloads order is different Fulcro Inspect can be dished out to Default DB Format.
 ;; The order they are called in is the reverse of the preloads order. So to hide
 ;; Default DB Format from Fulcro Inspect put Default DB Format before Fulcro Inspect.
 ;;
-;; What is 'dished out'? See default-db-format.preload - this must be called once each
+;; What is 'dished out'? See default-db-format.preload - this 'must be' called once each
 ;; for every tool in preloads order. But order is not important for this call as is just
 ;; 'registration'. More importantly this registration allows a tool to provide a callback
-;; at ::fulcro/app-started. I have noticed that the cb you give here is called for the other
+;; at ::fulcro/app-started. The cb you give here is called for the other
 ;; apps (and a tool is an app). Usually there are three apps altogether if you include the
 ;; host app. When Default DB Format is before Inspect (which means after in preloads) it is
 ;; having its cb called second and is only seeing the host app, which is the first app. We can
@@ -158,15 +158,23 @@
 
 (defonce ^:private tool* (atom nil))
 
-(defn missing-keys-warnings [{:keys [lein-options edn] :as configuration}]
+(defn missing-keys-warnings [configuration]
   (let [[unknown-lein-keys unknown-edn-keys] (core/find-incorrect-keys configuration)]
     (when (seq unknown-lein-keys)
       (dev/warn "Unsupported lein option keys" unknown-lein-keys))
     (when (seq unknown-edn-keys)
       (dev/warn "Unsupported edn option keys" unknown-edn-keys))))
 
+(defn key-values-warnings [{:keys [edn]}]
+  (let [endings (hof/setify (:by-id-ending edn))
+        bad-endings (remove string? endings)]
+    (when (seq bad-endings)
+      (apply dev/warn "All values for" :by-id-ending "must be strings"
+             (mapv (juxt type identity) bad-endings)))))
+
 (defn start-tool [configuration]
   (missing-keys-warnings configuration)
+  (key-values-warnings configuration)
   (let [
         ;; edn will include the `by-id` defaults, so there will be something for edn
         ;; even if there isn't an edn file. On the other hand :lein-options are what you
@@ -260,7 +268,7 @@
 ;; Assumption behind this function is that it is called for every possible
 ;; target-app. This function accepts what the preference is, else the first.
 ;; There's only any point in specifying a preference if this message is seen:
-;; "Accepted a host already, so discarding: ..."
+;; tool-name "is discarding ..."
 ;;
 (defn install-app! [target-app]
   (let [tool-reconciler (:reconciler (tool))
@@ -283,16 +291,17 @@
                    host-root-path-preference)
 
           (not= ignore-fulcro-inspect whole-path) (watch-st-f host-root)
-          :else (apply dev/debug-config
-                       (if (= ignore-fulcro-inspect whole-path)
-                         ["Discarding Fulcro Inspect root:" whole-path]
-                         ["Discarding:" whole-path]))))
+
+          :else (if (= ignore-fulcro-inspect whole-path)
+                  (dev/debug-config core/tool-name "is discarding Fulcro Inspect root" whole-path)
+                  (dev/log core/tool-name "should never see this!! (sanity check)"))))
       ;; If the wanted one is being discarded then need to add :host-root-path to config, such that
       ;; the specified host-root-path will be the only one that is accepted. Will work as an
       ;; override if need to examine the state of Fulcro Inspect for instance. In which case set
       ;; host-root-path to "fulcro.inspect.core/GlobalRoot", that's at
       ;; default-db-format.tool/ignore-fulcro-inspect
-      (dev/log "Accepted a host already, so discarding:" (-> target-app app-path first)))))
+      (dev/debug-config core/tool-name "has accepted a host already, so discarding"
+                        (-> target-app app-path first)))))
 
 (defn install [{:keys [lein-options] :as configuration}]
   (dev/debug-config "configuration:" configuration)

@@ -207,8 +207,8 @@
   {:text text})
 
 (defn- state-looks-like-config [state]
-  (let [{:keys [okay-value-maps by-id-kw bad-join acceptable-table-value-fn?]} state]
-    (or okay-value-maps by-id-kw bad-join acceptable-table-value-fn?)))
+  (let [{:keys [okay-value-maps by-id-ending bad-join acceptable-table-value-fn?]} state]
+    (or okay-value-maps by-id-ending bad-join acceptable-table-value-fn?)))
 
 (defn- failed-state [state]
   (if (not (map? state))
@@ -236,11 +236,49 @@
     [unknown-lein-keys unknown-edn-keys]))
 
 (defn -check
-  "Checks to see if normalization works as expected. Returns a hash-map you can pprint
+  ([config state]
+   (or (failed-state state)
+       (let [
+             ;; In the case of the tool this defaulting has already been done. But we can't assume that
+             ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
+             ;; do this without fear.
+             config (merge help/default-edn-config config)
+             {:keys [okay-value-map okay-value-vector bad-join acceptable-table-value-fn?]} config
+             {:keys [one-of-id? by-id-ending? table? not-join-key-f?] :as fns-map} (help/config->fns config)
+             ident-like? (help/-ident-like-hof? fns-map)
+             conformance-predicates {:ident-like?               ident-like?
+                                     :acceptable-table-value-f? (or acceptable-table-value-fn? (constantly false))}
+             somehow-table-entries (help/table-entries by-id-ending? one-of-id? table? state)
+             table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
+             keys-to-ignore (hof/setify (into bad-join fulcro-bad-joins))
+             top-level-joins (join-entries not-join-key-f? one-of-id? state keys-to-ignore)
+             all-keys-count (+ (count top-level-joins)
+                               (count somehow-table-entries))
+             no-tables? (and (empty? table-names)
+                             (pos? all-keys-count))]
+         (if no-tables?
+           (do
+             (ret {:failed-assumption (incorrect "by-id normalized file required")}))
+           (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
+                 join-entries-tester (join-entry->error-hof ident-like? categories)
+                 okay-maps (hof/setify okay-value-map)
+                 okay-vectors (hof/setify okay-value-vector)
+                 id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
+             (ret {:categories  categories
+                   :known-names table-names
+                   :not-normalized-join-entries
+                                (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
+                   :not-normalized-table-entries
+                                (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
+  ([state]
+   (-check help/default-edn-config state)))
+
+(def check
+  "Checks to see if normalization works as expected. Returns a small hash-map indicating normalization health.
   config param keys:
-  :by-id-kw -> What comes after the slash in the Ident tuple-2's first position. As a String.
-               By default is \"by-id\" as that's what the convention is.
-               Can be a #{} or [] of Strings where > 1 required.
+  :by-id-ending -> What comes after the slash in the Ident tuple-2's first position. Must be a string.
+               By default is #{\"by-id\" \"BY-ID\"} as that's what the convention is.
+               Can be a #{} or [] or a single string when only 1 required.
   :one-of-id -> Something standard in the Ident tuple-2's second position, for components that the
                application only needs one of. Can be a #{} or [], just in case there are a few
                different variations on this convention.
@@ -272,47 +310,4 @@
   :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
 "
-  ([config state]
-   (or (failed-state state)
-       (let [
-             ;; In the case of the tool this defaulting has already been done. But we can't assume that
-             ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
-             ;; do this without fear.
-             config (merge help/default-edn-config config)
-             {:keys [okay-value-map okay-value-vector bad-join acceptable-table-value-fn?]} config
-             ident-like? (help/ident-like-hof? config)
-             conformance-predicates {:ident-like?               ident-like?
-                                     :acceptable-table-value-f? (or acceptable-table-value-fn? (constantly false))}
-             by-id-kw? (hof/reveal-f :by-id-kw config)
-             single-id? (hof/reveal-f :one-of-id config)
-             table? (hof/reveal-f :not-by-id-table config)
-             routed-ns? (hof/reveal-f :before-slash-routing config)
-             routed-name? (hof/reveal-f :after-slash-routing config)
-             routing-table? (hof/reveal-f :routing-table config)
-             somehow-table-entries (help/table-entries by-id-kw? single-id? table? state)
-             table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
-             keys-to-ignore (hof/setify (into bad-join fulcro-bad-joins))
-             not-join-key-f? (some-fn by-id-kw? routed-ns? routed-name? routing-table? table?)
-             top-level-joins (join-entries not-join-key-f? single-id? state keys-to-ignore)
-             all-keys-count (+ (count top-level-joins)
-                               (count somehow-table-entries))
-             no-tables? (and (empty? table-names)
-                             (pos? all-keys-count))]
-         (if no-tables?
-           (do
-             (ret {:failed-assumption (incorrect "by-id normalized file required")}))
-           (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
-                 join-entries-tester (join-entry->error-hof ident-like? categories)
-                 okay-maps (hof/setify okay-value-map)
-                 okay-vectors (hof/setify okay-value-vector)
-                 id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
-             (ret {:categories  categories
-                   :known-names table-names
-                   :not-normalized-join-entries
-                                (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
-                   :not-normalized-table-entries
-                                (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
-  ([state]
-   (-check help/default-edn-config state)))
-
-(def check (memoize -check))
+  (memoize -check))
