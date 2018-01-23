@@ -106,7 +106,7 @@
        (ident [_ props] [:display-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [:tool-name :tool-version :not-normalized-table-entries :not-normalized-join-entries :failed-assumption])
+       (query [_] [:tool-name :tool-version :bad-table-fields :bad-root-joins :failed-assumption])
 
        static css/CSS
        (local-rules [_] [[:.container {:display          "flex"
@@ -145,14 +145,14 @@
        (render [this]
                (let [props (prim/props this)
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
-                     {:keys [tool-name tool-version not-normalized-table-entries not-normalized-join-entries failed-assumption]} props
+                     {:keys [tool-name tool-version bad-table-fields bad-root-joins failed-assumption]} props
                      _ (when (nil? tool-name)
                          (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (ui.domain/okay? props))
                      css (css/get-classnames DisplayDb)
-                     join-entries-problems? (seq not-normalized-join-entries)
-                     table-entries-problems? (seq not-normalized-table-entries)]
+                     join-entries-problems? (seq bad-root-joins)
+                     table-entries-problems? (seq bad-table-fields)]
                  (if report-problem?
                    (dom/div #js {:className (:container css)}
                             (dom/div #js {:className (:header css)}
@@ -180,7 +180,7 @@
                                                                     (dom/span #js {:className (:purple-coloured global-css)}
                                                                               ":bad-join")
                                                                     " in edn config is one solution)"))
-                                                  (joins-list-component {:items not-normalized-join-entries})))
+                                                  (joins-list-component {:items bad-root-joins})))
                                        (when (and join-entries-problems? table-entries-problems?)
                                          (dom/br nil))
                                        (when table-entries-problems?
@@ -191,7 +191,7 @@
                                                                     (dom/span #js {:className (:red-coloured global-css)}
                                                                               "field join")))
                                                   (dom/div nil
-                                                           (for [by-id (into {} not-normalized-table-entries)
+                                                           (for [by-id (into {} bad-table-fields)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
                                                              (bad-table-entries-component present-lower))))))))
                    (dom/div nil "No problem to report")))))

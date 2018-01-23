@@ -25,5 +25,5 @@
 (deftest singleton-passes?
   (is (= true
          (-> (format/check config state)
-             :not-normalized-table-entries
+             :bad-table-fields
              empty?))))

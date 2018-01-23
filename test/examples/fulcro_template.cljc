@@ -3,7 +3,7 @@
 
 (def initial-state
   {:ui/react-key               "en-US",
-   :fulcro.ui.boostrap3.modal/by-id
+   :fulcro.ui.bootstrap3.modal/by-id
                                {:welcome
                                 {:db/id          :welcome,
                                  :modal/active   false,

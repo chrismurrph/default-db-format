@@ -56,14 +56,16 @@
 ;;
 (def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string? my-uuid? vector?))
 
-(def fulcro-bad-joins [:fulcro/server-error :fulcro.ui.forms/form :fulcro.client.routing/routing-tree])
+(def fulcro-bad-field-joins [:fulcro.ui.forms/form])
+(def fulcro-links [:fulcro/server-error :fulcro.client.routing/routing-tree])
 
 ;;
 ;; Not pluralizing even after setify, just for the sake of having a convention. This convention
 ;; only for these 'configuration' keys, and lasts right until they are needed for low level filter
-;; or whatever they can be pluralised again (looks silly otherwise).
+;; or whatever they can be pluralised again (looks silly otherwise). Anything that isn't exactly
+;; the same key gets pluralized here, evidence ignore-links and ignore-bad-field-joins.
 ;;
-(defn config->init [{:keys [acceptable-map-value acceptable-vector-value bad-join] :as config}]
+(defn config->init [{:keys [acceptable-map-value acceptable-vector-value link bad-field-join] :as config}]
   (let [by-id-ending? (hof/reveal-f :by-id-ending config)
         not-by-id-table? (hof/reveal-f :not-by-id-table config)
         routed-ns? (hof/reveal-f :before-slash-routing config)
@@ -79,7 +81,8 @@
                                    hof/setify
                                    (remove (complement vector?))
                                    hof/setify)
-     :keys-to-ignore          (into (hof/setify bad-join) fulcro-bad-joins)
+     :ignore-links            (into (hof/setify link) fulcro-links)
+     :ignore-bad-field-joins  (into (hof/setify bad-field-join) fulcro-bad-field-joins)
      }))
 
 ;;

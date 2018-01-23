@@ -11,7 +11,7 @@
             ))
 
 (def tool-name "Default DB Format")
-(def tool-version 300)
+(def tool-version 3000)
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -190,9 +190,8 @@
     (if (not (map? v))
       [(str "Value of " k " has to be a map")]
       (let [gathered (gather-table-entry-bads-inside conformance-predicates acceptable-map-value
-                                                     acceptable-vector-value keys-to-ignore v)
-            not-empty (seq gathered)]
-        (when not-empty
+                                                     acceptable-vector-value keys-to-ignore v)]
+        (when (seq gathered)
           {k (into {} gathered)})))))
 
 (defn- ret [m]
@@ -237,7 +236,7 @@
              ;; do this without fear.
              config (merge help/default-edn-config config)
              {:keys [acceptable-table-value-fn?]} config
-             {:keys [acceptable-map-value acceptable-vector-value keys-to-ignore one-of-id? table-key?]
+             {:keys [acceptable-map-value acceptable-vector-value ignore-links ignore-bad-field-joins one-of-id? table-key?]
               :as init-map} (help/config->init config)
              ident-like? (help/-ident-like-hof? init-map)
              conformance-predicates {:ident-like?               ident-like?
@@ -247,7 +246,7 @@
              ;; since execution of the same predicates is repeated in both filter operations. Must put in some
              ;; tests before do this. Then use stopwatch.
              somehow-table-entries (help/table-entries table-key? one-of-id? state)
-             top-level-joins (help/join-entries table-key? one-of-id? state keys-to-ignore)
+             top-level-joins (help/join-entries table-key? one-of-id? state ignore-links)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
              all-keys-count (+ (count top-level-joins)
                                (count somehow-table-entries))
@@ -259,22 +258,20 @@
            (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
                  join-entries-tester (join-entry->error-hof ident-like? categories)
                  id-tester (table-entry->error-hof conformance-predicates acceptable-map-value
-                                                   acceptable-vector-value keys-to-ignore)]
+                                                   acceptable-vector-value ignore-bad-field-joins)]
              (ret {:categories  categories
                    :known-names table-names
                    ;;
-                   ;; :not-normalized-join-entries is (I think) only where a root level join
+                   ;; :bad-root-joins is (I think) only where a root level join
                    ;; (anything that is not a table is a root level join)
                    ;; does not have idents or vectors of idents in it
                    ;;
-                   :not-normalized-join-entries
-                                (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
+                   :bad-root-joins (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
                    ;;
-                   ;; :not-normalized-table-entries is where the table has been recognised, and is in the right
+                   ;; :bad-table-fields is where the table has been recognised, and is in the right
                    ;; format, but there are joins that do not have idents or vectors of idents in them
                    ;;
-                   :not-normalized-table-entries
-                                (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
+                   :bad-table-fields (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
   ([state]
    (-check help/default-edn-config state)))
 
