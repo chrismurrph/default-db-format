@@ -16,7 +16,7 @@
                  [fulcrologic/fulcro-inspect "2.0.0-alpha2" :scope "provided"]
                  ]
 
-  :jar-exclusions [#"config" #"examples" #"public" #"figwheel.clj" #"user.clj"]
+  :jar-exclusions [#"config" #"examples" #"public" #"figwheel.clj" #"user.clj" #"test_core.clj" #"test_helpers.clj"]
 
   :scm {:name "git"
         :url  "https://github.com/chrismurrph/default-db-format"}

@@ -10,7 +10,6 @@
 
 (set-refresh-dirs "dev" "src" "test")
 
-
 ;; Use if don't want the system, when coding from the REPL.
 (defn refresh [& args]
   (apply tools-ns/refresh args))

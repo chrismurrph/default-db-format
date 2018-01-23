@@ -18,14 +18,31 @@
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured).
   Also included are table names given to config that are not necessarily namespaced. A convention may develop
   whereby 'one of' tables do not follow some /by-id or /id convention, as there isn't an id in these cases."
-  [by-id-ending-fn? single-id? table? state]
-  (let [table-like-key? (some-fn by-id-ending-fn? table?)]
-    (filter (fn [[k v]]
-              (when (or (nil? v) (and (map? v) (= 1 (count v))))
-                (dev/debug-check "EXAMINE: " k v))
-              (or (table-like-key? k)
-                  (single-id? k v)))
-            state)))
+  [table-key? single-id? state]
+  (filter (fn [[k v]]
+            (when (and dev/debug-check?
+                       (or (nil? v)
+                           (and (map? v) (= 1 (count v)))))
+              (dev/debug-check "EXAMINE: " k v))
+            (or (table-key? k)
+                (single-id? k v)))
+          state))
+
+(defn kw->str [kw]
+  (-> kw str exclude-colon))
+
+(defn join-entries
+  "There are only two types of top level keys in 'default db format'. This function returns those for which
+  the part after the / is neither 'by-id' nor a routing ident nor a link nor a 'one of'"
+  ([table-key? one-of? state known-bad-joins]
+   (filter (fn [[k v]]
+             (and (= 2 (count (s/split (kw->str k) #"/")))
+                  (not (contains? known-bad-joins k))
+                  (not (table-key? k))
+                  (not (one-of? k v))))
+           state))
+  ([ident-like? one-of? state]
+   (join-entries ident-like? one-of? state nil)))
 
 (defn my-uuid? [x]
   #?(:cljs (instance? UUID x)
@@ -39,18 +56,31 @@
 ;;
 (def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string? my-uuid? vector?))
 
-(defn config->fns [config]
+(def fulcro-bad-joins [:fulcro/server-error :fulcro.ui.forms/form :fulcro.client.routing/routing-tree])
+
+;;
+;; Not pluralizing even after setify, just for the sake of having a convention. This convention
+;; only for these 'configuration' keys, and lasts right until they are needed for low level filter
+;; or whatever they can be pluralised again (looks silly otherwise).
+;;
+(defn config->init [{:keys [acceptable-map-value acceptable-vector-value bad-join] :as config}]
   (let [by-id-ending? (hof/reveal-f :by-id-ending config)
-        table? (hof/reveal-f :not-by-id-table config)
+        not-by-id-table? (hof/reveal-f :not-by-id-table config)
         routed-ns? (hof/reveal-f :before-slash-routing config)
         routed-name? (hof/reveal-f :after-slash-routing config)
-        routing-table? (hof/reveal-f :routing-table config)
-        not-join-key-f? (some-fn by-id-ending? routed-ns? routed-name? routing-table? table?)
-        one-of-id? (hof/reveal-f :one-of-id config)]
-    {:one-of-id? one-of-id?
-     :by-id-ending? by-id-ending?
-     :table? table?
-     :not-join-key-f? not-join-key-f?}))
+        routing-table? (hof/reveal-f :routing-table config)]
+    {:one-of-id?              (hof/reveal-f :one-of-id config)
+     :table-key?              (some-fn not-by-id-table? by-id-ending? routing-table? routed-ns? routed-name?)
+     :acceptable-map-value    (->> acceptable-map-value
+                                   hof/setify
+                                   (remove (complement vector?))
+                                   hof/setify)
+     :acceptable-vector-value (->> acceptable-vector-value
+                                   hof/setify
+                                   (remove (complement vector?))
+                                   hof/setify)
+     :keys-to-ignore          (into (hof/setify bad-join) fulcro-bad-joins)
+     }))
 
 ;;
 ;; The outer function accepts the same config that check accepts.
@@ -58,9 +88,9 @@
 ;; [:graph-point/by-id 2003]
 ;;
 (defn -ident-like-hof?
-  [{:keys [not-join-key-f? one-of-id?]}]
+  [{:keys [table-key? one-of-id?]}]
   (let [okay-key? (fn [cls]
-                    (let [res (not-join-key-f? cls)]
+                    (let [res (table-key? cls)]
                       (dev/log-off "acceptable key? " cls " " (boolean res))
                       res))
         okay-id? (fn [id]
@@ -88,14 +118,11 @@
 
 (defn ident-like-hof? [config]
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
-  (-ident-like-hof? (config->fns (merge default-edn-config config))))
+  (-ident-like-hof? (config->init (merge default-edn-config config))))
 
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
-  (-ident-like-hof? (config->fns default-edn-config)))
-
-(defn kw->str [kw]
-  (-> kw str exclude-colon))
+  (-ident-like-hof? (config->init default-edn-config)))
 
 ;;
 ;; In the past made this a hard and fast rule, even for keys that are to be ignored

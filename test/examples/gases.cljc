@@ -576,12 +576,12 @@
                              [:gas-at-location/by-id 538]
                              [:gas-at-location/by-id 539]],
    :app/buttons
-                            [[:button/by-id 1]
-                             [:button/by-id 2]
-                             [:button/by-id 3]
-                             [:button/by-id 4]
-                             [:button/by-id 5]
-                             [:button/by-id 6]],
+                            [[:button/id 1]
+                             [:button/id 2]
+                             [:button/id 3]
+                             [:button/id 4]
+                             [:button/id 5]
+                             [:button/id 6]],
    :app/tubes
                             [[:tube/by-id 1000]
                              [:tube/by-id 1001]
@@ -831,7 +831,7 @@
    :graph/labels            [[:label/by-id 10000]],
    :label/by-id
                             {10000 {:id 10000, :name "Carbon Monoxide at 1", :dec-places 1}},
-   :button/by-id
+   :button/id
                             {1 {:id 1, :name "Map", :description "Mine plan", :showing true},
                              2
                                {:id          2,

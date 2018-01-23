@@ -95,18 +95,6 @@
 
 (def bad-table-entries-component (prim/factory BadTablesEntry {:keyfn :id}))
 
-(defn okay? [check-result]
-  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result
-        un-normalized-joins-exist? (boolean (seq not-normalized-join-entries))
-        un-normalized-tables-exist? (boolean (seq not-normalized-table-entries))]
-    (not (or failed-assumption un-normalized-joins-exist? un-normalized-tables-exist?))))
-
-(defn detail-okay? [check-result]
-  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result
-        un-normalized-joins-exist? (boolean (seq not-normalized-join-entries))
-        un-normalized-tables-exist? (boolean (seq not-normalized-table-entries))]
-    [(not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
-
 (defui ^:once DisplayDb
        static prim/InitialAppState
        (initial-state [_ {:keys [tool-name tool-version] :as params}]
@@ -161,7 +149,7 @@
                      _ (when (nil? tool-name)
                          (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
-                     report-problem? (not (okay? props))
+                     report-problem? (not (ui.domain/okay? props))
                      css (css/get-classnames DisplayDb)
                      join-entries-problems? (seq not-normalized-join-entries)
                      table-entries-problems? (seq not-normalized-table-entries)]

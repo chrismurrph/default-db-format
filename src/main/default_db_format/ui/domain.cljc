@@ -3,6 +3,18 @@
             [fulcro-css.css :as css]
             [garden.selectors :as gs]))
 
+(defn okay? [check-result]
+  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result
+        un-normalized-joins-exist? (boolean (seq not-normalized-join-entries))
+        un-normalized-tables-exist? (boolean (seq not-normalized-table-entries))]
+    (not (or failed-assumption un-normalized-joins-exist? un-normalized-tables-exist?))))
+
+(defn detail-okay? [check-result]
+  (let [{:keys [failed-assumption not-normalized-join-entries not-normalized-table-entries]} check-result
+        un-normalized-joins-exist? (boolean (seq not-normalized-join-entries))
+        un-normalized-tables-exist? (boolean (seq not-normalized-table-entries))]
+    [(not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
+
 ;;
 ;; Some stealing from fulcro-inspect, source of a lot of good stuff
 ;;

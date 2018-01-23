@@ -16,11 +16,10 @@
 (deftest table-categories
   (let [by-id-ending? (hof/reveal-f :by-id-ending help/default-edn-config)
         single-id? (hof/reveal-f :one-of-id help/default-edn-config)
-        table? (hof/reveal-f :by-id-ending help/default-edn-config)
         state gases/gas-norm-state]
     (is (= 3
            (->> state
-                (help/table-entries by-id-ending? single-id? table?)
+                (help/table-entries by-id-ending? single-id?)
                 (into #{} (map (comp help/category-part str key)))
                 count)))))
 

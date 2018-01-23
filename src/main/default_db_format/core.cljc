@@ -4,24 +4,23 @@
     #?(:cljs [cljs.pprint :refer [pprint]])
     #?(:clj
             [clojure.pprint :refer [pprint]])
-    #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component okay? detail-okay?]])
+    #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component]])
             [default-db-format.helpers :as help]
             [default-db-format.hof :as hof]
+            [default-db-format.ui.domain :as ui.domain]
             ))
 
 (def tool-name "Default DB Format")
-(def tool-version 30)
+(def tool-version 300)
 
 (defn bool? [v]
   (or (true? v) (false? v)))
 
 #?(:cljs (enable-console-print!))
 
-#?(:cljs
-   (def ok? okay?))
+(def ok? ui.domain/okay?)
 
-#?(:cljs
-   (def detail-ok? detail-okay?))
+(def detail-ok? ui.domain/detail-okay?)
 
 ;;
 ;; Not needed when HUD is brought up from the tool.
@@ -49,7 +48,7 @@
            (empty? v))))
 
 (defn join-entry->error-hof
-  "Given non id top level keys, find out those not in correct format and return them.
+  "Given non-table top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
   [ident-like? knowns]
   (fn [[k v]]
@@ -77,8 +76,8 @@
        (= (set (keys test-map)) (set partic-vec-format))))
 
 (defn known-map?
-  [okay-value-maps test-map]
-  (first (filter #(map-of-partic-format? % test-map) okay-value-maps)))
+  [acceptable-map-values test-map]
+  (first (filter #(map-of-partic-format? % test-map) acceptable-map-values)))
 
 ;; Saying keys but could be anything
 (defn vector-of-partic-keys?
@@ -87,8 +86,8 @@
     (every? (set partic-vec-keys) test-vector)))
 
 (defn known-vector?
-  [okay-value-vectors test-vector]
-  (first (filter #(vector-of-partic-keys? % test-vector) okay-value-vectors)))
+  [acceptable-vector-values test-vector]
+  (first (filter #(vector-of-partic-keys? % test-vector) acceptable-vector-values)))
 
 (defn my-inst? [x]
   #_(inst? x)
@@ -96,7 +95,8 @@
   #?(:cljs (instance? js/Date x)
      :clj  (instance? java.util.Date x)))
 
-(def goog-date "function (opt_year, opt_month, opt_date, opt_hours,")
+(def goog-date-type-info ((juxt identity count) "function (opt_year, opt_month, opt_date, opt_hours,"))
+(def obj-info ((juxt identity count) "[object Object]"))
 ;;
 ;; This should catch anything complicated put into the state, for instance a channel:
 ;; #object[cljs.core.async.impl.channels.ManyToManyChannel]
@@ -109,17 +109,21 @@
 (defn anything-else?
   [v]
   ;(println "VAL: " (str v) ", OR: " v ", OR: " (type v) ", OR: " (str (type v)))
-  (or (= "[object Object]" (subs (str v) 0 15))))
+  (let [s (str v)
+        [obj-boiler size-boiler] obj-info]
+    (and
+      (>= (count s) size-boiler)
+      (= obj-boiler (subs s 0 size-boiler)))))
 
 (defn goog-date? [v]
-  (let [sz-goog-date (count goog-date)
+  (let [[goog-date-type-boiler size-goog-date-type-boiler] goog-date-type-info
         type-as-str (str (type v))]
     (and
-      (>= (count type-as-str) sz-goog-date)
-      (= goog-date (subs type-as-str 0 sz-goog-date)))))
+      (>= (count type-as-str) size-goog-date-type-boiler)
+      (= goog-date-type-boiler (subs type-as-str 0 size-goog-date-type-boiler)))))
 
 ;;
-;; A temporary loading thing, not easily dumped
+;; A temporary loading thing, not easily seen/dumped
 ;;
 (defn fulcro-fetch-state? [v]
   (-> v :ui/fetch-state map?))
@@ -132,7 +136,7 @@
 
 (defn how-fine-inside-leaf-table-entries-val
   "The (normalized) graph's values should only be true leaf data types or idents"
-  [predicate-fns okay-value-maps okay-value-vectors]
+  [predicate-fns acceptable-map-value acceptable-vector-value]
   (fn [val]
     (let [{:keys [ident-like? acceptable-table-value-f?]} predicate-fns]
       (assert (and ident-like? acceptable-table-value-f?))
@@ -146,8 +150,8 @@
         (keyword? val) :keyword
         (symbol? val) :symbol
         (vec-of-idents? ident-like? val) :vec-of-idents
-        (known-map? okay-value-maps val) :known-map
-        (known-vector? okay-value-vectors val) :known-vector
+        (known-map? acceptable-map-value val) :known-map
+        (known-vector? acceptable-vector-value val) :known-vector
         (fn? val) :function
         (my-inst? val) :instant
         (help/my-uuid? val) :uuid
@@ -157,9 +161,10 @@
         (fulcro-fetch-state? val) :fulcro-fetch-state
         (acceptable-table-value-f? val) :acceptable-table-value))))
 
-(defn- bad-inside-table-entry-val? [predicate-fns okay-value-maps okay-value-vectors keys-to-ignore]
+(defn- bad-inside-table-entry-val? [predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore]
   (fn [obj-map]
-    (let [how-okay-f? (how-fine-inside-leaf-table-entries-val predicate-fns okay-value-maps okay-value-vectors)]
+    (let [how-okay-f? (how-fine-inside-leaf-table-entries-val
+                        predicate-fns acceptable-map-value acceptable-vector-value)]
       (for [[k v] obj-map
             :let [how-okay (or (keys-to-ignore k) (how-okay-f? v))
                   ;_ (when (= :current-route k)
@@ -169,8 +174,10 @@
             :when problem?]
         msg-to-usr))))
 
-(defn- gather-table-entry-bads-inside [predicate-fns okays-maps okays-vectors keys-to-ignore id-obj-map]
-  (let [bad-inside? (bad-inside-table-entry-val? predicate-fns okays-maps okays-vectors keys-to-ignore)]
+(defn- gather-table-entry-bads-inside [predicate-fns acceptable-map-value acceptable-vector-value
+                                       keys-to-ignore id-obj-map]
+  (let [bad-inside? (bad-inside-table-entry-val?
+                      predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore)]
     (mapcat (fn [[_ obj-map]]
               (bad-inside? obj-map))
             id-obj-map)))
@@ -178,27 +185,15 @@
 (defn table-entry->error-hof
   "Given id top level keys, find out those not in correct format and return them
   Returns nil if there is no error. Specific hash-map data structure is returned"
-  [conformance-predicates okays-maps okays-vectors keys-to-ignore]
+  [conformance-predicates acceptable-map-value acceptable-vector-value keys-to-ignore]
   (fn [[k v]]
     (if (not (map? v))
       [(str "Value of " k " has to be a map")]
-      (let [gathered (gather-table-entry-bads-inside conformance-predicates okays-maps okays-vectors keys-to-ignore v)
+      (let [gathered (gather-table-entry-bads-inside conformance-predicates acceptable-map-value
+                                                     acceptable-vector-value keys-to-ignore v)
             not-empty (seq gathered)]
         (when not-empty
           {k (into {} gathered)})))))
-
-(defn- join-entries
-  "There are only two types of top level keys in 'default db format'. This function returns those for which
-  the part after the / is neither 'by-id' nor a routing ident nor a link nor a 'one of'"
-  ([ident-like? one-of? state known-bad-joins]
-   (filter (fn [[k v]]
-             (and (= 2 (count (s/split (help/kw->str k) #"/")))
-                  (not (contains? known-bad-joins k))
-                  (not (ident-like? k))
-                  (not (one-of? k v))))
-           state))
-  ([ident-like? one-of? state]
-   (join-entries ident-like? one-of? state nil)))
 
 (defn- ret [m]
   (merge m {:version tool-version}))
@@ -207,8 +202,8 @@
   {:text text})
 
 (defn- state-looks-like-config [state]
-  (let [{:keys [okay-value-maps by-id-ending bad-join acceptable-table-value-fn?]} state]
-    (or okay-value-maps by-id-ending bad-join acceptable-table-value-fn?)))
+  (let [{:keys [acceptable-map-values by-id-ending bad-join acceptable-table-value-fn?]} state]
+    (or acceptable-map-values by-id-ending bad-join acceptable-table-value-fn?)))
 
 (defn- failed-state [state]
   (if (not (map? state))
@@ -216,12 +211,10 @@
     (when (state-looks-like-config state)
       (ret {:failed-assumption (incorrect "params order: config must be first, state second")}))))
 
-(def fulcro-bad-joins [:fulcro/server-error :fulcro.ui.forms/form :fulcro.client.routing/routing-tree])
-
 ;;
 ;; check takes keys of two types, function keys and collection keys
 ;;
-(def collection-keys [:okay-value-map :okay-value-vector :bad-join])
+(def collection-keys [:acceptable-map-value :acceptable-vector-value :bad-join])
 (def check-keys (into #{} (concat collection-keys (keys hof/kw->hof))))
 
 ;;
@@ -243,15 +236,19 @@
              ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
              ;; do this without fear.
              config (merge help/default-edn-config config)
-             {:keys [okay-value-map okay-value-vector bad-join acceptable-table-value-fn?]} config
-             {:keys [one-of-id? by-id-ending? table? not-join-key-f?] :as fns-map} (help/config->fns config)
-             ident-like? (help/-ident-like-hof? fns-map)
+             {:keys [acceptable-table-value-fn?]} config
+             {:keys [acceptable-map-value acceptable-vector-value keys-to-ignore one-of-id? table-key?]
+              :as init-map} (help/config->init config)
+             ident-like? (help/-ident-like-hof? init-map)
              conformance-predicates {:ident-like?               ident-like?
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? (constantly false))}
-             somehow-table-entries (help/table-entries by-id-ending? one-of-id? table? state)
+             ;; TODO
+             ;; Combine table-entries and join-entries to get the performance benefit of one parse. Esp true
+             ;; since execution of the same predicates is repeated in both filter operations. Must put in some
+             ;; tests before do this. Then use stopwatch.
+             somehow-table-entries (help/table-entries table-key? one-of-id? state)
+             top-level-joins (help/join-entries table-key? one-of-id? state keys-to-ignore)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
-             keys-to-ignore (hof/setify (into bad-join fulcro-bad-joins))
-             top-level-joins (join-entries not-join-key-f? one-of-id? state keys-to-ignore)
              all-keys-count (+ (count top-level-joins)
                                (count somehow-table-entries))
              no-tables? (and (empty? table-names)
@@ -261,13 +258,21 @@
              (ret {:failed-assumption (incorrect "by-id normalized file required")}))
            (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
                  join-entries-tester (join-entry->error-hof ident-like? categories)
-                 okay-maps (hof/setify okay-value-map)
-                 okay-vectors (hof/setify okay-value-vector)
-                 id-tester (table-entry->error-hof conformance-predicates okay-maps okay-vectors keys-to-ignore)]
+                 id-tester (table-entry->error-hof conformance-predicates acceptable-map-value
+                                                   acceptable-vector-value keys-to-ignore)]
              (ret {:categories  categories
                    :known-names table-names
+                   ;;
+                   ;; :not-normalized-join-entries is (I think) only where a root level join
+                   ;; (anything that is not a table is a root level join)
+                   ;; does not have idents or vectors of idents in it
+                   ;;
                    :not-normalized-join-entries
                                 (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
+                   ;;
+                   ;; :not-normalized-table-entries is where the table has been recognised, and is in the right
+                   ;; format, but there are joins that do not have idents or vectors of idents in them
+                   ;;
                    :not-normalized-table-entries
                                 (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
   ([state]
@@ -283,19 +288,19 @@
                application only needs one of. Can be a #{} or [], just in case there are a few
                different variations on this convention.
   :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
-               namespaced. Legitimate convention when there is no 'id', when there is only going
+               namespaced. Makes sense when there is no 'id', when there is only going
                to be one of these tables. Can be a #{} or []. Usually keyword/s.
   :routing-table -> Any table used as the first/class part of a routing ident. #{} or [] of these.
                Usually keywords but doesn't have to be.
-  :bad-join -> #{} (or []) of field and root level join keys that we don't want to be part of normalization.
-               Root level joins are often links. A root level join is a join in the root component.
+  :bad-join -> #{} (or [] or just a key) of field and root level join keys that we don't want to be part of
+               normalization. Root level joins are often links. A root level join is a join in the root component.
                Links and these joins are indistinguishable when looking at state. Top level joins may contain
                non-normalized data, and need to be 'fixed' by being included here. This might happen if the join
                in the root component is to a component that does not have an ident. Note that join keys
                that are not namespaced or just contain simple scalar data are ignored anyway.
-  :okay-value-map -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
+  :acceptable-map-value -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
-  :okay-value-vector -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
+  :acceptable-vector-value -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports
                will mean that [:report-1] is accepted but [:report-1 :report-3] is not. Note that the order
                of the objects is not important. This is a #{} or [] of these.
   :acceptable-table-value-fn? -> Predicate function so user can decide if the given value from table data is valid,

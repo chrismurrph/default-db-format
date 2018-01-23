@@ -158,6 +158,9 @@
 
 (defonce ^:private tool* (atom nil))
 
+;;
+;; Unsupported keys will naturally simply not be used
+;;
 (defn missing-keys-warnings [configuration]
   (let [[unknown-lein-keys unknown-edn-keys] (core/find-incorrect-keys configuration)]
     (when (seq unknown-lein-keys)
@@ -165,12 +168,22 @@
     (when (seq unknown-edn-keys)
       (dev/warn "Unsupported edn option keys" unknown-edn-keys))))
 
+(defn warning-if-not-all [kw type-pred? pred-plural-name edn]
+  (let [endings (hof/setify (kw edn))
+        bads (remove type-pred? endings)]
+    (when (seq bads)
+      (apply dev/warn "All values for" kw "must be" pred-plural-name
+             (mapv (juxt type identity) bads)))))
+
+;;
+;; When do `check` that these bad values are ignored.
+;; Had to be removed for the vector cases.
+;; Nothing needed to be done if use a keyword instead of a string
+;;
 (defn key-values-warnings [{:keys [edn]}]
-  (let [endings (hof/setify (:by-id-ending edn))
-        bad-endings (remove string? endings)]
-    (when (seq bad-endings)
-      (apply dev/warn "All values for" :by-id-ending "must be strings"
-             (mapv (juxt type identity) bad-endings)))))
+  (warning-if-not-all :by-id-ending string? "strings" edn)
+  (warning-if-not-all :acceptable-map-value vector? "vectors" edn)
+  (warning-if-not-all :acceptable-vector-value vector? "vectors" edn))
 
 (defn start-tool [configuration]
   (missing-keys-warnings configuration)

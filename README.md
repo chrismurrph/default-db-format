@@ -1,6 +1,6 @@
 # default-db-format
 
-Checks that your Fulcro client state is formatted as per the normalized storage format - a.k.a.: **Default DB Format**
+Checks that your Fulcro client state is formatted as per the normalized storage format - a.k.a. **Default DB Format**
 
 #### Current release:
 
@@ -61,7 +61,23 @@ The state has a map-entry: `:root/application [:application :root]`, and one of 
 
 Note that for all config values where it is sensible you can provide the value however you like. For instance here `:application` will be translated internally into `#{:application}`. Both `[:application]` and `#{:application}` would have been acceptable alternatives to `:application`.
 
-#### Baby Sharks (a default-db-format devcard)
+#### Fulcro Template
+
+![](imgs/20180122-060925.png)
+
+There's a special key for routing table names: `:routing-table`, and it doesn't take too much investigation of the state or code to find the possible values apart from `:login`. More interesting is `:root/modals`. Looking at its map-entry in the state:
+
+````clojure
+:root/modals {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}
+````
+It cannot be a root level join because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value of the key `:welcome-modal` is not a map. So `:root/modals` must be a link. It is interesting to compare it with `:current-user`, which is a root level join:
+
+````clojure
+:current-user [:user/by-id 2]
+````
+If you look at `:root/modals` and `:current-user` in the code you can see that they both look like joins, but `:root/modals` points to a component (`Modals`) that does not have an Ident. An alternative implementation would give `Modals` an Ident and it would become a *one of* table/component.
+
+#### Baby Sharks (*Default DB Format* devcard)
 
 ![](imgs/20180119-231155.png)
 
