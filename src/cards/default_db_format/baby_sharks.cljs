@@ -81,7 +81,7 @@
                                        "Restore order..."))
                   (dom/div nil
                            (dom/button #js {:onClick #(prim/transact! this [`(map-at-link)])}
-                                       "Give a link a map")
+                                       "Give a root-join a map")
                            (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
                                        "Restore order..."))
                   (dom/div nil

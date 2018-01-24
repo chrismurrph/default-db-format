@@ -47,7 +47,7 @@
       (and (vector? v)
            (empty? v))))
 
-(defn join-entry->error-hof
+(defn root-join->error-hof
   "Given non-table top level keys, find out those not in correct format and return them.
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
   [ident-like? knowns]
@@ -58,17 +58,26 @@
       (when (seqable? v)
         (cond
           k-err k-err
+
           (nil? v) nil
+
           ;;Why would it have to be seqable? Single idents can be put at root level
           ;;(not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
           (empty? v) nil
+
+          ;; Seems this is never happening.
+          ;; TODO
+          ;; Try to get it to happen and if can't get rid of it
           (vec-of-idents? ident-like? v) (let [non-idents (remove ident-like? v)]
                                            (when (pos? (count non-idents))
                                              [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
+
           (ident-like? v) nil
           ;;:ui/react-key is a string
+
           (string? v) nil
-          :else [{:text "Expect Idents" :problem k}])))))
+
+          :else [{:text "Expect Idents" :problem k :problem-value v}])))))
 
 (defn map-of-partic-format?
   [partic-vec-format test-map]
@@ -182,7 +191,7 @@
               (bad-inside? obj-map))
             id-obj-map)))
 
-(defn table-entry->error-hof
+(defn field-join->error-hof
   "Given id top level keys, find out those not in correct format and return them
   Returns nil if there is no error. Specific hash-map data structure is returned"
   [conformance-predicates acceptable-map-value acceptable-vector-value keys-to-ignore]
@@ -237,7 +246,7 @@
              config (merge help/default-edn-config config)
              {:keys [acceptable-table-value-fn?]} config
              {:keys [acceptable-map-value acceptable-vector-value ignore-links ignore-bad-field-joins one-of-id? table-key?]
-              :as init-map} (help/config->init config)
+              :as   init-map} (help/config->init config)
              ident-like? (help/-ident-like-hof? init-map)
              conformance-predicates {:ident-like?               ident-like?
                                      :acceptable-table-value-f? (or acceptable-table-value-fn? (constantly false))}
@@ -256,22 +265,22 @@
            (do
              (ret {:failed-assumption (incorrect "by-id normalized file required")}))
            (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
-                 join-entries-tester (join-entry->error-hof ident-like? categories)
-                 id-tester (table-entry->error-hof conformance-predicates acceptable-map-value
-                                                   acceptable-vector-value ignore-bad-field-joins)]
-             (ret {:categories  categories
-                   :known-names table-names
+                 root-tester (root-join->error-hof ident-like? categories)
+                 field-tester (field-join->error-hof conformance-predicates acceptable-map-value
+                                                     acceptable-vector-value ignore-bad-field-joins)]
+             (ret {:categories       categories
+                   :known-names      table-names
                    ;;
-                   ;; :bad-root-joins is (I think) only where a root level join
+                   ;; :bad-root-joins is where a root level join
                    ;; (anything that is not a table is a root level join)
                    ;; does not have idents or vectors of idents in it
                    ;;
-                   :bad-root-joins (into #{} (mapcat (fn [kv] (join-entries-tester kv)) top-level-joins))
+                   :bad-root-joins   (into #{} (mapcat root-tester top-level-joins))
                    ;;
                    ;; :bad-table-fields is where the table has been recognised, and is in the right
                    ;; format, but there are joins that do not have idents or vectors of idents in them
                    ;;
-                   :bad-table-fields (into #{} (mapcat (fn [kv] (id-tester kv)) somehow-table-entries))}))))))
+                   :bad-table-fields (into #{} (mapcat field-tester somehow-table-entries))}))))))
   ([state]
    (-check help/default-edn-config state)))
 

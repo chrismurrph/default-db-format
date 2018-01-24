@@ -7,11 +7,31 @@
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
+(defui ^:once RootJoinsTextItem
+       static css/CSS
+       (local-rules [_] [[:.problem {:background  ui.domain/gray
+                                     :color       ui.domain/light-red
+                                     :font-family ui.domain/mono-font-family
+                                     :margin-left  "25px"
+                                     :border-right "2px solid rgba(100, 100, 100, 0.2)"
+                                     :padding      "0 3px"
+                                     :display      "flex"
+                                     }]])
+       (include-children [_])
+       Object
+       (render [this]
+               (let [css (css/get-classnames RootJoinsTextItem)
+                     {:keys [problem problem-value]} (prim/props this)]
+                 (dom/div #js {:className (:left-justified-container global-css)}
+                          (dom/div #js {:className (:problem css)} (str problem))
+                          (dom/div #js {:className (:bad-value global-css)}
+                                   (str (dev/summarize problem-value))))
+                 )))
+(def root-joins-item-component (prim/factory RootJoinsTextItem {:keyfn :id}))
+
 (defui ^:once OneBad
        static css/CSS
        (local-rules [_] [[:.list-item {:display          "inline-block"
-                                       :color            ui.domain/white
-                                       :background-color ui.domain/darker-gray
                                        :margin-left      "50px"}]
                          ;;
                          ;; The width of this bad-key is done by content, and has priority over
@@ -22,42 +42,20 @@
                                      :background-color ui.domain/gray
                                      :color            ui.domain/light-red
                                      :border-right     "2px solid rgba(100, 100, 100, 0.2)"
-                                     :margin-right     "5px"
-                                     :padding          "0 3px"}]
-                         [:.bad-value {:display       "flex"
-                                       :text-overflow "ellipsis"
-                                       :overflow      "hidden"
-                                       :white-space   "nowrap"
-                                       }]])
+                                     :padding          "0 3px"}]])
        (include-children [_] [])
        Object
        (render [this]
                (let [css (css/get-classnames OneBad)
-                     {:keys [id bad]} (prim/props this)]
+                     {:keys [bad]} (prim/props this)]
                  (dom/div #js {:className (:left-justified-container global-css)}
                           (dom/div #js {:className (:list-item css)}
                                    (let [[k v] bad]
                                      (dom/div #js {:className (:left-justified-container global-css)}
                                               (dom/div #js {:className (:bad-key css)} (str k))
-                                              (dom/div #js {:className (:bad-value css)} (dev/summarize v)))))))))
+                                              (dom/div #js {:className (:bad-value global-css)}
+                                                       (str (dev/summarize v))))))))))
 (def one-bad-component (prim/factory OneBad {:keyfn :id}))
-
-(defui ^:once JoinsTextItem
-       static css/CSS
-       (local-rules [_] [[:.problem {:background  ui.domain/gray
-                                     :color       ui.domain/light-red
-                                     :font-family ui.domain/mono-font-family
-                                     }]])
-       (include-children [_])
-       Object
-       (render [this]
-               (let [css (css/get-classnames JoinsTextItem)
-                     {:keys [id text problem]} (prim/props this)]
-                 (dom/div #js {:className (:left-justified-container global-css)}
-                          (dom/div #js {:className (:text-explanation-abutting global-css)} (str text))
-                          (dom/div #js {:className (:problem css)} (str problem)))
-                 )))
-(def joins-item-component (prim/factory JoinsTextItem {:keyfn :id}))
 
 (defui ^:once JoinsTextList
        Object
@@ -65,10 +63,13 @@
                (let [{:keys [items]} (prim/props this)]
                  (apply dom/div nil
                         (for [item items
-                              :let [{:keys [text problem]} item
+                              :let [{:keys [text problem problem-value]} item
                                     _ (assert text)
                                     _ (assert problem)]]
-                          (joins-item-component {:id (str text problem) :text text :problem problem}))))))
+                          (root-joins-item-component {:id (str text problem)
+                                                      :text text
+                                                      :problem problem
+                                                      :problem-value problem-value}))))))
 (def joins-list-component (prim/factory JoinsTextList {:keyfn :id}))
 
 (defui ^:once BadTablesEntry
@@ -140,7 +141,7 @@
                                               :font-family ui.domain/mono-font-family
                                               :font-size   "14px"}]
                          ])
-       (include-children [_] [ui.domain/CSS BadTablesEntry OneBad JoinsTextItem])
+       (include-children [_] [ui.domain/CSS BadTablesEntry OneBad RootJoinsTextItem])
        Object
        (render [this]
                (let [props (prim/props this)
@@ -151,8 +152,8 @@
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (ui.domain/okay? props))
                      css (css/get-classnames DisplayDb)
-                     join-entries-problems? (seq bad-root-joins)
-                     table-entries-problems? (seq bad-table-fields)]
+                     root-join-problems? (seq bad-root-joins)
+                     field-join-problems? (seq bad-table-fields)]
                  (if report-problem?
                    (dom/div #js {:className (:container css)}
                             (dom/div #js {:className (:header css)}
@@ -169,11 +170,11 @@
                                          (dom/div #js {:className (:left-justified-container global-css)}
                                                   (dom/div #js {:className (:text-explanation-simple global-css)} text))))
                               (dom/div nil
-                                       (when join-entries-problems?
+                                       (when root-join-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
                                                            (dom/div nil
-                                                                    "Not normalized val in "
+                                                                    "Expect Ident/s in "
                                                                     (dom/span #js {:className (:red-coloured global-css)}
                                                                               "root join")
                                                                     " (consider "
@@ -182,13 +183,13 @@
                                                                     " in edn config)"
                                                                     ))
                                                   (joins-list-component {:items bad-root-joins})))
-                                       (when (and join-entries-problems? table-entries-problems?)
+                                       (when (and root-join-problems? field-join-problems?)
                                          (dom/br nil))
-                                       (when table-entries-problems?
+                                       (when field-join-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}
                                                            (dom/div nil
-                                                                    "Not normalized val in "
+                                                                    "Expect Ident/s in "
                                                                     (dom/span #js {:className (:red-coloured global-css)}
                                                                               "field join")
                                                                     " (consider "

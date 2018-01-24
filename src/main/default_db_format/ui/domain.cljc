@@ -86,6 +86,13 @@
                                                             :border-right "2px solid rgba(100, 100, 100, 0.2)"
                                                             :padding      "0 3px"
                                                             }]
+                              [:.bad-value {:display          "flex"
+                                            :text-overflow    "ellipsis"
+                                            :overflow         "hidden"
+                                            :white-space      "nowrap"
+                                            :color            white
+                                            :background-color darker-gray
+                                            }]
                               [:.info-group css-info-group
                                [(gs/& gs/first-child) {:border-top "0"}]]
                               [:.info-label css-info-label]

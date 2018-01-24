@@ -9,6 +9,9 @@
   {:categories     #{"graph" "app"},
    :known-names    #{"drop-info" "line" "graph-point"},
    :bad-root-joins #{{:text "Expect Idents", :problem :app/system-gases}},
+   ;;
+   ;; Hmm - its a set of tuples rather than a map. Fix when going for perfection...
+   ;;
    :bad-table-fields
                    #{[:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]
                      [:line/by-id {:intersect {:id 302}, :colour {:r 255, :g 0, :b 0}}]},
