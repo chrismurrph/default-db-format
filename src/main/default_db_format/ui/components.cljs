@@ -176,10 +176,11 @@
                                                                     "Not normalized val in "
                                                                     (dom/span #js {:className (:red-coloured global-css)}
                                                                               "root join")
-                                                                    " ("
+                                                                    " (consider "
                                                                     (dom/span #js {:className (:purple-coloured global-css)}
-                                                                              ":bad-join")
-                                                                    " in edn config is one solution)"))
+                                                                              ":link")
+                                                                    " in edn config)"
+                                                                    ))
                                                   (joins-list-component {:items bad-root-joins})))
                                        (when (and join-entries-problems? table-entries-problems?)
                                          (dom/br nil))
@@ -189,7 +190,12 @@
                                                            (dom/div nil
                                                                     "Not normalized val in "
                                                                     (dom/span #js {:className (:red-coloured global-css)}
-                                                                              "field join")))
+                                                                              "field join")
+                                                                    " (consider "
+                                                                    (dom/span #js {:className (:purple-coloured global-css)}
+                                                                              ":bad-field-join")
+                                                                    " in edn config)"
+                                                                    ))
                                                   (dom/div nil
                                                            (for [by-id (into {} bad-table-fields)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]

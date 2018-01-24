@@ -11,7 +11,7 @@
             ))
 
 (def tool-name "Default DB Format")
-(def tool-version 3000)
+(def tool-version 30)
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -289,12 +289,14 @@
                to be one of these tables. Can be a #{} or []. Usually keyword/s.
   :routing-table -> Any table used as the first/class part of a routing ident. #{} or [] of these.
                Usually keywords but doesn't have to be.
-  :bad-join -> #{} (or [] or just a key) of field and root level join keys that we don't want to be part of
-               normalization. Root level joins are often links. A root level join is a join in the root component.
-               Links and these joins are indistinguishable when looking at state. Top level joins may contain
-               non-normalized data, and need to be 'fixed' by being included here. This might happen if the join
-               in the root component is to a component that does not have an ident. Note that join keys
-               that are not namespaced or just contain simple scalar data are ignored anyway.
+  :link -> #{} (or [] or just a key) of root level join keys that we don't want to be part of
+               normalization. This might happen if the join in the root component is to a component
+               that does not have an Ident. Note that join keys that are not namespaced or just contain
+               simple scalar data are ignored anyway. Here a link is defined as a root level join where
+               the value is not normalized.
+  :bad-field-join -> #{} (or [] or just a key) of field level join keys that we don't want to be part of
+               normalization. Note that join keys that are not namespaced or just contain simple scalar
+               data are ignored anyway.
   :acceptable-map-value -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
                will mean that {:g 255 :r 255 :b 255} is accepted. This is a #{} or [] of these.
   :acceptable-vector-value -> Allowed objects in a vector, e.g. [:report-1 :report-2] for a list of reports

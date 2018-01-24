@@ -51,7 +51,7 @@ On browser reload a message from the console shows the new configuration has ind
 
 You should see this message pop up in the browser:
 
-![](imgs/20180119-203746.png)
+![](imgs/20180124-100522.png)
 
 The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should either be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't satisfy `:by-id-ending`:
 
@@ -63,7 +63,7 @@ Note that for all config values where it is sensible you can provide the value h
 
 #### Fulcro Template
 
-![](imgs/20180122-060925.png)
+![](imgs/20180124-102814.png)
 
 There's a special key for routing table names: `:routing-table`, and it doesn't take too much investigation of the state or code to find the possible values apart from `:login`. More interesting is `:root/modals`. Looking at its map-entry in the state:
 
@@ -75,11 +75,16 @@ It cannot be a root level join because its value is a map (rather than an Ident 
 ````clojure
 :current-user [:user/by-id 2]
 ````
-If you look at `:root/modals` and `:current-user` in the code you can see that they both look like joins, but `:root/modals` points to a component (`Modals`) that does not have an Ident. An alternative implementation would give `Modals` an Ident and it would become a *one of* table/component.
+If you look at `:root/modals` and `:current-user` in the code you can see that they are both joins in the `Root` component, but `:root/modals` points to a component (`Modals`) that does not have an Ident. An alternative implementation would give `Modals` an Ident and it would become a 'one of' table/component. Anyway `:root/modals` is a link and this is our edn:
+
+````clojure
+{:routing-table [:login :main :new-user :preferences]
+ :link          [:root/modals]}
+```` 
 
 #### Baby Sharks (*Default DB Format* devcard)
 
-![](imgs/20180119-231155.png)
+![](imgs/20180124-111441.png)
 
 From the second message we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first message the tool has incorrectly assumed that a root/top level join (a link) called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is actually a table. Here's what the table looks like in state:
 
@@ -93,23 +98,23 @@ From the second message we can see that the table `:adult/by-id` has a join `:ad
 If we can get the tool to understand that `:baby/id` is the name of a table both messages ought to clear:
 
 ````clojure
-{:by-id-kw #{"by-id" "BY-ID" "id"}}
+{:by-id-ending #{"by-id" "BY-ID" "id"}}
 ````
 Notice that we have chosen to keep the default convention.
 
 The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up *Default DB Format* messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuration change. We've seen this one before, but not where the value is a map:
 
-![](imgs/20180119-232357.png)
+![](imgs/20180124-115211.png)
 
-If for some reason you did want to have maps as *scalar* value objects then `:okay-value-map` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:okay-value-vector`.
+If for some reason you did want to have maps as *scalar* value objects then `:acceptable-map-value` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:acceptable-vector-value`.
 
-If your objects are not simple enough to describe using `:okay-value-map` or `:okay-value-vector`, or the situation is more that a particular join is designated as a denormalized object holder, then `:bad-join` can come to the rescue. 
+If your objects are not simple enough to describe using `:acceptable-map-value` or `:acceptable-vector-value`, or the situation is more that a particular join is designated as a denormalized object holder, then `:bad-field-join` (or `:link` if the join is at the root level) can come to the rescue.
 
-Press Control-Q to be able to see the UI again. There's a button that will restore the state, after which you should "Give a link a map":
+There's a button that will restore the state, after which you should press "Give a link a map":
 
-![](imgs/20180119-233547.png)
+![](imgs/20180124-120612.png)
 
-Links are indistinguishable from root level joins. It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:bad-join` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we can just make use of the "Restore order..." button. In reality this where *Default DB Format* is earning its keep - it is telling you about a problem your mutations have inadvertently caused.
+It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:link` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we can just make use of the "Restore order..." button. In reality this where *Default DB Format* is earning its keep - it is telling you about a problem your mutations have inadvertently caused.
 
 #### Fulcro Inspect
 
@@ -124,29 +129,36 @@ Links are indistinguishable from root level joins. It is quite common to keep ma
                    :fulcro.inspect.ui.transactions/tx-list-id
                    :fulcro.inspect.ui.network/request-id
                    :fulcro.inspect.ui.transactions/tx-id]
- :bad-join        [:fulcro.inspect.ui.data-viewer/content
-                   :fulcro.inspect.ui.data-viewer/expanded
-                   :fulcro.inspect.ui.data-history/history
-                   :fulcro.inspect.ui.data-history/history-id
-                   :fulcro.inspect.ui.transactions/tx-list-id
-                   :fulcro.inspect.ui.network/history-id
-                   :fulcro.inspect.ui.element/panel-id
+ :link            [:fulcro.inspect.ui.element/panel-id
                    :fulcro.inspect.ui.network/request-id
                    :fulcro.inspect.ui.transactions/tx-id
                    :fulcro.inspect.ui.network/remotes
+                   :fulcro.inspect.ui.network/request-edn
+                   :ui/root
+                   ]
+ :bad-field-join  [:fulcro.inspect.ui.transactions/tx-list-id
+                   :fulcro.inspect.ui.network/history-id
+                   :fulcro.inspect.ui.network/remotes
+                   :fulcro.inspect.ui.element/panel-id
                    :fulcro.inspect.ui.network/request-edn-row-view
                    :fulcro.inspect.ui.network/request-edn
                    :fulcro.inspect.ui.network/response-edn
-                   :fulcro.history/tx
-                   :fulcro.history/db-after
-                   :fulcro.history/db-before
-                   :fulcro.history/network-sends
-                   :ui/root
+                   :fulcro.inspect.ui.network/error
+                   :fulcro.inspect.ui.data-history/history
+                   :fulcro.inspect.ui.data-history/history-id
+                   :fulcro.inspect.ui.data-viewer/content
+                   :fulcro.inspect.ui.data-viewer/expanded
                    :app-state
                    :old-state
                    :new-state
                    :tx
-                   :ret]}
+                   :ret
+                   :fulcro.history/tx
+                   :fulcro.history/db-after
+                   :fulcro.history/db-before
+                   :fulcro.history/network-sends
+                   ]
+ }
 ````
 
 *Fulcro Inspect* is normally ignored by *Default DB Format*. However it, or any other client app can be targeted using the lein `:default-db-format/config` key `:host-root-path`. Here it was set to "fulcro.inspect.core/GlobalRoot". Messages in the browser console inform you of the names of (non-tool) apps that are discarded, in case *Default DB Format* has targeted the wrong one when you are developing a multiple app client.
@@ -157,7 +169,7 @@ There is only one cljs build in `project.clj` and one HTML file in `resources/pu
 
 There are some tests that can be run using `lein run` from the command line. Or create a Server REPL to call them directly. At the REPL `(refresh)` (from `dev/user.clj`) will get you started. `clojure.test` can be used because the underlying logic (`default-db-format.core/check`) is in .cljc files.
 
-The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from *Default DB Format*, then `lein clean` `lein deps` from the target application where *Default DB Format* has already been installed as a tool. Testing against devcards is great in comparison because all can be handled by Figwheel. Often all you need to do is make a change and press F5 to reload. Of course you will still have to `(reload-config)` upon changing the edn file, but you will never have to execute the time consuming lein commands.
+The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from *Default DB Format*, then `lein clean` `lein deps` from the target application where *Default DB Format* has already been installed as a tool. Testing against devcards is great in comparison because all can be handled by Figwheel. Often all you need to do is make a change and press F5 to reload. Of course you will still have to `(reload-config)` upon changing the edn file, but you will never have to execute the lein commands.
 
 #### Internal version
 
@@ -170,7 +182,7 @@ The current internal version is **30**. Having an internal version makes sense f
  *  **27** Om now *provided*
  *  **26** Any function now accepted
  *  **25** If ALL the keys are being ignored then `check` should pass
- *  **24** Accepting one or many (sequential or set) for these three inputs: okay-value-maps, by-id-ending and not-by-id-table
+ *  **24** Accepting one or many (sequential or set) for these three inputs: acceptable-map-value, by-id-ending and not-by-id-table
  *  **23** Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
  *  **22** Fixed bug where a `:keyword` was not recognised as data
  *  **21** Released version (announced on Om Slack group)
