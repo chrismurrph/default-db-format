@@ -19,7 +19,7 @@ This library is a Fulcro tool. As such the setup will be similar to that for [Fu
                                               :debounce-timeout   2000}}
 ```` 
 
-The collapse keystroke is a toggle to get this tool out of the way of the application UI you are working on. The debounce timeout ensures that when your application's state is being hammered with changes *Default DB Format* will only be checking it every so often. Note that `default-db-format.preload` should come before `fulcro.inspect.preload` (*).
+The *collapse keystroke* is a toggle to get this tool out of the way of the UI of the host application you are working on. The *debounce timeout* ensures that when your application's state is being hammered with changes *Default DB Format* will only be checking it every so often. Note that `default-db-format.preload` should come before `fulcro.inspect.preload` (*).
 
 The default configuration for `default-db-format.core/check` is: 
 ````clojure
@@ -65,14 +65,14 @@ Note that for all config keys where it is sensible you can provide their values 
 
 ![](imgs/20180125-055343.png)
 
-There's a special key for routing table names: `:routing-table`. It doesn't take too much investigation of the state or code to find the possible values apart from `:login`. 
+Starting with the second complaint, there's a special key for routing table names: `:routing-table`. It doesn't take too much investigation of the state or code to find the possible values apart from `:login`. 
 
-More interesting is `:root/modals`. It cannot be a root level join because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value of `:welcome-modal`'s key is not a map. So `:root/modals` must be a link. It is interesting to compare it with the map-entry in the state for `:current-user`, which is a root level join:
+The first complaint is about `:root/modals`. It cannot be a root level join because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value of `:welcome-modal`'s key is not a map. So `:root/modals` must be a link. It is interesting to compare it with the map-entry in the state for `:current-user`, which is a root level join:
 
 ````clojure
 :current-user [:user/by-id 2]
 ````
-If you compare `:root/modals` and `:current-user` in the code you can see that they are both joins in the `Root` component, but `:root/modals` points to a component (`Modals`) that does not have an Ident. An alternative implementation would give `Modals` an Ident and it would become a 'one of' table/component. Anyway `:root/modals` is a link and this is our edn:
+If you compare `:root/modals` and `:current-user` in the code you can see that they both look like joins in the `Root` component, but `:root/modals` points to a component (`Modals`) that does not have an Ident. An alternative implementation would give `Modals` an Ident and it would become a 'one of' table/component. Anyway `:root/modals` is a link and this is our edn:
 
 ````clojure
 {:routing-table [:login :main :new-user :preferences]
@@ -83,7 +83,7 @@ If you compare `:root/modals` and `:current-user` in the code you can see that t
 
 ![](imgs/20180125-061344.png)
 
-From the second message we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first message the tool has incorrectly assumed that a root/top level join called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is not a join but a table. Here's a clearer view of what the table looks like in state:
+From the second complaint we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first complaint the tool has incorrectly assumed that a root/top level join called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is not a join but a table. Here's a clearer view of what the table looks like in state:
 
 ````clojure
 :baby/id
@@ -92,7 +92,7 @@ From the second message we can see that the table `:adult/by-id` has a join `:ad
   2 {:db/id 2
      :baby/first-name "Baby Shark 2"}}
 ````
-If we can get the tool to understand that `:baby/id` is the name of a table both messages ought to resolve:
+If we can get the tool to understand that `:baby/id` is the name of a table both complaints ought to resolve:
 
 ````clojure
 {:by-id-ending #{"by-id" "BY-ID" "id"}}
@@ -162,7 +162,7 @@ It is quite common to keep maps (or any other denormalized data) in links, which
 
 #### Fulcro
 
-Fulcro causes some de-normalization to your app's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
+Fulcro causes some denormalization to your app's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
 
 ````clojure
 {:bad-field-join :fulcro.ui.forms/form
@@ -175,7 +175,7 @@ There is only one cljs build in `project.clj` and one HTML file in `resources/pu
 
 There are some tests that can be run using `lein run` from the command line. Or create a Server REPL to call them directly. At the REPL `(refresh)` (from `dev/user.clj`) will get you started. `clojure.test` can be used because the underlying logic (`default-db-format.core/check`) is in .cljc files.
 
-The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from *Default DB Format*, then `lein clean` `lein deps` from the target application where *Default DB Format* has already been installed as a tool. Testing against devcards is great in comparison because all can be handled by Figwheel. Often all you need to do is make a change and press F5 to reload. Of course you will still have to `(reload-config)` upon changing the edn file, but you will never have to execute the lein commands.
+The workflow I used to manually test this tool against other applications was to `lein clean` `lein install` from *Default DB Format*, then `lein clean` `lein deps` from the target application where *Default DB Format* has already been set up as a tool. Testing against devcards is great in comparison because all can be handled by Figwheel. Often all you need to do is make a change and press F5 to reload. Of course you will still have to `(reload-config)` upon changing the edn file, but you will never have to execute the lein commands.
 
 #### Internal version
 
