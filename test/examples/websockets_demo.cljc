@@ -25,5 +25,5 @@
 (deftest singleton-passes?
   (is (= true
          (-> (format/check config state)
-             :bad-table-fields
+             :skip-table-fields
              empty?))))

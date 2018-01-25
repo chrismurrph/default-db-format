@@ -209,9 +209,13 @@
 (defn- incorrect [text]
   {:text text})
 
-(defn- state-looks-like-config [state]
-  (let [{:keys [acceptable-map-values by-id-ending bad-join acceptable-table-value-fn?]} state]
-    (or acceptable-map-values by-id-ending bad-join acceptable-table-value-fn?)))
+;;
+;; Not so important now will be using tool
+;;
+(defn- state-looks-like-config [{:keys [acceptable-map-values
+                                        by-id-ending one-of-id skip-field-join skip-link
+                                        acceptable-table-value-fn?]}]
+  (or acceptable-map-values by-id-ending one-of-id skip-field-join skip-link acceptable-table-value-fn?))
 
 (defn- failed-state [state]
   (if (not (map? state))
@@ -222,11 +226,11 @@
 ;;
 ;; check takes keys of two types, function keys and collection keys
 ;;
-(def collection-keys [:acceptable-map-value :acceptable-vector-value :bad-join])
+(def collection-keys [:acceptable-map-value :acceptable-vector-value :skip-link :skip-field-join])
 (def check-keys (into #{} (concat collection-keys (keys hof/kw->hof))))
 
 ;;
-;; Just so it is obvious. edn file contents goes straight to `check`.
+;; Just so it is obvious. edn file contents is input to `check`.
 ;;
 (def possible-edn-option-keys check-keys)
 (def possible-lein-option-keys #{:collapse-keystroke :debounce-timeout :host-root-path})
@@ -236,58 +240,10 @@
         unknown-edn-keys (clojure.set/difference (-> edn keys set) possible-edn-option-keys)]
     [unknown-lein-keys unknown-edn-keys]))
 
-(defn -check
-  ([config state]
-   (or (failed-state state)
-       (let [
-             ;; In the case of the tool this defaulting has already been done. But we can't assume that
-             ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
-             ;; do this without fear.
-             config (merge help/default-edn-config config)
-             {:keys [acceptable-table-value-fn?]} config
-             {:keys [acceptable-map-value acceptable-vector-value ignore-links ignore-bad-field-joins one-of-id? table-key?]
-              :as   init-map} (help/config->init config)
-             ident-like? (help/-ident-like-hof? init-map)
-             conformance-predicates {:ident-like?               ident-like?
-                                     :acceptable-table-value-f? (or acceptable-table-value-fn? (constantly false))}
-             ;; TODO
-             ;; Combine table-entries and join-entries to get the performance benefit of one parse. Esp true
-             ;; since execution of the same predicates is repeated in both filter operations. Must put in some
-             ;; tests before do this. Then use stopwatch.
-             somehow-table-entries (help/table-entries table-key? one-of-id? state)
-             top-level-joins (help/join-entries table-key? one-of-id? state ignore-links)
-             table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
-             all-keys-count (+ (count top-level-joins)
-                               (count somehow-table-entries))
-             no-tables? (and (empty? table-names)
-                             (pos? all-keys-count))]
-         (if no-tables?
-           (do
-             (ret {:failed-assumption (incorrect "by-id normalized file required")}))
-           (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
-                 root-tester (root-join->error-hof ident-like? categories)
-                 field-tester (field-join->error-hof conformance-predicates acceptable-map-value
-                                                     acceptable-vector-value ignore-bad-field-joins)]
-             (ret {:categories       categories
-                   :known-names      table-names
-                   ;;
-                   ;; :bad-root-joins is where a root level join
-                   ;; (anything that is not a table is a root level join)
-                   ;; does not have idents or vectors of idents in it
-                   ;;
-                   :bad-root-joins   (into #{} (mapcat root-tester top-level-joins))
-                   ;;
-                   ;; :bad-table-fields is where the table has been recognised, and is in the right
-                   ;; format, but there are joins that do not have idents or vectors of idents in them
-                   ;;
-                   :bad-table-fields (into #{} (mapcat field-tester somehow-table-entries))}))))))
-  ([state]
-   (-check help/default-edn-config state)))
-
-(def check
+(defn check
   "Checks to see if normalization works as expected. Returns a small hash-map indicating normalization health.
   config param keys:
-  :by-id-ending -> What comes after the slash in the Ident tuple-2's first position. Must be a string.
+  :by-id-ns-name -> What comes after the slash in the Ident tuple-2's first position. Must be a string.
                By default is #{\"by-id\" \"BY-ID\"} as that's what the convention is.
                Can be a #{} or [] or a single string when only 1 required.
   :one-of-id -> Something standard in the Ident tuple-2's second position, for components that the
@@ -298,12 +254,12 @@
                to be one of these tables. Can be a #{} or []. Usually keyword/s.
   :routing-table -> Any table used as the first/class part of a routing ident. #{} or [] of these.
                Usually keywords but doesn't have to be.
-  :link -> #{} (or [] or just a key) of root level join keys that we don't want to be part of
+  :skip-link -> #{} (or [] or just a key) of root level join keys that we don't want to be part of
                normalization. This might happen if the join in the root component is to a component
                that does not have an Ident. Note that join keys that are not namespaced or just contain
                simple scalar data are ignored anyway. Here a link is defined as a root level join where
                the value is not normalized.
-  :bad-field-join -> #{} (or [] or just a key) of field level join keys that we don't want to be part of
+  :skip-field-join -> #{} (or [] or just a key) of field level join keys that we don't want to be part of
                normalization. Note that join keys that are not namespaced or just contain simple scalar
                data are ignored anyway.
   :acceptable-map-value -> Description using a vector where it is a real leaf thing, e.g. [:r :g :b] for colour
@@ -323,4 +279,52 @@
   :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
 "
-  (memoize -check))
+  ([config state]
+   (or (failed-state state)
+       (let [
+             ;; In the case of the tool this defaulting has already been done. But we can't assume that
+             ;; `check` will only be called from the tool - this is a public api. Rightmost wins so we can
+             ;; do this without fear.
+             config (merge help/default-edn-config config)
+             {:keys [acceptable-table-value-fn?]} config
+             {:keys [acceptable-map-value acceptable-vector-value ignore-skip-links ignore-skip-field-joins one-of-id?
+                     table-key?]
+              :as   init-map} (help/config->init config)
+             ident-like? (help/-ident-like-hof? init-map)
+             conformance-predicates {:ident-like?               ident-like?
+                                     :acceptable-table-value-f? (or acceptable-table-value-fn? (constantly false))}
+             ;; TODO
+             ;; Combine table-entries and join-entries to get the performance benefit of one parse. Esp true
+             ;; since execution of the same predicates is repeated in both filter operations. Must put in some
+             ;; tests before do this. Then use stopwatch.
+             somehow-table-entries (help/table-entries table-key? one-of-id? state)
+             top-level-joins (help/join-entries table-key? one-of-id? state ignore-skip-links)
+             table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
+             all-keys-count (+ (count top-level-joins)
+                               (count somehow-table-entries))
+             no-tables? (and (empty? table-names)
+                             (pos? all-keys-count))]
+         (if no-tables?
+           (do
+             (ret {:failed-assumption (incorrect "by-id normalized file required")}))
+           (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
+                 root-tester (root-join->error-hof ident-like? categories)
+                 field-tester (field-join->error-hof conformance-predicates acceptable-map-value
+                                                     acceptable-vector-value ignore-skip-field-joins)]
+             (ret {:categories        categories
+                   :known-names       table-names
+                   ;;
+                   ;; :skip-root-joins is where a root level join
+                   ;; (anything that is not a table is a root level join)
+                   ;; does not have idents or vectors of idents in it
+                   ;;
+                   :skip-root-joins   (into #{} (mapcat root-tester top-level-joins))
+                   ;;
+                   ;; :skip-table-fields is where the table has been recognised, and is in the right
+                   ;; format, but there are joins that do not have idents or vectors of idents in them
+                   ;;
+                   :skip-table-fields (into #{} (mapcat field-tester somehow-table-entries))}))))))
+  ([state]
+   (check help/default-edn-config state)))
+
+

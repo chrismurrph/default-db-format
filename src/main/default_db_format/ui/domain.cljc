@@ -4,15 +4,15 @@
             [garden.selectors :as gs]))
 
 (defn okay? [check-result]
-  (let [{:keys [failed-assumption bad-root-joins bad-table-fields]} check-result
-        un-normalized-joins-exist? (boolean (seq bad-root-joins))
-        un-normalized-tables-exist? (boolean (seq bad-table-fields))]
+  (let [{:keys [failed-assumption skip-root-joins skip-table-fields]} check-result
+        un-normalized-joins-exist? (boolean (seq skip-root-joins))
+        un-normalized-tables-exist? (boolean (seq skip-table-fields))]
     (not (or failed-assumption un-normalized-joins-exist? un-normalized-tables-exist?))))
 
 (defn detail-okay? [check-result]
-  (let [{:keys [failed-assumption bad-root-joins bad-table-fields]} check-result
-        un-normalized-joins-exist? (boolean (seq bad-root-joins))
-        un-normalized-tables-exist? (boolean (seq bad-table-fields))]
+  (let [{:keys [failed-assumption skip-root-joins skip-table-fields]} check-result
+        un-normalized-joins-exist? (boolean (seq skip-root-joins))
+        un-normalized-tables-exist? (boolean (seq skip-table-fields))]
     [(not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
 
 ;;

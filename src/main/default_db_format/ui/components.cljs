@@ -107,7 +107,7 @@
        (ident [_ props] [:display-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [:tool-name :tool-version :bad-table-fields :bad-root-joins :failed-assumption])
+       (query [_] [:tool-name :tool-version :skip-table-fields :skip-root-joins :failed-assumption])
 
        static css/CSS
        (local-rules [_] [[:.container {:display          "flex"
@@ -146,14 +146,14 @@
        (render [this]
                (let [props (prim/props this)
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
-                     {:keys [tool-name tool-version bad-table-fields bad-root-joins failed-assumption]} props
+                     {:keys [tool-name tool-version skip-table-fields skip-root-joins failed-assumption]} props
                      _ (when (nil? tool-name)
                          (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (ui.domain/okay? props))
                      css (css/get-classnames DisplayDb)
-                     root-join-problems? (seq bad-root-joins)
-                     field-join-problems? (seq bad-table-fields)]
+                     root-join-problems? (seq skip-root-joins)
+                     field-join-problems? (seq skip-table-fields)]
                  (if report-problem?
                    (dom/div #js {:className (:container css)}
                             (dom/div #js {:className (:header css)}
@@ -179,10 +179,10 @@
                                                                               "root join")
                                                                     " (consider "
                                                                     (dom/span #js {:className (:purple-coloured global-css)}
-                                                                              ":link")
+                                                                              ":skip-link")
                                                                     " in edn config)"
                                                                     ))
-                                                  (joins-list-component {:items bad-root-joins})))
+                                                  (joins-list-component {:items skip-root-joins})))
                                        (when (and root-join-problems? field-join-problems?)
                                          (dom/br nil))
                                        (when field-join-problems?
@@ -194,11 +194,11 @@
                                                                               "field join")
                                                                     " (consider "
                                                                     (dom/span #js {:className (:purple-coloured global-css)}
-                                                                              ":bad-field-join")
+                                                                              ":skip-field-join")
                                                                     " in edn config)"
                                                                     ))
                                                   (dom/div nil
-                                                           (for [by-id (into {} bad-table-fields)
+                                                           (for [by-id (into {} skip-table-fields)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
                                                              (bad-table-entries-component present-lower))))))))
                    (dom/div nil "No problem to report")))))

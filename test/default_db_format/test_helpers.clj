@@ -11,7 +11,7 @@
 
 (deftest is-not-ident
   (is (= nil
-         (help/ident-like? [:my/by-by-id 10]))))
+         (help/ident-like? [:my/bye-id 10]))))
 
 (deftest table-categories
   (let [by-id-ending? (hof/reveal-f :by-id-ending help/default-edn-config)

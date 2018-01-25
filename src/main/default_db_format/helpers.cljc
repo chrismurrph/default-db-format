@@ -56,8 +56,8 @@
 ;;
 (def acceptable-id? (some-fn number? symbol? prim/tempid? keyword? string? my-uuid? vector?))
 
-(def fulcro-bad-field-joins [:fulcro.ui.forms/form])
-(def fulcro-links [:fulcro/server-error :fulcro.client.routing/routing-tree])
+(def fulcro-skip-field-joins [:fulcro.ui.forms/form])
+(def fulcro-skip-links [:fulcro/server-error :fulcro.client.routing/routing-tree])
 
 ;;
 ;; Not pluralizing even after setify, just for the sake of having a convention. This convention
@@ -65,14 +65,17 @@
 ;; or whatever they can be pluralised again (looks silly otherwise). Anything that isn't exactly
 ;; the same key gets pluralized here, evidence ignore-links and ignore-bad-field-joins.
 ;;
-(defn config->init [{:keys [acceptable-map-value acceptable-vector-value link bad-field-join] :as config}]
+(defn config->init [{:keys [acceptable-map-value acceptable-vector-value skip-link skip-field-join] :as config}]
   (let [by-id-ending? (hof/reveal-f :by-id-ending config)
+        by-id-ns-name? (hof/reveal-f :by-id-ns-name config)
+        ;; The stricter one overrides, can't have both (the tool user gets a warning)
+        by-id-f? (or by-id-ending? by-id-ns-name?)
         not-by-id-table? (hof/reveal-f :not-by-id-table config)
         routed-ns? (hof/reveal-f :before-slash-routing config)
         routed-name? (hof/reveal-f :after-slash-routing config)
         routing-table? (hof/reveal-f :routing-table config)]
     {:one-of-id?              (hof/reveal-f :one-of-id config)
-     :table-key?              (some-fn not-by-id-table? by-id-ending? routing-table? routed-ns? routed-name?)
+     :table-key?              (some-fn not-by-id-table? by-id-f? routing-table? routed-ns? routed-name?)
      :acceptable-map-value    (->> acceptable-map-value
                                    hof/setify
                                    (remove (complement vector?))
@@ -81,8 +84,8 @@
                                    hof/setify
                                    (remove (complement vector?))
                                    hof/setify)
-     :ignore-links            (into (hof/setify link) fulcro-links)
-     :ignore-bad-field-joins  (into (hof/setify bad-field-join) fulcro-bad-field-joins)
+     :ignore-skip-links       (into (hof/setify skip-link) fulcro-skip-links)
+     :ignore-skip-field-joins (into (hof/setify skip-field-join) fulcro-skip-field-joins)
      }))
 
 ;;

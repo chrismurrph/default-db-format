@@ -1,12 +1,18 @@
 # default-db-format
 
-Checks that your Fulcro client state is formatted as per the normalized storage format - a.k.a. **Default DB Format**
+Checks that your Fulcro client state is formatted as per the normalized storage format - aka **Default DB Format**
 
 #### Current release:
 
 [![Clojars Project](https://img.shields.io/clojars/v/default-db-format.svg)](https://clojars.org/default-db-format)
 
-**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the conventions that the keys of the state map use. So for instance if a `by-id` field value such as `(get-in [my-table-name/by-id 14] :my/join)` becomes a map rather than an Ident or vector of Idents, then this will be recognised and a heads-up display (HUD) will pop up.
+**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the conventions that the keys of the state map use. So for instance if a `by-id` field value such as `(get-in [my-table-name/by-id 14] :my/join)` becomes something other than: 
+
+ * an Ident or 
+ * vector of Idents or 
+ * a simple *scalar* value, 
+ 
+then this will be recognised and a heads-up display (HUD) will pop up. Note that simple *scalar* value is defined to include objects such as dates and uuids.
 
 This library is a Fulcro tool. As such the setup will be similar to that for [Fulcro Inspect](https://github.com/fulcrologic/fulcro-inspect), which you have likely already installed. In your Leiningen project file make sure that `[default-db-format "0.1.1-SNAPSHOT"]` is an entry in your `:dev` profile's `:dependencies` vector. Then look for `:preloads` and `:external-config` in the `"dev"` `:cljsbuild`:
 
@@ -162,7 +168,7 @@ It is quite common to keep maps (or any other denormalized data) in links, which
 
 #### Fulcro
 
-Fulcro causes some denormalization to your app's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
+Fulcro causes some de-normalization to your app's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
 
 ````clojure
 {:bad-field-join :fulcro.ui.forms/form

@@ -1,8 +1,18 @@
-(ns default-db-format.hof)
+(ns default-db-format.hof
+  (:require [clojure.string :as str]))
 
 ;;
 ;; hof stands for 'higher order function'
 ;;
+
+(defn by-id-ns-name-hof
+  [config-kw-strs]
+  (assert (set? config-kw-strs))
+  ;'Unexpected identifier' JavaScript error, so can't debug here
+  ;(dev/log (str "by-id-ending-hof given " config-kw-strs))
+  (fn [kw]
+    (and (keyword? kw)
+         (some #{(name kw)} config-kw-strs))))
 
 (defn by-id-ending-hof
   [config-kw-strs]
@@ -11,7 +21,7 @@
   ;(dev/log (str "by-id-ending-hof given " config-kw-strs))
   (fn [kw]
     (and (keyword? kw)
-         (some #{(name kw)} config-kw-strs))))
+         (some #(when (str/ends-with? kw %) %) (filter string? config-kw-strs)))))
 
 (defn map-entry-single-id-hof
   [config-ids]
@@ -59,7 +69,8 @@
                 (some #{nm} config-ns-strs))))))
 
 (def kw->hof
-  {:by-id-ending         by-id-ending-hof
+  {:by-id-ns-name        by-id-ns-name-hof
+   :by-id-ending         by-id-ending-hof
    :one-of-id            map-entry-single-id-hof
    :not-by-id-table      not-by-id-table-hof
    :before-slash-routing routed-ns-hof
