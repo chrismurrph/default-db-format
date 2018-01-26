@@ -21,7 +21,7 @@
   ;(dev/log (str "by-id-ending-hof given " config-kw-strs))
   (fn [kw]
     (and (keyword? kw)
-         (some #(when (str/ends-with? kw %) %) (filter string? config-kw-strs)))))
+         (some #(when (str/ends-with? (str kw) %) %) (filter string? config-kw-strs)))))
 
 (defn map-entry-single-id-hof
   [config-ids]
@@ -69,8 +69,7 @@
                 (some #{nm} config-ns-strs))))))
 
 (def kw->hof
-  {:by-id-ns-name        by-id-ns-name-hof
-   :by-id-ending         by-id-ending-hof
+  {:by-id-ending         by-id-ending-hof
    :one-of-id            map-entry-single-id-hof
    :not-by-id-table      not-by-id-table-hof
    :before-slash-routing routed-ns-hof

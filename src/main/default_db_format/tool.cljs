@@ -168,9 +168,7 @@
     (when (seq unknown-edn-keys)
       (dev/warn "Unsupported edn option keys" unknown-edn-keys))))
 
-(defn consistency-warnings [{:keys [by-id-ending by-id-ns-name]}]
-  (when (and by-id-ending by-id-ns-name)
-    (dev/warn "Having both :by-id-ending and :by-id-ns-name is not supported, only :by-id-ns-name will operate")))
+(defn consistency-warnings [{:keys []}])
 
 (defn warning-if-not-all [kw type-pred? pred-plural-name edn]
   (let [endings (hof/setify (kw edn))

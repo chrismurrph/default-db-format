@@ -7,6 +7,7 @@
     #?(:cljs [default-db-format.ui.components :as components :refer [display-db-component]])
             [default-db-format.helpers :as help]
             [default-db-format.hof :as hof]
+            [default-db-format.dev :as dev]
             [default-db-format.ui.domain :as ui.domain]
             ))
 
@@ -147,6 +148,7 @@
   "The (normalized) graph's values should only be true leaf data types or idents"
   [predicate-fns acceptable-map-value acceptable-vector-value]
   (fn [val]
+    (assert (map? predicate-fns) (type predicate-fns))
     (let [{:keys [ident-like? acceptable-table-value-f?]} predicate-fns]
       (assert (and ident-like? acceptable-table-value-f?))
       (cond
@@ -170,25 +172,31 @@
         (fulcro-fetch-state? val) :fulcro-fetch-state
         (acceptable-table-value-f? val) :acceptable-table-value))))
 
-(defn- bad-inside-table-entry-val? [predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore]
+(defn- skip-inside-table-entry-val? [predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore]
   (fn [obj-map]
     (let [how-okay-f? (how-fine-inside-leaf-table-entries-val
                         predicate-fns acceptable-map-value acceptable-vector-value)]
       (for [[k v] obj-map
             :let [how-okay (or (keys-to-ignore k) (how-okay-f? v))
-                  ;_ (when (= :current-route k)
-                  ;    (println ":current-route s/be okay:" v "\nhow okay:" how-okay))
+                  _ (dev/log-off ":okay for:" k v "\nhow okay:" how-okay)
                   problem? (nil? how-okay)
-                  msg-to-usr (when problem? [k v])]
+                  msg-to-usr (when problem?
+                               (dev/log-off "not okay for:" k v)
+                               [k v])]
             :when problem?]
         msg-to-usr))))
 
-(defn- gather-table-entry-bads-inside [predicate-fns acceptable-map-value acceptable-vector-value
+(defn- gather-table-entry-skips-inside [predicate-fns acceptable-map-value acceptable-vector-value
                                        keys-to-ignore id-obj-map]
-  (let [bad-inside? (bad-inside-table-entry-val?
+  (let [skip-inside? (skip-inside-table-entry-val?
                       predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore)]
-    (mapcat (fn [[_ obj-map]]
-              (bad-inside? obj-map))
+    (mapcat (fn [m]
+              ;; If it is a link Ident then the table won't be a map. So we test for that here
+              ;; and there's no point in looking for skip joins in a link entity because by (my)
+              ;; definition links don't refer back to the normalized world.
+              (when (map? (second m))
+                (let [[_ obj-map] m]
+                  (skip-inside? obj-map))))
             id-obj-map)))
 
 (defn field-join->error-hof
@@ -198,8 +206,9 @@
   (fn [[k v]]
     (if (not (map? v))
       [(str "Value of " k " has to be a map")]
-      (let [gathered (gather-table-entry-bads-inside conformance-predicates acceptable-map-value
-                                                     acceptable-vector-value keys-to-ignore v)]
+      (let [gathered (gather-table-entry-skips-inside conformance-predicates acceptable-map-value
+                                                      acceptable-vector-value keys-to-ignore v)]
+        (dev/log-off "gathered" (count gathered))
         (when (seq gathered)
           {k (into {} gathered)})))))
 
@@ -243,8 +252,10 @@
 (defn check
   "Checks to see if normalization works as expected. Returns a small hash-map indicating normalization health.
   config param keys:
-  :by-id-ns-name -> What comes after the slash in the Ident tuple-2's first position. Must be a string.
-               By default is #{\"by-id\" \"BY-ID\"} as that's what the convention is.
+  :by-id-ending -> What comes at the end in the Ident tuple-2's first position. Must be a string.
+               By default is #{\"/by-id\" \"/BY-ID\"} as that's what the convention is. Note that the
+               slash is often provided in the string you supply, but doesn't have to be, so that for example
+               \"id\" will match on \"my-table-ends-with-id\" as well as \"my-table/id\"
                Can be a #{} or [] or a single string when only 1 required.
   :one-of-id -> Something standard in the Ident tuple-2's second position, for components that the
                application only needs one of. Can be a #{} or [], just in case there are a few
@@ -323,8 +334,40 @@
                    ;; :skip-table-fields is where the table has been recognised, and is in the right
                    ;; format, but there are joins that do not have idents or vectors of idents in them
                    ;;
-                   :skip-table-fields (into #{} (mapcat field-tester somehow-table-entries))}))))))
+                   :skip-table-fields (into #{} (mapcat field-tester somehow-table-entries))
+                   }))))))
   ([state]
    (check help/default-edn-config state)))
+
+;; Notes
+;; =====
+;; From conversations with ppl, starting with tony.kay:
+;; My comments (C=>) made later, not at the time
+;;
+;; T=> `::table` already has a ns.
+;; so, I am already using things like `::table-by-id`
+;; C=> check is now covering this one, as can specify :by-id-ending to be "by-id" rather than "/by-id"
+;; T=> but the spec would have to run against the denormalized props, not the normalized one
+;; cause ppl are going to write specs about the data, not the normalized db
+;; however, you could ask them to write specs about their tables, and then apply them
+;; C=> Normal specs that ppl write will not be useful to this tool
+;; T=>
+;; (s/def ::thing ident?)
+;; (s/def ::table-entity (s/keys :req [:db/id ::thing ::boo]))
+;; (s/def ::table-by-id (map-of int? ::table-entity))
+;; C=> Here ::thing is a join (because it is an ident)
+;; T=> I’m trying to think if there’s a way to generate the spec in a custom registry from `defsc`
+;; for a given entity, we know the ident details. We know the query which indicates where there are
+;; joins. We can check the joins to see if they’re normalized and we know all of the property names
+;; I think it is technically possible to derive the intended schema from that, other than to-one
+;; vs. to-many relations
+;; C=> So would not be able to generate the above example, which is a 'to-one'. Alteration would be
+;; for thing to be Ident or vector of Idents.
+;; T=> after all, the  database spec is super simple…just a `(s/keys :opt [all of the table kws])`
+;; C=> This would miss catching whether root level joins have Ident/s, something default-db-format
+;; checks. (albeit in my ideal application I don't think top level joins would even exist!)
+;; T=> spec will ignore the things you don’t mention
+;; C=> Right, all the top/root level joins are ignored. But would be caught if joins referred to
+;; link Idents I guess.
 
 

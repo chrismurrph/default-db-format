@@ -29,9 +29,9 @@ The *collapse keystroke* is a toggle to get this tool out of the way of the UI o
 
 The default configuration for `default-db-format.core/check` is: 
 ````clojure
-{:by-id-ending #{"by-id" "BY-ID"}}
+{:by-id-ending #{"/by-id" "/BY-ID"}}
 ````
-However it is likely you will need to set your own configuration, which is done in the `default-db-format.edn` file, kept at `/resources/config/`. 
+However it is likely you will need to set your own configuration, perhaps choosing a different set of strings for `:by-id-ending`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#reference) for the meanings of all the configuration keys.
 
 #### Fulcro Websocket Demo
 
@@ -101,9 +101,9 @@ From the second complaint we can see that the table `:adult/by-id` has a join `:
 If we can get the tool to understand that `:baby/id` is the name of a table both complaints ought to resolve:
 
 ````clojure
-{:by-id-ending #{"by-id" "BY-ID" "id"}}
+{:by-id-ending #{"/by-id" "/BY-ID" "/id"}}
 ````
-Notice that we have chosen to keep the default convention: if we had made the value merely `"id"` then `:by-id-ending` would become a misnomer!
+Notice that we have chosen to keep the default convention: if we had made the value merely `"/id"` then `:by-id-ending` would become a misnomer!
 
 The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up *Default DB Format* messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuration change. We've seen this one before, but not where the value is a map:
 
@@ -132,14 +132,14 @@ It is quite common to keep maps (or any other denormalized data) in links, which
                    :fulcro.inspect.ui.transactions/tx-list-id
                    :fulcro.inspect.ui.network/request-id
                    :fulcro.inspect.ui.transactions/tx-id]
- :link            [:fulcro.inspect.ui.element/panel-id
+ :skip-link       [:fulcro.inspect.ui.element/panel-id
                    :fulcro.inspect.ui.network/request-id
                    :fulcro.inspect.ui.transactions/tx-id
                    :fulcro.inspect.ui.network/remotes
                    :fulcro.inspect.ui.network/request-edn
                    :ui/root
                    ]
- :bad-field-join  [:fulcro.inspect.ui.transactions/tx-list-id
+ :skip-field-join [:fulcro.inspect.ui.transactions/tx-list-id
                    :fulcro.inspect.ui.network/history-id
                    :fulcro.inspect.ui.network/remotes
                    :fulcro.inspect.ui.element/panel-id
@@ -171,8 +171,8 @@ It is quite common to keep maps (or any other denormalized data) in links, which
 Fulcro causes some de-normalization to your app's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
 
 ````clojure
-{:bad-field-join :fulcro.ui.forms/form
- :link [:fulcro/server-error :fulcro.client.routing/routing-tree]}
+{:skip-field-join :fulcro.ui.forms/form
+ :skip-link [:fulcro/server-error :fulcro.client.routing/routing-tree]}
 ````
 
 #### Development
@@ -185,24 +185,25 @@ The workflow I used to manually test this tool against other applications was to
 
 #### Internal version
 
-The current internal version is **30**. Having an internal version makes sense for when dealing with snapshots.
-30 (and all prior numbers) go with "0.1.1-SNAPSHOT". 30 is displayed by the HUD. Version history:
-
- *  **30** Fulcro tooling
- *  **29** Able to watch state changes and force a render
- *  **28** Works with Fulcro
- *  **27** Om now *provided*
- *  **26** Any function now accepted
- *  **25** If ALL the keys are being ignored then `check` should pass
- *  **24** Accepting one or many (sequential or set) for these three inputs: acceptable-map-value, by-id-ending and not-by-id-table
- *  **23** Guards against parameters to `check` being put in wrong order, and hard-coding google date as data
- *  **22** Fixed bug where a `:keyword` was not recognised as data
- *  **21** Released version (announced on Om Slack group)
-
-**(*)** The reason it is better *Default DB Format* come before *Fulcro Inspect* is explained by comments in the source code above the def `default-db-format.tool/ignore-fulcro-inspect`.
+The current internal version is **30**. Having an internal version makes sense for when dealing with snapshots. 30 (and all prior numbers) go with "0.1.1-SNAPSHOT". 30 is displayed by the HUD.
 
 #### License
 
 Copyright © 2018 Chris Murphy
 
 Distributed under the MIT license.
+
+**(*)** The reason it is better *Default DB Format* come before *Fulcro Inspect* is explained by comments in the source code above the def `default-db-format.tool/ignore-fulcro-inspect`.
+
+#### Edn Configuration Reference
+
+Key | Explanation
+------------ | -------------
+`:by-id-ending` | What comes at the end of an Ident's class (first position). Must be a string. By default is `#{"/by-id" "/BY-ID"}`. Note that the slash is often provided in the string you supply, but doesn't have to be, so that for example "id" will promiscuously match on both `:my-table-ends-with-id` and `:my-table/id`.
+`:one-of-id` | Something standard in the Ident's second position, for components that the application only needs one of. For example `:UI`.
+`:not-by-id-table` | Some table names do not follow a `"/by-id"` convention.
+`:routing-table` | Any table used as the class (first position) of a routing Ident. Treated internally the same as `:not-by-id-table`.
+`:skip-link` | A root level key that you don't want to be inspected. Often you might have a map at the top level that is not going to pass as root join. It is a link and you specify it as such here. Note that join keys that are not namespaced or just contain simple scalar values are ignored anyway.
+`:skip-field-join` | A field level join key that you don't want to be part of normalization. Same concept as `:skip-link`, but in the field of an entity rather than at the root level.
+`:acceptable-map-value` | Description using a vector where it is a real leaf thing (simple *scalar* value), e.g. `[:r :g :b]` for colour will mean that `{:g 255 :r 255 :b 255}` is accepted.
+`:acceptable-vector-value` | Allowed objects in a vector, e.g. `[:report-1 :report-2]` for a list of reports will mean that `[:report-1]` is accepted but `[:report-1 :report-3]` is not. Note that the order of the objects is not important.

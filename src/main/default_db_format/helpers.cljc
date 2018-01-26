@@ -67,15 +67,12 @@
 ;;
 (defn config->init [{:keys [acceptable-map-value acceptable-vector-value skip-link skip-field-join] :as config}]
   (let [by-id-ending? (hof/reveal-f :by-id-ending config)
-        by-id-ns-name? (hof/reveal-f :by-id-ns-name config)
-        ;; The stricter one overrides, can't have both (the tool user gets a warning)
-        by-id-f? (or by-id-ending? by-id-ns-name?)
         not-by-id-table? (hof/reveal-f :not-by-id-table config)
         routed-ns? (hof/reveal-f :before-slash-routing config)
         routed-name? (hof/reveal-f :after-slash-routing config)
         routing-table? (hof/reveal-f :routing-table config)]
     {:one-of-id?              (hof/reveal-f :one-of-id config)
-     :table-key?              (some-fn not-by-id-table? by-id-f? routing-table? routed-ns? routed-name?)
+     :table-key?              (some-fn not-by-id-table? by-id-ending? routing-table? routed-ns? routed-name?)
      :acceptable-map-value    (->> acceptable-map-value
                                    hof/setify
                                    (remove (complement vector?))
@@ -115,12 +112,12 @@
 ;;
 ;; When using the tool default merging will be done twice. That's because
 ;; `check` can be used all alone. And in messages we don't want the user to
-;; see nothing when 'by-id' is there - that's the reason for the early merge.
+;; see nothing when really '/by-id' '/BY-ID' will be there - that's the
+;; reason for the early merge.
 ;;
 (def default-edn-config
-  "This default can be overridden using the config arg to the check function.
-  Each key here will be overridden by normal merge behaviour"
-  {:by-id-ending #{"by-id" "BY-ID"}})
+  "This default can be overridden using the config arg to the check function"
+  {:by-id-ending #{"/by-id" "/BY-ID"}})
 
 (defn ident-like-hof? [config]
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
