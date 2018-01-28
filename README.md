@@ -31,7 +31,7 @@ The default configuration for `default-db-format.core/check` is:
 ````clojure
 {:by-id-ending #{"/by-id" "/BY-ID"}}
 ````
-However it is likely you will need to set your own configuration, perhaps choosing a different set of strings for `:by-id-ending`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#reference) for the meanings of all the configuration keys.
+However it is likely you will need to set your own configuration, perhaps choosing a different set of strings for `:by-id-ending`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#edn-configuration-reference) for the meanings of all the configuration keys.
 
 #### Fulcro Websocket Demo
 
@@ -73,7 +73,7 @@ Note that for all config keys where it is sensible you can provide their values 
 
 Starting with the second complaint, there's a special key for routing table names: `:routing-table`. It doesn't take too much investigation of the state or code to find the possible values apart from `:login`. 
 
-The first complaint is about `:root/modals`. It cannot be a root level join because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value of `:welcome-modal`'s key is not a map. So `:root/modals` must be a link. It is interesting to compare it with the map-entry in the state for `:current-user`, which is a root level join:
+The first complaint is about `:root/modals`. It cannot be a root level join because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value associated with `:welcome-modal` key is not a map. So `:root/modals` must be a link. It is interesting to compare it with the map-entry in the state for `:current-user`, which is a root level join:
 
 ````clojure
 :current-user [:user/by-id 2]
@@ -103,7 +103,7 @@ If we can get the tool to understand that `:baby/id` is the name of a table both
 ````clojure
 {:by-id-ending #{"/by-id" "/BY-ID" "/id"}}
 ````
-Notice that we have chosen to keep the default convention: if we had made the value merely `"/id"` then `:by-id-ending` would become a misnomer!
+Notice that we have chosen to keep the default convention: if we had made the value merely `#{"/id"}` then `:by-id-ending` would become a misnomer!
 
 The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up *Default DB Format* messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuration change. We've seen this one before, but not where the value is a map:
 
@@ -111,13 +111,13 @@ The Baby Sharks devcard consists of a series of buttons that intentionally affec
 
 If for some reason you did want to have maps as *scalar* value objects then `:acceptable-map-value` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:acceptable-vector-value`.
 
-If your objects are not simple enough to describe using `:acceptable-map-value` or `:acceptable-vector-value`, or the situation is more that a particular join is designated as a denormalized object holder, then `:bad-field-join` (or `:link` if the join is at the root level) can come to the rescue.
+If your objects are not simple enough to describe using `:acceptable-map-value` or `:acceptable-vector-value`, or the situation is more that a particular join is designated as a denormalized object holder, then `:skip-field-join` (or `:skip-link` if the join is at the root level) can come to the rescue.
 
 There's a button that will restore the state, after which you should press "Give a root-join a map":
 
 ![](imgs/20180128-191406.png)
 
-It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:link` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we can just make use of the "Restore order..." button. In reality this where *Default DB Format* is earning its keep - it is telling you about a problem your mutations have inadvertently caused.
+It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:skip-link` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we can just make use of the "Restore order..." button. In reality this where *Default DB Format* is earning its keep - it is telling you about a problem your mutations have inadvertently caused.
 
 #### Fulcro Inspect
 
