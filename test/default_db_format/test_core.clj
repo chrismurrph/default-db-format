@@ -166,6 +166,8 @@
 ;;
 (def link-map-entry [:current-person/by-id #:person{:first-name "Guy", :last-name "Rundle"}])
 (def usual-map-entry [:clinic/by-id {1 #:db{:id nil}}])
+(def bad-join-map-entry [:clinic/by-id {1 #:db{:id {:a "Join s/be Ident/s"}}}])
+(def not-a-table-liar [:fulcro.inspect.core/app-id 'default-db-format.baby-sharks/AdultRoot])
 
 (defn create-field-tester [config]
   (let [{:keys [acceptable-map-value acceptable-vector-value ignore-skip-field-joins] :as init-map}
@@ -196,3 +198,12 @@
   (let [field-tester (create-field-tester {:skip-link medical/irrelevant-keys})]
     (is (= nil
            (field-tester usual-map-entry)))))
+
+(deftest bad-join-output
+  (let [field-tester (create-field-tester {:skip-link medical/irrelevant-keys})]
+    (is (= #:clinic{:by-id #:db{:id {:a "Join s/be Ident/s"}}}
+           (field-tester bad-join-map-entry)))))
+
+(deftest matched-but-not-a-table
+  (is (= :fulcro.inspect.core/app-id
+         (-> not-a-table-liar core/table-structure->error :problem))))

@@ -76,7 +76,7 @@
 (defui ^:once CollapsibleFrame
        static prim/InitialAppState
        (initial-state [_ params] {:ui/visible?   false
-                                  :ui/collapsed? false
+                                  :ui/collapsed? true
                                   :ui/display-db (prim/get-initial-state components/DisplayDb params)})
 
        static prim/Ident
@@ -110,10 +110,13 @@
        (render [this]
                (let [{:ui/keys [visible? collapsed? display-db]} (prim/props this)
                      toggle-collapse-f #(if (prim/props this)
-                                          (mutations/set-value! this :ui/collapsed? (not collapsed?))
+                                          (let [collapsed? (-> this prim/props :ui/collapsed?)]
+                                            (dev/debug-visual "Going to toggle collapsed? away from" collapsed?)
+                                            (mutations/set-value! this :ui/collapsed? (not collapsed?)))
                                           (dev/warn "Collapse key is ignored when no state"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      css (css/get-classnames CollapsibleFrame)]
+                 (dev/debug-visual "collapsed?" collapsed?)
                  (dom/div #js {:style (if visible? nil #js {:display "none"})}
                           (events/key-listener {::events/action    toggle-collapse-f
                                                 ::events/keystroke keystroke})
@@ -126,7 +129,9 @@
                                      (iframe/ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
                                                        (dom/div nil
                                                                 (when-let [frame (gobj/get this "frame-dom")]
-                                                                  (events/key-listener {::events/action    #(mutations/set-value! this :ui/collapsed? (not collapsed?))
+                                                                  (events/key-listener {::events/action    #((do
+                                                                                                               (dev/debug-visual "Again going to toggle collapsed? away from" collapsed?)
+                                                                                                               mutations/set-value!) this :ui/collapsed? (not collapsed?))
                                                                                         ::events/keystroke keystroke
                                                                                         ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
                                                                 (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
@@ -222,6 +227,7 @@
   (action [{:keys [state]}]
           (let [st @state
                 check-result (core/check config new-state)
+                _ (dev/debug-visual "check-result" check-result)
                 visible? (-> check-result core/ok? not)
                 floating-panel-ident [:floating-panel/by-id :UI]
                 inspector-join (conj floating-panel-ident :ui/display-db)
@@ -247,12 +253,13 @@
 #_(defn dump-fulcro-inspect []
     (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
+;;
+;; Normal path
+;;
 (defn update-inspect-state-hof [tool-reconciler host-app-path]
   (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
     (dev/log core/tool-name "on" (str (first host-app-path) ",") "edn config:" config)
     (fn [new-state]
-      (dev/debug-check "Listening to state change and it is okay?"
-                       (-> (core/check config new-state) core/detail-ok?))
       (prim/transact! tool-reconciler [`(state-inspection {:config    ~config
                                                            :new-state ~new-state
                                                            }) [:floating-panel/by-id :UI]]))))

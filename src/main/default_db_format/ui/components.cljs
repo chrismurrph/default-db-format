@@ -107,7 +107,7 @@
        (ident [_ props] [:display-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [:tool-name :tool-version :skip-table-fields :skip-root-joins :failed-assumption])
+       (query [_] [:tool-name :tool-version :poor-table-structures :skip-table-fields :skip-root-joins :failed-assumption])
 
        static css/CSS
        (local-rules [_] [[:.container {:display          "flex"
@@ -146,14 +146,21 @@
        (render [this]
                (let [props (prim/props this)
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
-                     {:keys [tool-name tool-version skip-table-fields skip-root-joins failed-assumption]} props
+                     {:keys [tool-name tool-version skip-table-fields skip-root-joins failed-assumption poor-table-structures]} props
                      _ (when (nil? tool-name)
                          (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (ui.domain/okay? props))
+                     _ (when (and dev/debug-visual? report-problem?)
+                         (dev/log "report-problem?:" report-problem?)
+                         (dev/log "okay?:" (ui.domain/detail-okay props))
+                         (dev/log "skip-table-fields" skip-table-fields)
+                         (dev/log "poor-table-structures" poor-table-structures))
                      css (css/get-classnames DisplayDb)
                      root-join-problems? (seq skip-root-joins)
-                     field-join-problems? (seq skip-table-fields)]
+                     field-join-problems? (seq skip-table-fields)
+                     bad-map-entries? (seq poor-table-structures)
+                     ]
                  (if report-problem?
                    (dom/div #js {:className (:container css)}
                             (dom/div #js {:className (:header css)}
@@ -170,6 +177,20 @@
                                          (dom/div #js {:className (:left-justified-container global-css)}
                                                   (dom/div #js {:className (:text-explanation-simple global-css)} text))))
                               (dom/div nil
+                                       (when bad-map-entries?
+                                         (dom/div nil
+                                                  (dom/div #js {:className (:problem-sentence css)}
+                                                           (dom/div nil
+                                                                    (dom/span #js {:className (:red-coloured global-css)}
+                                                                              "Table/s")
+                                                                    " identified where value is not a map (consider "
+                                                                    (dom/span #js {:className (:purple-coloured global-css)}
+                                                                              ":by-id-ending")
+                                                                    " in edn config)"
+                                                                    ))
+                                                  (joins-list-component {:items poor-table-structures})))
+                                       (when (and bad-map-entries? root-join-problems?)
+                                         (dom/br nil))
                                        (when root-join-problems?
                                          (dom/div nil
                                                   (dom/div #js {:className (:problem-sentence css)}

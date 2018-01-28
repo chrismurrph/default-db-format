@@ -21,7 +21,7 @@
 
 (def ok? ui.domain/okay?)
 
-(def detail-ok? ui.domain/detail-okay?)
+(def detail-ok ui.domain/detail-okay)
 
 ;;
 ;; Not needed when HUD is brought up from the tool.
@@ -53,9 +53,11 @@
   Returns nil if there is no error. Error wrapped in a vector for mapcat's benefit"
   [ident-like? knowns]
   (fn [[k v]]
+    ;; I suspect it is now impossible to get an unknown category.
     (let [k-err (when (not (known-category k knowns))
-                  [{:text    (str "Unknown category")
-                    :problem (help/category-part (str k))}])]
+                  [{:text    "Unknown category"
+                    :problem (help/category-part (str k))
+                    :problem-value v}])]
       (when (seqable? v)
         (cond
           k-err k-err
@@ -66,16 +68,11 @@
           ;;(not (seqable? v)) [{:text (str "Not seqable") :problem [k v]}]
           (empty? v) nil
 
-          ;; Seems this is never happening.
-          ;; TODO
-          ;; Try to get it to happen and if can't get rid of it
-          (vec-of-idents? ident-like? v) (let [non-idents (remove ident-like? v)]
-                                           (when (pos? (count non-idents))
-                                             [{:text "The vector value should (but does not) contain only Idents" :problem k}]))
+          (vec-of-idents? ident-like? v) nil
 
           (ident-like? v) nil
-          ;;:ui/react-key is a string
 
+          ;;:ui/react-key is a string
           (string? v) nil
 
           :else [{:text "Expect Idents" :problem k :problem-value v}])))))
@@ -180,16 +177,16 @@
             :let [how-okay (or (keys-to-ignore k) (how-okay-f? v))
                   _ (dev/log-off ":okay for:" k v "\nhow okay:" how-okay)
                   problem? (nil? how-okay)
-                  msg-to-usr (when problem?
-                               (dev/log-off "not okay for:" k v)
-                               [k v])]
+                  kv (when problem?
+                       (dev/log-off "not okay for:" k v)
+                       [k v])]
             :when problem?]
-        msg-to-usr))))
+        kv))))
 
 (defn- gather-table-entry-skips-inside [predicate-fns acceptable-map-value acceptable-vector-value
-                                       keys-to-ignore id-obj-map]
+                                        keys-to-ignore id-obj-map]
   (let [skip-inside? (skip-inside-table-entry-val?
-                      predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore)]
+                       predicate-fns acceptable-map-value acceptable-vector-value keys-to-ignore)]
     (mapcat (fn [m]
               ;; If it is a link Ident then the table won't be a map. So we test for that here
               ;; and there's no point in looking for skip joins in a link entity because by (my)
@@ -204,13 +201,16 @@
   Returns nil if there is no error. Specific hash-map data structure is returned"
   [conformance-predicates acceptable-map-value acceptable-vector-value keys-to-ignore]
   (fn [[k v]]
-    (if (not (map? v))
-      [(str "Value of " k " has to be a map")]
+    (when (map? v)
       (let [gathered (gather-table-entry-skips-inside conformance-predicates acceptable-map-value
                                                       acceptable-vector-value keys-to-ignore v)]
-        (dev/log-off "gathered" (count gathered))
         (when (seq gathered)
           {k (into {} gathered)})))))
+
+(defn table-structure->error
+  [[k v]]
+  (when (not (map? v))
+    {:text "Table ought to be a map" :problem k :problem-value v}))
 
 (defn- ret [m]
   (merge m {:version tool-version}))
@@ -318,23 +318,24 @@
          (if no-tables?
            (do
              (ret {:failed-assumption (incorrect "by-id normalized file required")}))
-           (let [categories (into #{} (distinct (map (comp help/category-part str key) top-level-joins)))
+           (let [categories (into #{} (map (comp help/category-part str key) top-level-joins))
                  root-tester (root-join->error-hof ident-like? categories)
                  field-tester (field-join->error-hof conformance-predicates acceptable-map-value
                                                      acceptable-vector-value ignore-skip-field-joins)]
-             (ret {:categories        categories
-                   :known-names       table-names
+             (ret {:categories            categories
+                   :known-names           table-names
                    ;;
                    ;; :skip-root-joins is where a root level join
                    ;; (anything that is not a table is a root level join)
                    ;; does not have idents or vectors of idents in it
                    ;;
-                   :skip-root-joins   (into #{} (mapcat root-tester top-level-joins))
+                   :skip-root-joins       (into #{} (mapcat root-tester top-level-joins))
                    ;;
                    ;; :skip-table-fields is where the table has been recognised, and is in the right
                    ;; format, but there are joins that do not have idents or vectors of idents in them
                    ;;
-                   :skip-table-fields (into #{} (mapcat field-tester somehow-table-entries))
+                   :skip-table-fields     (into #{} (mapcat field-tester somehow-table-entries))
+                   :poor-table-structures (into #{} (keep table-structure->error somehow-table-entries))
                    }))))))
   ([state]
    (check help/default-edn-config state)))

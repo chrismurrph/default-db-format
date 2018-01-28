@@ -7,6 +7,7 @@
 
 (def debug-check? false)
 (def debug-config? false)
+(def debug-visual? false)
 
 #?(:cljs (enable-console-print!))
 
@@ -15,26 +16,6 @@
 ;;
 (def log-pr #?(:cljs js/console.log
                :clj  println))
-
-(def n-able? (every-pred coll? (complement map?)))
-
-(def width 120)
-
-(defn pp
-  ([n x]
-   (binding [pp/*print-right-margin* n]
-     (-> x pp/pprint)))
-  ([x]
-   (pp width x)))
-
-(defn probe-on
-  ([x]
-   (-> x
-       pp)
-   x)
-  ([x & msgs]
-   (apply log-pr x msgs)
-   x))
 
 (defn init-state-atom [comp data]
   (atom (prim/tree->db comp (prim/get-initial-state comp data) true)))
@@ -71,6 +52,10 @@
   (when debug-config?
     (apply log-pr args)))
 
+(defn debug-visual [& args]
+  (when debug-visual?
+    (apply log-pr args)))
+
 (defn summarize [x]
   (cond
     (map? x) (let [counted (count x)]
@@ -85,3 +70,14 @@
                   (str counted " items...")
                   x))
     :else x))
+
+(def n-able? (every-pred coll? (complement map?)))
+
+(defn probe-on
+  ([x]
+   (-> x
+       pp)
+   x)
+  ([x & msgs]
+   (apply log-pr x msgs)
+   x))

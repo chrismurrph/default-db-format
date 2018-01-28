@@ -57,7 +57,7 @@ On browser reload a message from the console shows the new configuration has ind
 
 You should see this message pop up in the browser:
 
-![](imgs/20180125-052457.png)
+![](imgs/20180128-194613.png)
 
 The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should either be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't satisfy `:by-id-ending`:
 
@@ -69,7 +69,7 @@ Note that for all config keys where it is sensible you can provide their values 
 
 #### Fulcro Template
 
-![](imgs/20180125-055343.png)
+![](imgs/20180128-200426.png)
 
 Starting with the second complaint, there's a special key for routing table names: `:routing-table`. It doesn't take too much investigation of the state or code to find the possible values apart from `:login`. 
 
@@ -87,7 +87,7 @@ If you compare `:root/modals` and `:current-user` in the code you can see that t
 
 #### Baby Sharks (*Default DB Format* devcard)
 
-![](imgs/20180125-061344.png)
+![](imgs/20180126-174308.png)
 
 From the second complaint we can see that the table `:adult/by-id` has a join `:adult/babies` that the tool thinks ought to be a vector of Idents. Of course we can tell that they are Idents, just without the usual `/by-id`. In the first complaint the tool has incorrectly assumed that a root/top level join called `:baby/id` has the problem that its value is not a vector of Idents. Of course its premise is incorrect - `:baby/id` is not a join but a table. Here's a clearer view of what the table looks like in state:
 
@@ -107,7 +107,7 @@ Notice that we have chosen to keep the default convention: if we had made the va
 
 The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up *Default DB Format* messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuration change. We've seen this one before, but not where the value is a map:
 
-![](imgs/20180125-063115.png)
+![](imgs/20180128-191213.png)
 
 If for some reason you did want to have maps as *scalar* value objects then `:acceptable-map-value` can be used to specify them. So for example setting it to `[:r :g :b]` would allow `{:g 255 :r 255 :b 255}`. Vectors are also supported as value objects with `:acceptable-vector-value`.
 
@@ -115,7 +115,7 @@ If your objects are not simple enough to describe using `:acceptable-map-value` 
 
 There's a button that will restore the state, after which you should press "Give a root-join a map":
 
-![](imgs/20180125-063409.png)
+![](imgs/20180128-191406.png)
 
 It is quite common to keep maps (or any other denormalized data) in links, which in a normal application we would do by setting the key `:link` to `:here-is/some-link` in the config file and then doing `(reload-config)` in Figwheel and Shift-F5 in the browser. Here we can just make use of the "Restore order..." button. In reality this where *Default DB Format* is earning its keep - it is telling you about a problem your mutations have inadvertently caused.
 
@@ -187,14 +187,6 @@ The workflow I used to manually test this tool against other applications was to
 
 The current internal version is **30**. Having an internal version makes sense for when dealing with snapshots. 30 (and all prior numbers) go with "0.1.1-SNAPSHOT". 30 is displayed by the HUD.
 
-#### License
-
-Copyright © 2018 Chris Murphy
-
-Distributed under the MIT license.
-
-**(*)** The reason it is better *Default DB Format* come before *Fulcro Inspect* is explained by comments in the source code above the def `default-db-format.tool/ignore-fulcro-inspect`.
-
 #### Edn Configuration Reference
 
 Key | Explanation
@@ -207,3 +199,11 @@ Key | Explanation
 `:skip-field-join` | A field level join key that you don't want to be part of normalization. Same concept as `:skip-link`, but in the field of an entity rather than at the root level.
 `:acceptable-map-value` | Description using a vector where it is a real leaf thing (simple *scalar* value), e.g. `[:r :g :b]` for colour will mean that `{:g 255 :r 255 :b 255}` is accepted.
 `:acceptable-vector-value` | Allowed objects in a vector, e.g. `[:report-1 :report-2]` for a list of reports will mean that `[:report-1]` is accepted but `[:report-1 :report-3]` is not. Note that the order of the objects is not important.
+
+#### License
+
+Copyright © 2018 Chris Murphy
+
+Distributed under the MIT license.
+
+**(*)** The reason it is better *Default DB Format* come before *Fulcro Inspect* is explained by comments in the source code above the def `default-db-format.tool/ignore-fulcro-inspect`.

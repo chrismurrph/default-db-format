@@ -3,17 +3,16 @@
             [fulcro-css.css :as css]
             [garden.selectors :as gs]))
 
-(defn okay? [check-result]
-  (let [{:keys [failed-assumption skip-root-joins skip-table-fields]} check-result
+(defn detail-okay [check-result]
+  (let [{:keys [poor-table-structures failed-assumption skip-root-joins skip-table-fields]} check-result
         un-normalized-joins-exist? (boolean (seq skip-root-joins))
-        un-normalized-tables-exist? (boolean (seq skip-table-fields))]
-    (not (or failed-assumption un-normalized-joins-exist? un-normalized-tables-exist?))))
+        un-normalized-tables-exist? (boolean (seq skip-table-fields))
+        bad-map-entries-exist? (boolean (seq poor-table-structures))
+        ]
+    [(not bad-map-entries-exist?) (not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
 
-(defn detail-okay? [check-result]
-  (let [{:keys [failed-assumption skip-root-joins skip-table-fields]} check-result
-        un-normalized-joins-exist? (boolean (seq skip-root-joins))
-        un-normalized-tables-exist? (boolean (seq skip-table-fields))]
-    [(not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
+(defn okay? [check-result]
+  (= [true true true true] (detail-okay check-result)))
 
 ;;
 ;; Some stealing from fulcro-inspect, source of a lot of good stuff
