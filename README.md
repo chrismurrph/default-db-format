@@ -126,25 +126,15 @@ It is quite common to keep maps (or any other denormalized data) in links, which
  :by-id-ending    ["id"]
  :not-by-id-table [:fulcro.inspect.ui.dom-history-viewer/dom-viewer
                    :fulcro.inspect.ui.multi-inspector/multi-inspector
-                   :fulcro.inspect.ui.data-history/history-id
-                   :fulcro.inspect.ui.element/panel-id
                    :fulcro.inspect.ui.network/history-id
                    :fulcro.inspect.ui.transactions/tx-list-id
-                   :fulcro.inspect.ui.network/request-id
                    :fulcro.inspect.ui.transactions/tx-id]
- :skip-link       [:fulcro.inspect.ui.element/panel-id
+ :skip-link       [:ui/root]
+ :skip-field-join [:fulcro.inspect.ui.network/request-edn
+                   :fulcro.inspect.ui.network/remotes
                    :fulcro.inspect.ui.network/request-id
-                   :fulcro.inspect.ui.transactions/tx-id
-                   :fulcro.inspect.ui.network/remotes
-                   :fulcro.inspect.ui.network/request-edn
-                   :ui/root
-                   ]
- :skip-field-join [:fulcro.inspect.ui.transactions/tx-list-id
-                   :fulcro.inspect.ui.network/history-id
-                   :fulcro.inspect.ui.network/remotes
                    :fulcro.inspect.ui.element/panel-id
                    :fulcro.inspect.ui.network/request-edn-row-view
-                   :fulcro.inspect.ui.network/request-edn
                    :fulcro.inspect.ui.network/response-edn
                    :fulcro.inspect.ui.network/error
                    :fulcro.inspect.ui.data-history/history

@@ -10,6 +10,7 @@
 (def expected-gas-issues
   {:categories      #{"graph" "app"},
    :known-names     #{"drop-info" "line" "graph-point"}
+   :poor-table-structures #{}
    :skip-root-joins #{{:text    "Expect Idents",
                        :problem :app/system-gases
                        :problem-value
@@ -110,12 +111,13 @@
     #_(dev/pp res)))
 
 (def expected-template-1-res
-  {:categories      #{"ui" "root" "fulcro.inspect.core"},
-   :known-names     #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user"},
-   :skip-root-joins #{{:text          "Expect Idents", :problem :root/modals
-                       :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
+  {:categories            #{"ui" "root" "fulcro.inspect.core"},
+   :known-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user"},
+   :skip-root-joins       #{{:text          "Expect Idents", :problem :root/modals
+                             :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
    :skip-table-fields
-                    #{[:fulcro.client.routing.routers/by-id #:fulcro.client.routing{:current-route [:login :page]}]}
+                          #{[:fulcro.client.routing.routers/by-id #:fulcro.client.routing{:current-route [:login :page]}]}
+   :poor-table-structures #{}
    })
 
 (deftest fulcro-template-1
@@ -123,7 +125,7 @@
                                 template/initial-state) :version)]
     (is (= expected-template-1-res
            res))
-    ;(dev/pp res)
+    #_(dev/pp res)
     ))
 
 (def expected-template-2-res
@@ -131,7 +133,8 @@
    :known-names       #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user" "login"},
    :skip-root-joins   #{{:text          "Expect Idents", :problem :root/modals
                          :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
-   :skip-table-fields #{}})
+   :skip-table-fields #{}
+   :poor-table-structures #{}})
 
 (deftest fulcro-template-2
   (let [res (dissoc (core/check {:routing-table [:login]}
