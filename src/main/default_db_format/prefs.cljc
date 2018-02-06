@@ -18,8 +18,8 @@
          (get-in @cljs.env/*compiler* [:options :tooling-config :default-db-format/config]))))) ; :tooling-config is deprecated
 
 ;;
-;; If we didn't use edn/read-string then we could bring in a function - currently one of the
-;; check options can't be used. I'm not sure if it is actually necessary.
+;; If we didn't use edn/read-string (edn part) then we could bring in a function - currently
+;; one of the check options can't be used. I'm not sure if it is actually necessary.
 ;;
 #?(:clj
    (defn read-from-edn []

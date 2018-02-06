@@ -3,15 +3,16 @@
             [fulcro.client.dom :as dom]
             [fulcro-css.css :as css]
             [default-db-format.ui.domain :as ui.domain]
-            [default-db-format.dev :as dev]))
+            [default-db-format.dev :as dev]
+            [default-db-format.helpers :as help]))
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
 (defui ^:once RootJoinsTextItem
        static css/CSS
-       (local-rules [_] [[:.problem {:background  ui.domain/gray
-                                     :color       ui.domain/light-red
-                                     :font-family ui.domain/mono-font-family
+       (local-rules [_] [[:.problem {:background   ui.domain/gray
+                                     :color        ui.domain/light-red
+                                     :font-family  ui.domain/mono-font-family
                                      :margin-left  "25px"
                                      :border-right "2px solid rgba(100, 100, 100, 0.2)"
                                      :padding      "0 3px"
@@ -31,8 +32,8 @@
 
 (defui ^:once OneBad
        static css/CSS
-       (local-rules [_] [[:.list-item {:display          "inline-block"
-                                       :margin-left      "50px"}]
+       (local-rules [_] [[:.list-item {:display     "inline-block"
+                                       :margin-left "50px"}]
                          ;;
                          ;; The width of this bad-key is done by content, and has priority over
                          ;; the value, which only displays as much as it can (i.e. truncation is fine)
@@ -66,9 +67,9 @@
                               :let [{:keys [text problem problem-value]} item
                                     _ (assert text)
                                     _ (assert problem)]]
-                          (root-joins-item-component {:id (str text problem)
-                                                      :text text
-                                                      :problem problem
+                          (root-joins-item-component {:id            (str text problem)
+                                                      :text          text
+                                                      :problem       problem
                                                       :problem-value problem-value}))))))
 (def joins-list-component (prim/factory JoinsTextList {:keyfn :id}))
 
@@ -96,6 +97,44 @@
 
 (def bad-table-entries-component (prim/factory BadTablesEntry {:keyfn :id}))
 
+(defn show-field-problem [css global-css not-vector-contained?]
+  (dom/div #js {:className (:problem-sentence css)}
+           (if not-vector-contained?
+             (dom/div nil
+                      help/expect-vector
+                      " at "
+                      (dom/span #js {:className (:red-coloured global-css)}
+                                "field join"))
+             (dom/div nil
+                      help/expect-idents
+                      " in "
+                      (dom/span #js {:className (:red-coloured global-css)}
+                                "field join")
+                      " (consider "
+                      (dom/span #js {:className (:purple-coloured global-css)}
+                                ":skip-field-join")
+                      " in edn config)"
+                      ))))
+
+(defn show-root-join-problem [css global-css not-vector-contained?]
+  (dom/div #js {:className (:problem-sentence css)}
+           (if not-vector-contained?
+             (dom/div nil
+                      help/expect-vector
+                      " at "
+                      (dom/span #js {:className (:red-coloured global-css)}
+                                "root join"))
+             (dom/div nil
+                      help/expect-idents
+                      " in "
+                      (dom/span #js {:className (:red-coloured global-css)}
+                                "root join")
+                      " (consider "
+                      (dom/span #js {:className (:purple-coloured global-css)}
+                                ":skip-link")
+                      " in edn config)"
+                      ))))
+
 (defui ^:once DisplayDb
        static prim/InitialAppState
        (initial-state [_ {:keys [tool-name tool-version] :as params}]
@@ -107,7 +146,9 @@
        (ident [_ props] [:display-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [:tool-name :tool-version :poor-table-structures :skip-table-fields :skip-root-joins :failed-assumption])
+       (query [_] [:tool-name :tool-version :poor-table-structures :skip-table-fields
+                   :skip-root-joins :failed-assumption :not-vector-contained-field?
+                   :not-vector-contained-root-join?])
 
        static css/CSS
        (local-rules [_] [[:.container {:display          "flex"
@@ -146,7 +187,9 @@
        (render [this]
                (let [props (prim/props this)
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
-                     {:keys [tool-name tool-version skip-table-fields skip-root-joins failed-assumption poor-table-structures]} props
+                     {:keys [tool-name tool-version skip-table-fields skip-root-joins
+                             failed-assumption poor-table-structures not-vector-contained-field?
+                             not-vector-contained-root-join?]} props
                      _ (when (nil? tool-name)
                          (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
@@ -155,7 +198,10 @@
                          (dev/log "report-problem?:" report-problem?)
                          (dev/log "okay?:" (ui.domain/detail-okay props))
                          (dev/log "skip-table-fields" skip-table-fields)
-                         (dev/log "poor-table-structures" poor-table-structures))
+                         (dev/log "poor-table-structures" poor-table-structures)
+                         (dev/log "not-vector-contained-field?" not-vector-contained-field?)
+                         (dev/log "not-vector-contained-root-join?" not-vector-contained-root-join?)
+                         )
                      css (css/get-classnames DisplayDb)
                      root-join-problems? (seq skip-root-joins)
                      field-join-problems? (seq skip-table-fields)
@@ -185,7 +231,7 @@
                                                                               "Table/s")
                                                                     " identified where value is not a map (consider "
                                                                     (dom/span #js {:className (:purple-coloured global-css)}
-                                                                              ":by-id-ending")
+                                                                              ":table-ending")
                                                                     " in edn config)"
                                                                     ))
                                                   (joins-list-component {:items poor-table-structures})))
@@ -193,31 +239,13 @@
                                          (dom/br nil))
                                        (when root-join-problems?
                                          (dom/div nil
-                                                  (dom/div #js {:className (:problem-sentence css)}
-                                                           (dom/div nil
-                                                                    "Expect Ident/s in "
-                                                                    (dom/span #js {:className (:red-coloured global-css)}
-                                                                              "root join")
-                                                                    " (consider "
-                                                                    (dom/span #js {:className (:purple-coloured global-css)}
-                                                                              ":skip-link")
-                                                                    " in edn config)"
-                                                                    ))
+                                                  (show-root-join-problem css global-css not-vector-contained-root-join?)
                                                   (joins-list-component {:items skip-root-joins})))
                                        (when (and root-join-problems? field-join-problems?)
                                          (dom/br nil))
                                        (when field-join-problems?
                                          (dom/div nil
-                                                  (dom/div #js {:className (:problem-sentence css)}
-                                                           (dom/div nil
-                                                                    "Expect Ident/s in "
-                                                                    (dom/span #js {:className (:red-coloured global-css)}
-                                                                              "field join")
-                                                                    " (consider "
-                                                                    (dom/span #js {:className (:purple-coloured global-css)}
-                                                                              ":skip-field-join")
-                                                                    " in edn config)"
-                                                                    ))
+                                                  (show-field-problem css global-css not-vector-contained-field?)
                                                   (dom/div nil
                                                            (for [by-id (into {} skip-table-fields)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]

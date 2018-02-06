@@ -29,9 +29,9 @@ The *collapse keystroke* is a toggle to get this tool out of the way of the UI o
 
 The default configuration for `default-db-format.core/check` is: 
 ````clojure
-{:by-id-ending #{"/by-id" "/BY-ID"}}
+{:table-ending #{"/by-id" "/BY-ID"}}
 ````
-However it is likely you will need to set your own configuration, perhaps choosing a different set of strings for `:by-id-ending`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#edn-configuration-reference) for the meanings of all the configuration keys.
+However it is likely you will need to set your own configuration, perhaps choosing a different set of strings for `:table-ending`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#edn-configuration-reference) for the meanings of all the configuration keys.
 
 #### Fulcro Websocket Demo
 
@@ -59,13 +59,13 @@ You should see this message pop up in the browser:
 
 ![](imgs/20180128-194613.png)
 
-The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should either be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't satisfy `:by-id-ending`:
+The state has a map-entry: `:root/application [:application :root]`, and one of the components has an Ident: `[:application :root]`. The tool is (correctly) telling us it thinks that `:root/application` is a join, and as such its value should either be an Ident or a vector of Idents. So the tool is not picking up that `[:application :root]` is an Ident. If `:application` had instead been `:application/by-id` the tool would have been happy. So we need to tell the tool that `:application` is a table, even though it doesn't satisfy `:table-ending`:
 
 ````clojure
-{:not-by-id-table :application}
+{:table-name :application}
 ````
 
-Note that for all config keys where it is sensible you can provide their values however you like. For instance here the value `:application` will be translated internally into `#{:application}`. Both `[:application]` and `#{:application}` would have been acceptable alternatives to `:application` for `:not-by-id-table`.
+Note that for all config keys where it is sensible you can provide their values however you like. For instance here the value `:application` will be translated internally into `#{:application}`. Both `[:application]` and `#{:application}` would have been acceptable alternatives to `:application` for `:table-name`.
 
 #### Fulcro Template
 
@@ -73,7 +73,7 @@ Note that for all config keys where it is sensible you can provide their values 
 
 Starting with the second complaint, there's a special key for routing table names: `:routing-table`. It doesn't take too much investigation of the state or code to find the possible values apart from `:login`. 
 
-The first complaint is about `:root/modals`. It cannot be a root level join because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value associated with `:welcome-modal` key is not a map. So `:root/modals` must be a link. It is interesting to compare it with the map-entry in the state for `:current-user`, which is a root level join:
+The first complaint is about `:root/modals`. It cannot be a root level join/edge/FK because its value is a map (rather than an Ident or a vector of Idents). It cannot be a table because the value associated with `:welcome-modal` key is not a map. So `:root/modals` must be a link. It is interesting to compare it with the map-entry in the state for `:current-user`, which is a root level join:
 
 ````clojure
 :current-user [:user/by-id 2]
@@ -101,9 +101,9 @@ From the second complaint we can see that the table `:adult/by-id` has a join `:
 If we can get the tool to understand that `:baby/id` is the name of a table both complaints ought to resolve:
 
 ````clojure
-{:by-id-ending #{"/by-id" "/BY-ID" "/id"}}
+{:table-ending #{"/by-id" "/BY-ID" "/id"}}
 ````
-Notice that we have chosen to keep the default convention: if we had made the value merely `#{"/id"}` then `:by-id-ending` would become a misnomer!
+Notice that we have chosen to keep the default convention: if we had made the value merely `#{"/id"}` then `:table-ending` would become a misnomer!
 
 The Baby Sharks devcard consists of a series of buttons that intentionally affect the state in order to bring up *Default DB Format* messages. The first button is "Give a field-join a map". This is almost always a real problem that needs to be fixed. So this time there won't be a configuration change. We've seen this one before, but not where the value is a map:
 
@@ -123,8 +123,8 @@ It is quite common to keep maps (or any other denormalized data) in links, which
 
 ````clojure
 {:one-of-id       ["main" :singleton]
- :by-id-ending    ["id"]
- :not-by-id-table [:fulcro.inspect.ui.dom-history-viewer/dom-viewer
+ :table-ending    ["id"]
+ :table-name      [:fulcro.inspect.ui.dom-history-viewer/dom-viewer
                    :fulcro.inspect.ui.multi-inspector/multi-inspector
                    :fulcro.inspect.ui.network/history-id
                    :fulcro.inspect.ui.transactions/tx-list-id
@@ -181,11 +181,12 @@ The current internal version is **30**. Having an internal version makes sense f
 
 Key | Explanation
 ------------ | -------------
-`:by-id-ending` | What comes at the end of an Ident's class (first position). Must be a string. By default is `#{"/by-id" "/BY-ID"}`. Note that the slash is often provided in the string you supply, but doesn't have to be, so that for example "id" will promiscuously match on both `:my-table-ends-with-id` and `:my-table/id`.
+`:table-ending` | What comes at the end of an Ident's class (first position). Must be a string. By default is `#{"/by-id" "/BY-ID"}`. Note that the slash is often provided in the string you supply, but doesn't have to be, so that for example "id" will promiscuously match on both `:my-table-ends-with-id` and `:my-table/id`.
+`:table-pattern` | Regex pattern to find a match for a table, matching against a string version of the keyword, without the colon. See the top of `default-db-format/core` for example patterns.
 `:one-of-id` | Something standard in the Ident's second position, for components that the application only needs one of. For example `:UI`.
-`:not-by-id-table` | Some table names do not follow a `"/by-id"` convention.
-`:routing-table` | Any table used as the class (first position) of a routing Ident. Treated internally the same as `:not-by-id-table`.
-`:skip-link` | A root level key that you don't want to be inspected. Often you might have a map at the top level that is not going to pass as root join. It is a link and you specify it as such here. Note that join keys that are not namespaced or just contain simple scalar values are ignored anyway.
+`:table-name` | Some table names do not follow any convention that can be described using ``:table-ending` or `:table-pattern`.
+`:routing-table` | Any table used as the class (first position) of a routing Ident. Treated internally the same as `:table-name`.
+`:skip-link` | A root level key that you don't want to be inspected. Often you might have a map at the top level that is not going to pass as a root join. It is a link and you specify it as such here. Note that join keys that are not namespaced or just contain simple scalar values are ignored anyway.
 `:skip-field-join` | A field level join key that you don't want to be part of normalization. Same concept as `:skip-link`, but in the field of an entity rather than at the root level.
 `:acceptable-map-value` | Description using a vector where it is a real leaf thing (simple *scalar* value), e.g. `[:r :g :b]` for colour will mean that `{:g 255 :r 255 :b 255}` is accepted.
 `:acceptable-vector-value` | Allowed objects in a vector, e.g. `[:report-1 :report-2]` for a list of reports will mean that `[:report-1]` is accepted but `[:report-1 :report-3]` is not. Note that the order of the objects is not important.

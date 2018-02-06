@@ -5,6 +5,8 @@
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as prim]))
 
+;; This code has been copied straight from Fulcro Inspect
+
 (def KEYS
   {"backspace" 8
    "tab"       9

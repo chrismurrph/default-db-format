@@ -1,5 +1,6 @@
 (ns default-db-format.hof
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [default-db-format.dev :as dev]))
 
 ;;
 ;; hof stands for 'higher order function'
@@ -14,14 +15,29 @@
     (and (keyword? kw)
          (some #{(name kw)} config-kw-strs))))
 
-(defn by-id-ending-hof
+(defn table-ending-hof
   [config-kw-strs]
   (assert (set? config-kw-strs))
-  ;'Unexpected identifier' JavaScript error, so can't debug here
-  ;(dev/log (str "by-id-ending-hof given " config-kw-strs))
   (fn [kw]
     (and (keyword? kw)
-         (some #(when (str/ends-with? (str kw) %) %) (filter string? config-kw-strs)))))
+         (some #(when (str/ends-with? (str kw) %) %)
+               (filter string? config-kw-strs)))))
+
+(defn my-regexp? [x]
+  #?(:cljs (regexp? x)
+     :clj  (instance? java.util.regex.Pattern x)))
+
+(defn kw->string [kw]
+  (when kw (assert (keyword? kw)))
+  (and kw (subs (str kw) 1)))
+
+(defn table-pattern-hof
+  [config-kw-patterns]
+  (assert (set? config-kw-patterns))
+  (fn [kw]
+    (and (keyword? kw)
+         (some #(when (re-matches % (kw->string kw)) true)
+               (filter my-regexp? config-kw-patterns)))))
 
 (defn map-entry-single-id-hof
   [config-ids]
@@ -43,8 +59,8 @@
   (fn [kw]
     (some #{kw} config-tables)))
 
-(def not-by-id-table-hof table-hof)
-(def routing-table-hof table-hof)
+(def table-name-hof table-hof)
+(def routing-table-name-hof table-hof)
 
 ;;
 ;; ns means before the slash.
@@ -69,12 +85,13 @@
                 (some #{nm} config-ns-strs))))))
 
 (def kw->hof
-  {:by-id-ending         by-id-ending-hof
+  {:table-ending         table-ending-hof
    :one-of-id            map-entry-single-id-hof
-   :not-by-id-table      not-by-id-table-hof
+   :table-name           table-name-hof
+   :table-pattern        table-pattern-hof
    :before-slash-routing routed-ns-hof
    :after-slash-routing  routed-name-hof
-   :routing-table        routing-table-hof})
+   :routing-table-name   routing-table-name-hof})
 
 ;;
 ;; Helps with the 'one or a set or a vector guarantee'. If don't have this requirement just use
@@ -82,7 +99,7 @@
 ;;
 (defn setify [in]
   (cond
-    ((some-fn string? keyword?) in) #{in}
+    ((some-fn string? keyword? my-regexp?) in) #{in}
     (seq in) (cond (set? in) in
                    (sequential? in) (into #{} in)
                    :else #{in})

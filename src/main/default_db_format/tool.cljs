@@ -19,12 +19,12 @@
 
 ;;
 ;; There is an order in which Fulcro dishes out the apps to the tools.
-;; Default DB Format can be dished out to Fulcro Inspect, and when the Lein
-;; preloads order is different Fulcro Inspect can be dished out to Default DB Format.
-;; The order they are called in is the reverse of the preloads order. So to hide
-;; Default DB Format from Fulcro Inspect put Default DB Format before Fulcro Inspect.
+;; Depending upon their relative ordering in Lein preloads, either
+;; Default DB Format will be dished out to Fulcro Inspect, or Fulcro Inspect
+;; will be dished out to Default DB Format. The order is the reverse of the preloads order.
+;; So to hide Default DB Format from Fulcro Inspect put Default DB Format before Fulcro Inspect.
 ;;
-;; What is 'dished out'? See default-db-format.preload - this 'must be' called once each
+;; What is 'dished out'? See default-db-format.preload - this fn is called once
 ;; for every tool in preloads order. But order is not important for this call as is just
 ;; 'registration'. More importantly this registration allows a tool to provide a callback
 ;; at ::fulcro/app-started. The cb you give here is called for the other
@@ -67,8 +67,9 @@
 ;; reminder to the user.
 ;; Hmm - mose well just have a red line rather than collapse it!
 ;; With some css (bootstrap) the css seems to be overridden so that the red dot is not displayed
-;; For now we are living with it. But collapsing will work in such a situation, so perhaps
-;; we can make collapsing an option in a future version. Yak shaving - no red dot is still fine
+;; For now we are living with it. But collapsing WILL work in such a situation, so perhaps
+;; we can make collapsing an option in a future version. Potential Yak shaving - no red dot is
+;; still fine.
 (def collapsed-percentage-width 1)
 
 (def global-css (css/get-classnames ui.domain/CSS))
@@ -128,10 +129,12 @@
                                           :ref       #(gobj/set this "container" %)}
                                      (iframe/ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
                                                        (dom/div nil
-                                                                (when-let [frame (gobj/get this "frame-dom")]
+                                                                ;; Never saw this happening so deleted it - copied code from Fulcro Inspect
+                                                                ;; that I don't understand the need for
+                                                                #_(when-let [frame (gobj/get this "frame-dom")]
                                                                   (events/key-listener {::events/action    #((do
                                                                                                                (dev/debug-visual "Again going to toggle collapsed? away from" collapsed?)
-                                                                                                               mutations/set-value!) this :ui/collapsed? (not collapsed?))
+                                                                                                               mutations/set-value!))
                                                                                         ::events/keystroke keystroke
                                                                                         ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
                                                                 (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
@@ -188,7 +191,7 @@
 ;; Nothing needed to be done if use a keyword instead of a string
 ;;
 (defn key-values-warnings [{:keys [edn]}]
-  (warning-if-not-all :by-id-ending string? "strings" edn)
+  (warning-if-not-all :table-ending string? "strings" edn)
   (warning-if-not-all :acceptable-map-value vector? "vectors" edn)
   (warning-if-not-all :acceptable-vector-value vector? "vectors" edn))
 

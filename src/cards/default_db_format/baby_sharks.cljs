@@ -11,7 +11,8 @@
             [cljs.pprint :refer [pprint]]
             [fulcro.util :refer [unique-key]]
             [devcards.core]
-            [default-db-format.dev :as dev]))
+            [default-db-format.dev :as dev]
+            [default-db-format.helpers :as help]))
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
@@ -38,6 +39,24 @@
   (action [{:keys [state]}]
           ;; If didn't namespace this it wouldn't be caught
           (swap! state assoc :here-is/some-link {:a "b"})))
+
+(m/defmutation babies->list
+  [{:keys []}]
+  (action [{:keys [state]}]
+          (let [st @state
+                join (conj (:ui/root st) :adult/babies)
+                ]
+            (swap! state #(-> %
+                              (help/many-join-becomes-list join))))))
+
+(m/defmutation babies->vector
+  [{:keys []}]
+  (action [{:keys [state]}]
+          (let [st @state
+                join (conj (:ui/root st) :adult/babies)
+                ]
+            (swap! state update-in join (fn [old]
+                                          (mapv identity old))))))
 
 (defn x-1 []
   (dev/summarize big-map))
@@ -84,6 +103,11 @@
                                        "Give a root-join a map")
                            (dom/button #js {:onClick #(prim/transact! this [`(normalize)])}
                                        "Restore order..."))
+                  (dom/div nil
+                           (dom/button #js {:onClick #(prim/transact! this [`(babies->list)])}
+                                       "Babies -> list")
+                           (dom/button #js {:onClick #(prim/transact! this [`(babies->vector)])}
+                                       "Babies back to vector"))
                   (dom/div nil
                            ;; Making state a vector actually crashes Fulcro
                            (dom/button #js {:onClick #(prim/transact! this [`(state-becomes-empty)])}

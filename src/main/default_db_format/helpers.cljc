@@ -4,6 +4,9 @@
             [default-db-format.dev :as dev]
             [default-db-format.hof :as hof]))
 
+(def expect-idents "Expect Ident/s")
+(def expect-vector "Expect vector")
+
 (defn exclude-colon [s]
   (apply str (next s)))
 
@@ -66,13 +69,14 @@
 ;; the same key gets pluralized here, evidence ignore-links and ignore-bad-field-joins.
 ;;
 (defn config->init [{:keys [acceptable-map-value acceptable-vector-value skip-link skip-field-join] :as config}]
-  (let [by-id-ending? (hof/reveal-f :by-id-ending config)
-        not-by-id-table? (hof/reveal-f :not-by-id-table config)
+  (let [table-ending? (hof/reveal-f :table-ending config)
+        table-pattern? (hof/reveal-f :table-pattern config)
+        table-name? (hof/reveal-f :table-name config)
         routed-ns? (hof/reveal-f :before-slash-routing config)
         routed-name? (hof/reveal-f :after-slash-routing config)
-        routing-table? (hof/reveal-f :routing-table config)]
+        routing-table? (hof/reveal-f :routing-table-name config)]
     {:one-of-id?              (hof/reveal-f :one-of-id config)
-     :table-key?              (some-fn not-by-id-table? by-id-ending? routing-table? routed-ns? routed-name?)
+     :table-key?              (some-fn table-name? table-ending? table-pattern? routing-table? routed-ns? routed-name?)
      :acceptable-map-value    (->> acceptable-map-value
                                    hof/setify
                                    (remove (complement vector?))
@@ -117,7 +121,7 @@
 ;;
 (def default-edn-config
   "This default can be overridden using the config arg to the check function"
-  {:by-id-ending #{"/by-id" "/BY-ID"}})
+  {:table-ending #{"/by-id" "/BY-ID"}})
 
 (defn ident-like-hof? [config]
   "Accepts the same config that check accepts. Returned function can be called `ident-like?`"
@@ -126,6 +130,15 @@
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
   (-ident-like-hof? (config->init default-edn-config)))
+
+(defn many-join-becomes-list [st join]
+  (update-in st join #(map identity %)))
+
+(defn change-ident [new-table-key old-ident]
+  (assoc old-ident 0 new-table-key))
+
+(defn many-join-becomes-bad-idents [st join new-table-key]
+  (update-in st join #(mapv (partial change-ident new-table-key) %)))
 
 ;;
 ;; In the past made this a hard and fast rule, even for keys that are to be ignored

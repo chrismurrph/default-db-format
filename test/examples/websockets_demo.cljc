@@ -20,7 +20,7 @@
             :UI-ACTIVE-USERS                 {:UI {}},
             :root/login-form                 [:LOGIN-FORM-UI :UI]})
 
-(def config {:not-by-id-table :UI-ACTIVE-USERS})
+(def config {:table-name :UI-ACTIVE-USERS})
 
 (deftest singleton-passes?
   (is (= true

@@ -11,6 +11,12 @@
             [default-db-format.ui.domain :as ui.domain]
             ))
 
+(def up-to-slash #"^.+/")
+(def upper-camel-regex #"[A-Z]([A-Z0-9]*[a-z][a-z0-9]*[A-Z]|[a-z0-9]*[A-Z][A-Z0-9]*[a-z])[A-Za-z0-9]*$")
+(def upper-under-regex #"([A-Z]+_)*[A-Z]+$")
+(def upper-minus-regex #"([A-Z]+-)*[A-Z]+$")
+
+(def bad-state-text "No tables found in state")
 (def tool-name "Default DB Format")
 (def tool-version 30)
 
@@ -44,9 +50,36 @@
   (or (and (vector? v)
            (not-empty v)
            (vector? (first v))
-           (empty? (remove ident-like? v)))
+           (every? ident-like? v))
       (and (vector? v)
            (empty? v))))
+
+(defn bad-container-of-idents-1? [ident-like? xs]
+  (when (dev/n-able? xs)
+    (or (and ((complement vector?) xs)
+             (not-empty xs)
+             (vector? (first xs))
+             (every? ident-like? xs))
+        (and (complement vector?)
+             (empty? xs)))))
+
+;;
+;; We don't need to look at every single one of them
+;;
+(defn bad-container-of-idents-2? [ident-like? xs]
+  (when (dev/n-able? xs)
+    (or (and ((complement vector?) xs)
+             (not-empty xs)
+             (vector? (first xs))
+             (ident-like? (first xs)))
+        (and (complement vector?)
+             (empty? xs)))))
+
+(defn bad-container-of-idents-3? [ident-like? xs]
+  (when (dev/n-able? xs)
+    ((complement vector?) xs)))
+
+(def bad-container-of-idents? bad-container-of-idents-2?)
 
 (defn root-join->error-hof
   "Given non-table top level keys, find out those not in correct format and return them.
@@ -55,8 +88,8 @@
   (fn [[k v]]
     ;; I suspect it is now impossible to get an unknown category.
     (let [k-err (when (not (known-category k knowns))
-                  [{:text    "Unknown category"
-                    :problem (help/category-part (str k))
+                  [{:text          "Unknown category"
+                    :problem       (help/category-part (str k))
                     :problem-value v}])]
       (when (seqable? v)
         (cond
@@ -75,7 +108,9 @@
           ;;:ui/react-key is a string
           (string? v) nil
 
-          :else [{:text "Expect Idents" :problem k :problem-value v}])))))
+          (bad-container-of-idents? ident-like? v) [{:text help/expect-vector :problem k :problem-value v}]
+
+          :else [{:text help/expect-idents :problem k :problem-value v}])))))
 
 (defn map-of-partic-format?
   [partic-vec-format test-map]
@@ -222,9 +257,9 @@
 ;; Not so important now will be using tool
 ;;
 (defn- state-looks-like-config [{:keys [acceptable-map-values
-                                        by-id-ending one-of-id skip-field-join skip-link
+                                        table-ending one-of-id skip-field-join skip-link
                                         acceptable-table-value-fn?]}]
-  (or acceptable-map-values by-id-ending one-of-id skip-field-join skip-link acceptable-table-value-fn?))
+  (or acceptable-map-values table-ending one-of-id skip-field-join skip-link acceptable-table-value-fn?))
 
 (defn- failed-state [state]
   (if (not (map? state))
@@ -249,22 +284,40 @@
         unknown-edn-keys (clojure.set/difference (-> edn keys set) possible-edn-option-keys)]
     [unknown-lein-keys unknown-edn-keys]))
 
+(defn separate-out-bad-joins [ident-like? table-field-problems]
+  (let [bad-container (partial bad-container-of-idents? ident-like?)
+        good-container (complement bad-container)]
+    (reduce
+      (fn [acc [k m]]
+        (let [expect-idents-m (into {} (filter (fn [[k v]]
+                                                 (good-container v)) m))
+              expect-vectors-m (into {} (filter (fn [[k v]]
+                                                  (bad-container v)) m))]
+          (cond-> acc
+                  (seq expect-idents-m) (update :expected-idents conj [k expect-idents-m])
+                  (seq expect-vectors-m) (update :expected-vectors conj [k expect-vectors-m]))))
+      {:expected-idents  []
+       :expected-vectors []}
+      table-field-problems)))
+
 (defn check
   "Checks to see if normalization works as expected. Returns a small hash-map indicating normalization health.
   config param keys:
-  :by-id-ending -> What comes at the end in the Ident tuple-2's first position. Must be a string.
+  :table-ending -> What comes at the end in the Ident tuple's first position. Must be a string.
                By default is #{\"/by-id\" \"/BY-ID\"} as that's what the convention is. Note that the
                slash is often provided in the string you supply, but doesn't have to be, so that for example
                \"id\" will match on \"my-table-ends-with-id\" as well as \"my-table/id\"
                Can be a #{} or [] or a single string when only 1 required.
-  :one-of-id -> Something standard in the Ident tuple-2's second position, for components that the
+  :table-pattern -> Regex pattern to find a match for a table, matching against a string version of the keyword,
+               without the colon. See the top of this file for example patterns.
+  :one-of-id -> Something standard in the Ident tuple's second position, for components that the
                application only needs one of. Can be a #{} or [], just in case there are a few
                different variations on this convention.
-  :not-by-id-table -> Some table names do not follow a \"by-id\" convention, and are not necessarily
+  :table-name -> Some table names do not follow a \"by-id\" convention, and are not necessarily
                namespaced. Makes sense when there is no 'id', when there is only going
-               to be one of these tables. Can be a #{} or []. Usually keyword/s.
-  :routing-table -> Any table used as the first/class part of a routing ident. #{} or [] of these.
-               Usually keywords but doesn't have to be.
+               to be one of these tables. Can be a #{} or []. Always keyword/s.
+  :routing-table-name -> Any table used as the first/class part of a routing ident. #{} or [] of these.
+               Always keyword/s.
   :skip-link -> #{} (or [] or just a key) of root level join keys that we don't want to be part of
                normalization. This might happen if the join in the root component is to a component
                that does not have an Ident. Note that join keys that are not namespaced or just contain
@@ -284,7 +337,7 @@
                instead the 'security hole' read-string.
                Hard-coding (as has been done for date instances) is a good idea for new things that
                pop up.
-  These last two are also 'undocumented' as easy to just use `:routing-table`:
+  These last two are also 'undocumented' as easy to just use `:routing-table-name`:
   :before-slash-routing -> What comes before the slash for a routing Ident. For example with `[:routed/banking :top]`
                \"routed\" would be the routing namespace. Can be a #{} or [] of Strings where > 1 required.
   :after-slash-routing -> What comes after the slash for a routing Ident. For example with `[:banking/routed :top]`
@@ -298,8 +351,8 @@
              ;; do this without fear.
              config (merge help/default-edn-config config)
              {:keys [acceptable-table-value-fn?]} config
-             {:keys [acceptable-map-value acceptable-vector-value ignore-skip-links ignore-skip-field-joins one-of-id?
-                     table-key?]
+             {:keys [acceptable-map-value acceptable-vector-value ignore-skip-links
+                     ignore-skip-field-joins one-of-id? table-key?]
               :as   init-map} (help/config->init config)
              ident-like? (help/-ident-like-hof? init-map)
              conformance-predicates {:ident-like?               ident-like?
@@ -311,31 +364,33 @@
              somehow-table-entries (help/table-entries table-key? one-of-id? state)
              top-level-joins (help/join-entries table-key? one-of-id? state ignore-skip-links)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
-             all-keys-count (+ (count top-level-joins)
-                               (count somehow-table-entries))
-             no-tables? (and (empty? table-names)
-                             (pos? all-keys-count))]
+             no-tables? (empty? table-names)]
          (if no-tables?
            (do
-             (ret {:failed-assumption (incorrect "by-id normalized file required")}))
+             (ret {:failed-assumption (incorrect bad-state-text)}))
            (let [categories (into #{} (map (comp help/category-part str key) top-level-joins))
                  root-tester (root-join->error-hof ident-like? categories)
                  field-tester (field-join->error-hof conformance-predicates acceptable-map-value
-                                                     acceptable-vector-value ignore-skip-field-joins)]
-             (ret {:categories            categories
-                   :known-names           table-names
+                                                     acceptable-vector-value ignore-skip-field-joins)
+                 root-problems (mapcat root-tester top-level-joins)
+                 {:keys [expected-idents expected-vectors]} (separate-out-bad-joins ident-like? (mapcat field-tester somehow-table-entries))
+                 ]
+             (ret {:categories              categories
+                   :table-names             table-names
                    ;;
                    ;; :skip-root-joins is where a root level join
                    ;; (anything that is not a table is a root level join)
                    ;; does not have idents or vectors of idents in it
                    ;;
-                   :skip-root-joins       (into #{} (mapcat root-tester top-level-joins))
+                   :skip-root-joins         (into #{} (filter #(= (:text %) help/expect-idents) root-problems))
+                   :non-vector-root-joins   (into #{} (filter #(= (:text %) help/expect-vector) root-problems))
                    ;;
                    ;; :skip-table-fields is where the table has been recognised, and is in the right
                    ;; format, but there are joins that do not have idents or vectors of idents in them
                    ;;
-                   :skip-table-fields     (into #{} (mapcat field-tester somehow-table-entries))
-                   :poor-table-structures (into #{} (keep table-structure->error somehow-table-entries))
+                   :skip-table-fields       (into #{} expected-idents)
+                   :non-vector-table-fields (into #{} expected-vectors)
+                   :poor-table-structures   (into #{} (keep table-structure->error somehow-table-entries))
                    }))))))
   ([state]
    (check help/default-edn-config state)))
@@ -347,7 +402,7 @@
 ;;
 ;; T=> `::table` already has a ns.
 ;; so, I am already using things like `::table-by-id`
-;; C=> check is now covering this one, as can specify :by-id-ending to be "by-id" rather than "/by-id"
+;; C=> check is now covering this one, as can specify :table-ending to be "by-id" rather than "/by-id"
 ;; T=> but the spec would have to run against the denormalized props, not the normalized one
 ;; cause ppl are going to write specs about the data, not the normalized db
 ;; however, you could ask them to write specs about their tables, and then apply them

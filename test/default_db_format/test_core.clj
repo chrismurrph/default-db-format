@@ -4,26 +4,28 @@
             [examples.gases :as gases]
             [examples.medical-records :as medical]
             [examples.fulcro-template :as template]
+            [examples.kanban :as kanban]
+            [examples.so-question :as so-question]
             [default-db-format.dev :as dev]
             [default-db-format.helpers :as help]))
 
 (def expected-gas-issues
-  {:categories      #{"graph" "app"},
-   :known-names     #{"drop-info" "line" "graph-point"}
+  {:categories            #{"graph" "app"},
+   :table-names           #{"drop-info" "line" "graph-point"}
    :poor-table-structures #{}
-   :skip-root-joins #{{:text    "Expect Idents",
-                       :problem :app/system-gases
-                       :problem-value
-                                [{:id 200, :short-name "Methane"}
-                                 {:id 201, :short-name "Oxygen"}
-                                 {:id 202, :short-name "Carbon Monoxide"}
-                                 {:id 203, :short-name "Carbon Dioxide"}]}}
+   :skip-root-joins       #{{:text    help/expect-idents,
+                             :problem :app/system-gases
+                             :problem-value
+                                      [{:id 200, :short-name "Methane"}
+                                       {:id 201, :short-name "Oxygen"}
+                                       {:id 202, :short-name "Carbon Monoxide"}
+                                       {:id 203, :short-name "Carbon Dioxide"}]}}
    ;;
    ;; Hmm - its a set of tuples rather than a map. Fix when going for perfection...
    ;;
    :skip-table-fields
-                    #{[:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]
-                      [:line/by-id {:intersect {:id 302}, :colour {:r 255, :g 0, :b 0}}]}
+                          #{[:drop-info/by-id {:x-gas-details [{:id 10100} {:id 10101} {:id 10102}]}]
+                            [:line/by-id {:intersect {:id 302}, :colour {:r 255, :g 0, :b 0}}]}
    })
 
 (deftest gas-problems
@@ -49,7 +51,7 @@
 ;;
 (deftest joins-and-proper-rgb
   (let [res (dissoc (core/check {
-                                 :by-id-ending         "/id"
+                                 :table-ending         "/id"
                                  :skip-link            [:graph/init :graph/translators]
                                  :acceptable-map-value [[:r :g :b]]}
                                 gases/real-project-fixed-component-idents) :version)]
@@ -59,7 +61,7 @@
            (-> res :skip-table-fields count)))))
 
 (deftest single-bad-join
-  (let [res (dissoc (core/check {:by-id-ending         "/id"
+  (let [res (dissoc (core/check {:table-ending         "/id"
                                  :skip-link            :graph/translators
                                  :acceptable-map-value [[:r :g :b]]}
                                 gases/real-project-fixed-component-idents) :version)]
@@ -86,7 +88,7 @@
 ;; Shows that the :id is ignored. The tool will tell about this problem.
 ;;
 (deftest joins-and-bad-id
-  (let [res (dissoc (core/check {:by-id-ending         [:id "/by-id"]
+  (let [res (dissoc (core/check {:table-ending         [:id "/by-id"]
                                  :skip-link            [:graph/init :graph/translators]
                                  :acceptable-map-value [[:r :g :b]]}
                                 gases/real-project-fixed-component-idents) :version)]
@@ -100,7 +102,7 @@
 ;; Perversely recognise only :button/id as a table
 ;;
 (deftest joins-and-one-good-id
-  (let [res (dissoc (core/check {:by-id-ending         "/id"
+  (let [res (dissoc (core/check {:table-ending         "/id"
                                  :skip-link            [:graph/init :graph/translators]
                                  :acceptable-map-value [[:r :g :b]]}
                                 gases/real-project-fixed-component-idents) :version)]
@@ -112,8 +114,8 @@
 
 (def expected-template-1-res
   {:categories            #{"ui" "root" "fulcro.inspect.core"},
-   :known-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user"},
-   :skip-root-joins       #{{:text          "Expect Idents", :problem :root/modals
+   :table-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user"},
+   :skip-root-joins       #{{:text          help/expect-idents, :problem :root/modals
                              :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
    :skip-table-fields
                           #{[:fulcro.client.routing.routers/by-id #:fulcro.client.routing{:current-route [:login :page]}]}
@@ -129,23 +131,23 @@
     ))
 
 (def expected-template-2-res
-  {:categories        #{"ui" "root" "fulcro.inspect.core"},
-   :known-names       #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user" "login"},
-   :skip-root-joins   #{{:text          "Expect Idents", :problem :root/modals
-                         :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
-   :skip-table-fields #{}
+  {:categories            #{"ui" "root" "fulcro.inspect.core"},
+   :table-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user" "login"},
+   :skip-root-joins       #{{:text          help/expect-idents, :problem :root/modals
+                             :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
+   :skip-table-fields     #{}
    :poor-table-structures #{}})
 
 (deftest fulcro-template-2
-  (let [res (dissoc (core/check {:routing-table [:login]}
+  (let [res (dissoc (core/check {:routing-table-name [:login]}
                                 template/initial-state) :version)]
     (is (= expected-template-2-res
            res))
     #_(dev/pp res)))
 
 (deftest fulcro-template-3
-  (let [res (dissoc (core/check {:routing-table [:login]
-                                 :skip-link     :root/modals}
+  (let [res (dissoc (core/check {:routing-table-name [:login]
+                                 :skip-link          :root/modals}
                                 template/initial-state)
                     :version)]
     (is (= true
@@ -210,3 +212,54 @@
 (deftest matched-but-not-a-table
   (is (= :fulcro.inspect.core/app-id
          (-> not-a-table-liar core/table-structure->error :problem))))
+
+(deftest no-recognised-table-names
+  (let [res (dissoc (core/check
+                      {}
+                      kanban/kanban-norm-state-1)
+                    :version)]
+    (is (= core/bad-state-text
+           (-> res :failed-assumption :text)))
+    #_(dev/pp res)))
+
+(deftest recognise-uppercase-table-names
+  (let [res (dissoc (core/check
+                      {:table-pattern core/upper-minus-regex}
+                      kanban/kanban-norm-state-1)
+                    :version)]
+    (is (= 5
+           (-> res :table-names count)))
+    #_(dev/pp res)))
+
+(deftest perfect-state
+  (let [res (dissoc (core/check
+                      {}
+                      so-question/state)
+                    :version)]
+    (is (= true (core/ok? res)))))
+
+(defn x-1 []
+  (let [field-join-1 [:session/by-id 1 :session/messages]
+        field-join-2 [:user/by-id 200 :user/messages]
+        field-join-3 [:session/by-id 1 :session/users]
+        root-join [:app/messages]
+        res (dissoc (core/check
+                      {}
+                      (-> so-question/state
+                          (help/many-join-becomes-list root-join)
+                          (help/many-join-becomes-list field-join-1)
+                          (help/many-join-becomes-list field-join-2)
+                          (help/many-join-becomes-bad-idents field-join-3 :bad-table)))
+                    :version)]
+    (dev/pp res)))
+
+;;
+;; core/bad-container-of-idents? is function need to apply to all the vals here, turning one list
+;; into two: 'expect vectors' and the traditional 'expect Idents'.
+;;
+(def joins-with-issues
+  [[:session/by-id #:session{:messages '([:message/by-id 100]), :users [[:bad-table 200][:bad-table 201]]}]
+   [:user/by-id #:user{:messages '([:message/by-id 100][:message/by-id 101])}]])
+
+(defn x-2 []
+  (core/separate-out-bad-joins (fn [x] (and (vector? x) (= 2 (count x)))) joins-with-issues))

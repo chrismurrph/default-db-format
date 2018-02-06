@@ -6,16 +6,16 @@
 
 (deftest only-name
   (is (= true
-         (boolean ((hof/by-id-ending-hof config-kw-strs) :something/by-id)))))
+         (boolean ((hof/table-ending-hof config-kw-strs) :something/by-id)))))
 
 (deftest name-is-prefixed-1
   (is (= false
-         (boolean ((hof/by-id-ending-hof config-kw-strs) :some-ns/pet-by-id)))))
+         (boolean ((hof/table-ending-hof config-kw-strs) :some-ns/pet-by-id)))))
 
 (deftest name-is-prefixed-2
   (is (= true
-         (boolean ((hof/by-id-ending-hof #{"by-id"}) :some-ns/pet-by-id)))))
+         (boolean ((hof/table-ending-hof #{"by-id"}) :some-ns/pet-by-id)))))
 
 (deftest wont-match
   (is (= false
-         (boolean ((hof/by-id-ending-hof config-kw-strs) :some-ns/pet-id)))))
+         (boolean ((hof/table-ending-hof config-kw-strs) :some-ns/pet-id)))))

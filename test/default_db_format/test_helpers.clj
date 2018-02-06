@@ -14,7 +14,7 @@
          (help/ident-like? [:my/bye-id 10]))))
 
 (deftest table-categories
-  (let [by-id-ending? (hof/reveal-f :by-id-ending help/default-edn-config)
+  (let [by-id-ending? (hof/reveal-f :table-ending help/default-edn-config)
         single-id? (hof/reveal-f :one-of-id help/default-edn-config)
         state gases/gas-norm-state]
     (is (= 3
