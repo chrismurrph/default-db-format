@@ -352,7 +352,7 @@
              config (merge help/default-edn-config config)
              {:keys [acceptable-table-value-fn?]} config
              {:keys [acceptable-map-value acceptable-vector-value ignore-skip-links
-                     ignore-skip-field-joins one-of-id? table-key?]
+                     ignore-skip-field-joins ident-single-id? map-entry-single-id? table-key?]
               :as   init-map} (help/config->init config)
              ident-like? (help/-ident-like-hof? init-map)
              conformance-predicates {:ident-like?               ident-like?
@@ -361,8 +361,8 @@
              ;; Combine table-entries and join-entries to get the performance benefit of one parse. Esp true
              ;; since execution of the same predicates is repeated in both filter operations. Must put in some
              ;; tests before do this. Then use stopwatch.
-             somehow-table-entries (help/table-entries table-key? one-of-id? state)
-             top-level-joins (help/join-entries table-key? one-of-id? state ignore-skip-links)
+             somehow-table-entries (help/table-entries table-key? ident-single-id? state)
+             top-level-joins (help/join-entries table-key? map-entry-single-id? state ignore-skip-links)
              table-names (into #{} (map (comp help/category-part str key) somehow-table-entries))
              no-tables? (empty? table-names)]
          (if no-tables?

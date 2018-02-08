@@ -6,14 +6,18 @@
             [examples.fulcro-template :as template]
             [examples.kanban :as kanban]
             [examples.so-question :as so-question]
+            [examples.websockets-demo :as websockets]
             [default-db-format.dev :as dev]
-            [default-db-format.helpers :as help]))
+            [default-db-format.help :as help]
+            [default-db-format.helpers :as helpers]))
 
 (def expected-gas-issues
   {:categories            #{"graph" "app"},
    :table-names           #{"drop-info" "line" "graph-point"}
    :poor-table-structures #{}
-   :skip-root-joins       #{{:text    help/expect-idents,
+   :non-vector-root-joins #{}
+   :non-vector-table-fields #{}
+   :skip-root-joins       #{{:text    helpers/expect-idents,
                              :problem :app/system-gases
                              :problem-value
                                       [{:id 200, :short-name "Methane"}
@@ -113,10 +117,12 @@
     #_(dev/pp res)))
 
 (def expected-template-1-res
-  {:categories            #{"ui" "root" "fulcro.inspect.core"},
-   :table-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user"},
-   :skip-root-joins       #{{:text          help/expect-idents, :problem :root/modals
-                             :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
+  {:categories            #{"ui" "root" "fulcro.inspect.core"}
+   :table-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user"}
+   :non-vector-root-joins #{}
+   :non-vector-table-fields #{}
+   :skip-root-joins       #{{:text          helpers/expect-idents, :problem :root/modals
+                             :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}}
    :skip-table-fields
                           #{[:fulcro.client.routing.routers/by-id #:fulcro.client.routing{:current-route [:login :page]}]}
    :poor-table-structures #{}
@@ -131,10 +137,12 @@
     ))
 
 (def expected-template-2-res
-  {:categories            #{"ui" "root" "fulcro.inspect.core"},
-   :table-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user" "login"},
-   :skip-root-joins       #{{:text          help/expect-idents, :problem :root/modals
-                             :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}},
+  {:categories            #{"ui" "root" "fulcro.inspect.core"}
+   :table-names           #{"fulcro.ui.bootstrap3.modal" "fulcro.client.routing.routers" "user" "login"}
+   :non-vector-root-joins #{}
+   :non-vector-table-fields #{}
+   :skip-root-joins       #{{:text          helpers/expect-idents, :problem :root/modals
+                             :problem-value {:welcome-modal [:fulcro.ui.bootstrap3.modal/by-id :welcome]}}}
    :skip-table-fields     #{}
    :poor-table-structures #{}})
 
@@ -176,8 +184,8 @@
 
 (defn create-field-tester [config]
   (let [{:keys [acceptable-map-value acceptable-vector-value ignore-skip-field-joins] :as init-map}
-        (help/config->init (merge help/default-edn-config config))
-        ident-like? (help/-ident-like-hof? init-map)
+        (helpers/config->init (merge helpers/default-edn-config config))
+        ident-like? (helpers/-ident-like-hof? init-map)
         conformance-predicates
         {:ident-like?               ident-like?
          :acceptable-table-value-f? (constantly false)}
@@ -238,7 +246,21 @@
                     :version)]
     (is (= true (core/ok? res)))))
 
-(defn x-1 []
+;;
+;; core/bad-container-of-idents? is function need to apply to all the vals here, turning one list
+;; into two: 'expect vectors' and the traditional 'expect Idents'.
+;;
+(def joins-with-issues
+  [[:session/by-id #:session{:messages '([:message/by-id 100]), :users [[:bad-table 200][:bad-table 201]]}]
+   [:user/by-id #:user{:messages '([:message/by-id 100][:message/by-id 101])}]])
+
+(deftest different-bad-field-joins
+  (let [res (core/separate-out-bad-joins (fn [x] (and (vector? x) (= 2 (count x))))
+                                         joins-with-issues)]
+    (is (= 1 (-> res :expected-idents count)))
+    (is (= 2 (-> res :expected-vectors count)))))
+
+(deftest non-vector-mix
   (let [field-join-1 [:session/by-id 1 :session/messages]
         field-join-2 [:user/by-id 200 :user/messages]
         field-join-3 [:session/by-id 1 :session/users]
@@ -251,15 +273,15 @@
                           (help/many-join-becomes-list field-join-2)
                           (help/many-join-becomes-bad-idents field-join-3 :bad-table)))
                     :version)]
-    (dev/pp res)))
+    (is (zero? (-> res :skip-root-joins count)))
+    (is (= 1 (-> res :non-vector-root-joins count)))
+    (is (= 1 (-> res :skip-table-fields count)))
+    (is (= 2 (-> res :non-vector-table-fields count)))
+    ;(dev/pp res)
+    ))
 
-;;
-;; core/bad-container-of-idents? is function need to apply to all the vals here, turning one list
-;; into two: 'expect vectors' and the traditional 'expect Idents'.
-;;
-(def joins-with-issues
-  [[:session/by-id #:session{:messages '([:message/by-id 100]), :users [[:bad-table 200][:bad-table 201]]}]
-   [:user/by-id #:user{:messages '([:message/by-id 100][:message/by-id 101])}]])
-
-(defn x-2 []
-  (core/separate-out-bad-joins (fn [x] (and (vector? x) (= 2 (count x)))) joins-with-issues))
+(deftest singleton-passes?
+  (is (= true
+         (-> (core/check websockets/config websockets/state)
+             :skip-table-fields
+             empty?))))

@@ -39,7 +39,7 @@
          (some #(when (re-matches % (kw->string kw)) true)
                (filter my-regexp? config-kw-patterns)))))
 
-(defn map-entry-single-id-hof
+(defn single-id-map-entry-hof
   [config-ids]
   (assert (set? config-ids))
   (fn [_ v]
@@ -47,7 +47,7 @@
          (= 1 (count v))
          (-> v ffirst config-ids))))
 
-(defn single-id-hof
+(defn single-id-ident-hof
   [config-ids]
   (assert (set? config-ids))
   (fn [cls id]
@@ -86,7 +86,8 @@
 
 (def kw->hof
   {:table-ending         table-ending-hof
-   :one-of-id            map-entry-single-id-hof
+   :ident-one-of-id      single-id-ident-hof
+   :map-entry-one-of-id  single-id-map-entry-hof
    :table-name           table-name-hof
    :table-pattern        table-pattern-hof
    :before-slash-routing routed-ns-hof

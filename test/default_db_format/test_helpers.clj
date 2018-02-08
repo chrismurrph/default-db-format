@@ -15,7 +15,7 @@
 
 (deftest table-categories
   (let [by-id-ending? (hof/reveal-f :table-ending help/default-edn-config)
-        single-id? (hof/reveal-f :one-of-id help/default-edn-config)
+        single-id? (hof/reveal-f :ident-one-of-id help/default-edn-config)
         state gases/gas-norm-state]
     (is (= 3
            (->> state

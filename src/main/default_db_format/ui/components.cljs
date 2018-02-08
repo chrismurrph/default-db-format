@@ -146,9 +146,12 @@
        (ident [_ props] [:display-panel/by-id :UI])
 
        static prim/IQuery
-       (query [_] [:tool-name :tool-version :poor-table-structures :skip-table-fields
-                   :skip-root-joins :failed-assumption :not-vector-contained-field?
-                   :not-vector-contained-root-join?])
+       (query [_] [:tool-name :tool-version :poor-table-structures
+                   :non-vector-root-joins
+                   :non-vector-table-fields
+                   :skip-root-joins
+                   :skip-table-fields
+                   :failed-assumption])
 
        static css/CSS
        (local-rules [_] [[:.container {:display          "flex"
@@ -187,24 +190,30 @@
        (render [this]
                (let [props (prim/props this)
                      {:keys [toggle-collapse-f]} (prim/get-computed this)
-                     {:keys [tool-name tool-version skip-table-fields skip-root-joins
-                             failed-assumption poor-table-structures not-vector-contained-field?
-                             not-vector-contained-root-join?]} props
+                     {:keys [tool-name tool-version
+                             non-vector-root-joins
+                             non-vector-table-fields
+                             skip-root-joins
+                             skip-table-fields
+                             failed-assumption poor-table-structures]} props
                      _ (when (nil? tool-name)
                          (dev/warn "No tool name when rendering. props:" props "- s/be impossible"))
                      keystroke (or (prim/shared this [:lein-options :collapse-keystroke]) "ctrl-q")
                      report-problem? (not (ui.domain/okay? props))
                      _ (when (and dev/debug-visual? report-problem?)
-                         (dev/log "report-problem?:" report-problem?)
-                         (dev/log "okay?:" (ui.domain/detail-okay props))
+                         (dev/log "report-problem?" report-problem?)
+                         (dev/log "okay?" (ui.domain/detail-okay props))
+                         (dev/log "non-vector-root-joins" non-vector-root-joins)
+                         (dev/log "non-vector-table-fields" non-vector-table-fields)
+                         (dev/log "skip-root-joins" skip-root-joins)
                          (dev/log "skip-table-fields" skip-table-fields)
                          (dev/log "poor-table-structures" poor-table-structures)
-                         (dev/log "not-vector-contained-field?" not-vector-contained-field?)
-                         (dev/log "not-vector-contained-root-join?" not-vector-contained-root-join?)
                          )
                      css (css/get-classnames DisplayDb)
-                     root-join-problems? (seq skip-root-joins)
-                     field-join-problems? (seq skip-table-fields)
+                     skip-root-join-problems? (seq skip-root-joins)
+                     skip-field-join-problems? (seq skip-table-fields)
+                     non-vector-root-join-problems? (seq non-vector-root-joins)
+                     non-vector-table-field-problems? (seq non-vector-table-fields)
                      bad-map-entries? (seq poor-table-structures)
                      ]
                  (if report-problem?
@@ -235,21 +244,40 @@
                                                                     " in edn config)"
                                                                     ))
                                                   (joins-list-component {:items poor-table-structures})))
-                                       (when (and bad-map-entries? root-join-problems?)
+
+                                       (when (and bad-map-entries? skip-root-join-problems?)
                                          (dom/br nil))
-                                       (when root-join-problems?
+                                       (when skip-root-join-problems?
                                          (dom/div nil
-                                                  (show-root-join-problem css global-css not-vector-contained-root-join?)
+                                                  (show-root-join-problem css global-css false)
                                                   (joins-list-component {:items skip-root-joins})))
-                                       (when (and root-join-problems? field-join-problems?)
+                                       (when (and skip-root-join-problems? skip-field-join-problems?)
                                          (dom/br nil))
-                                       (when field-join-problems?
+                                       (when skip-field-join-problems?
                                          (dom/div nil
-                                                  (show-field-problem css global-css not-vector-contained-field?)
+                                                  (show-field-problem css global-css false)
                                                   (dom/div nil
                                                            (for [by-id (into {} skip-table-fields)
                                                                  :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
-                                                             (bad-table-entries-component present-lower))))))))
+                                                             (bad-table-entries-component present-lower)))))
+
+                                       (when (and skip-field-join-problems? non-vector-root-join-problems?)
+                                         (dom/br nil))
+                                       (when non-vector-root-join-problems?
+                                         (dom/div nil
+                                                  (show-root-join-problem css global-css true)
+                                                  (joins-list-component {:items non-vector-root-joins})))
+                                       (when (and non-vector-root-join-problems? non-vector-table-field-problems?)
+                                         (dom/br nil))
+                                       (when non-vector-table-field-problems?
+                                         (dom/div nil
+                                                  (show-field-problem css global-css true)
+                                                  (dom/div nil
+                                                           (for [by-id (into {} non-vector-table-fields)
+                                                                 :let [present-lower {:id (first by-id) :bads-map (second by-id)}]]
+                                                             (bad-table-entries-component present-lower)))))
+
+                                       )))
                    (dom/div nil "No problem to report")))))
 (def display-db-component (prim/factory DisplayDb {:keyfn :id}))
 

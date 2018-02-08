@@ -4,15 +4,23 @@
             [garden.selectors :as gs]))
 
 (defn detail-okay [check-result]
-  (let [{:keys [poor-table-structures failed-assumption skip-root-joins skip-table-fields]} check-result
+  (let [{:keys [poor-table-structures failed-assumption
+                skip-root-joins skip-table-fields
+                non-vector-root-joins non-vector-table-fields
+                ]} check-result
         un-normalized-joins-exist? (boolean (seq skip-root-joins))
         un-normalized-tables-exist? (boolean (seq skip-table-fields))
+        non-vector-joins-exist? (boolean (seq non-vector-root-joins))
+        non-vector-tables-exist? (boolean (seq non-vector-table-fields))
         bad-map-entries-exist? (boolean (seq poor-table-structures))
         ]
-    [(not bad-map-entries-exist?) (not failed-assumption) (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)]))
+    [(not bad-map-entries-exist?) (not failed-assumption)
+     (not un-normalized-joins-exist?) (not un-normalized-tables-exist?)
+     (not non-vector-joins-exist?) (not non-vector-tables-exist?)
+     ]))
 
 (defn okay? [check-result]
-  (= [true true true true] (detail-okay check-result)))
+  (= [true true true true true true] (detail-okay check-result)))
 
 ;;
 ;; Some stealing from fulcro-inspect, source of a lot of good stuff

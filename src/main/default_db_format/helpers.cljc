@@ -21,14 +21,14 @@
   where the part after the / is 'by-id' (easiest to say 'by-id', but the String used can be configured).
   Also included are table names given to config that are not necessarily namespaced. A convention may develop
   whereby 'one of' tables do not follow some /by-id or /id convention, as there isn't an id in these cases."
-  [table-key? single-id? state]
+  [table-key? ident-single-id? state]
   (filter (fn [[k v]]
             (when (and dev/debug-check?
                        (or (nil? v)
                            (and (map? v) (= 1 (count v)))))
               (dev/debug-check "EXAMINE: " k v))
             (or (table-key? k)
-                (single-id? k v)))
+                (ident-single-id? k v)))
           state))
 
 (defn kw->str [kw]
@@ -75,7 +75,8 @@
         routed-ns? (hof/reveal-f :before-slash-routing config)
         routed-name? (hof/reveal-f :after-slash-routing config)
         routing-table? (hof/reveal-f :routing-table-name config)]
-    {:one-of-id?              (hof/reveal-f :one-of-id config)
+    {:ident-single-id?        (hof/reveal-f :ident-one-of-id config)
+     :map-entry-single-id?    (hof/reveal-f :map-entry-one-of-id config)
      :table-key?              (some-fn table-name? table-ending? table-pattern? routing-table? routed-ns? routed-name?)
      :acceptable-map-value    (->> acceptable-map-value
                                    hof/setify
@@ -95,7 +96,7 @@
 ;; [:graph-point/by-id 2003]
 ;;
 (defn -ident-like-hof?
-  [{:keys [table-key? one-of-id?]}]
+  [{:keys [table-key? ident-single-id?]}]
   (let [okay-key? (fn [cls]
                     (let [res (table-key? cls)]
                       (dev/log-off "acceptable key? " cls " " (boolean res))
@@ -109,7 +110,7 @@
       (when (and (vector? tuple)
                  (= 2 (count tuple)))
         (let [[cls id] tuple]
-          (or (one-of-id? cls id)
+          (or (ident-single-id? cls id)
               (and (okay-key? cls)
                    (okay-id? id))))))))
 
@@ -130,15 +131,6 @@
 (def ident-like?
   "Instead of this use ident-like-hof? if you need other than default-config"
   (-ident-like-hof? (config->init default-edn-config)))
-
-(defn many-join-becomes-list [st join]
-  (update-in st join #(map identity %)))
-
-(defn change-ident [new-table-key old-ident]
-  (assoc old-ident 0 new-table-key))
-
-(defn many-join-becomes-bad-idents [st join new-table-key]
-  (update-in st join #(mapv (partial change-ident new-table-key) %)))
 
 ;;
 ;; In the past made this a hard and fast rule, even for keys that are to be ignored

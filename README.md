@@ -25,7 +25,7 @@ This library is a Fulcro tool. As such the setup will be similar to that for [Fu
                                               :debounce-timeout   2000}}
 ```` 
 
-The *collapse keystroke* is a toggle to get this tool out of the way of the UI of the host application you are working on. The *debounce timeout* ensures that when your application's state is being hammered with changes *Default DB Format* will only be checking it every so often. Note that `default-db-format.preload` should come before `fulcro.inspect.preload` (*).
+Note that `default-db-format.preload` should come before `fulcro.inspect.preload` `(*)`. The *collapse keystroke* is a toggle to get this tool out of the way of the UI of the host application you are working on. The *debounce timeout* ensures that when your application's state is being hammered with changes *Default DB Format* will only be checking it every so often.
 
 The default configuration for `default-db-format.core/check` is: 
 ````clojure
@@ -37,7 +37,7 @@ However it is likely you will need to set your own configuration, perhaps choosi
 
 You should see this message pop up in the browser:
 
-![](imgs/20180116-230833.png)
+![](imgs/20180207-162604.png)
 
 The *Default DB Format* tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye:
 
@@ -82,7 +82,7 @@ If you compare `:root/modals` and `:current-user` in the code you can see that t
 
 ````clojure
 {:routing-table [:login :main :new-user :preferences]
- :link          [:root/modals]}
+ :skip-link          [:root/modals]}
 ```` 
 
 #### Baby Sharks (*Default DB Format* devcard)
@@ -182,9 +182,9 @@ The current internal version is **30**. Having an internal version makes sense f
 Key | Explanation
 ------------ | -------------
 `:table-ending` | What comes at the end of an Ident's class (first position). Must be a string. By default is `#{"/by-id" "/BY-ID"}`. Note that the slash is often provided in the string you supply, but doesn't have to be, so that for example "id" will promiscuously match on both `:my-table-ends-with-id` and `:my-table/id`.
-`:table-pattern` | Regex pattern to find a match for a table, matching against a string version of the keyword, without the colon. See the top of `default-db-format/core` for example patterns.
+`:table-pattern` | Regex pattern to find a match for a table, matching against a string version of the keyword, without the colon. See the top of `default-db-format/core` for example patterns. Use when `:table-ending` won't suffice.
 `:one-of-id` | Something standard in the Ident's second position, for components that the application only needs one of. For example `:UI`.
-`:table-name` | Some table names do not follow any convention that can be described using ``:table-ending` or `:table-pattern`.
+`:table-name` | Some table names do not follow any convention that can be described using `:table-ending` or `:table-pattern`.
 `:routing-table` | Any table used as the class (first position) of a routing Ident. Treated internally the same as `:table-name`.
 `:skip-link` | A root level key that you don't want to be inspected. Often you might have a map at the top level that is not going to pass as a root join. It is a link and you specify it as such here. Note that join keys that are not namespaced or just contain simple scalar values are ignored anyway.
 `:skip-field-join` | A field level join key that you don't want to be part of normalization. Same concept as `:skip-link`, but in the field of an entity rather than at the root level.

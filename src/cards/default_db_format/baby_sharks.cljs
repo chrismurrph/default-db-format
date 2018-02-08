@@ -11,8 +11,7 @@
             [cljs.pprint :refer [pprint]]
             [fulcro.util :refer [unique-key]]
             [devcards.core]
-            [default-db-format.dev :as dev]
-            [default-db-format.helpers :as help]))
+            [default-db-format.dev :as dev]))
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
@@ -40,6 +39,10 @@
           ;; If didn't namespace this it wouldn't be caught
           (swap! state assoc :here-is/some-link {:a "b"})))
 
+;; Duplicated fn from test
+(defn many-join-becomes-list [st join]
+  (update-in st join #(map identity %)))
+
 (m/defmutation babies->list
   [{:keys []}]
   (action [{:keys [state]}]
@@ -47,7 +50,7 @@
                 join (conj (:ui/root st) :adult/babies)
                 ]
             (swap! state #(-> %
-                              (help/many-join-becomes-list join))))))
+                              (many-join-becomes-list join))))))
 
 (m/defmutation babies->vector
   [{:keys []}]

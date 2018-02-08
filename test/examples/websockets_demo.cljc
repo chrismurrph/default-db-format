@@ -1,6 +1,4 @@
-(ns examples.websockets-demo
-  (:require [clojure.test :refer :all]
-            [default-db-format.core :as format]))
+(ns examples.websockets-demo)
 
 (def state {:USER/BY-ID                      {},
             :fulcro.inspect.core/app-id      :some-app-id,
@@ -21,9 +19,3 @@
             :root/login-form                 [:LOGIN-FORM-UI :UI]})
 
 (def config {:table-name :UI-ACTIVE-USERS})
-
-(deftest singleton-passes?
-  (is (= true
-         (-> (format/check config state)
-             :skip-table-fields
-             empty?))))
