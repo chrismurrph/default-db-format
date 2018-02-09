@@ -37,9 +37,9 @@ However it is likely you will need to set your own configuration, perhaps choosi
 
 You should see this message pop up in the browser:
 
-![](imgs/20180207-162604.png)
+![](imgs/20180209-095321.png)
 
-The *Default DB Format* tool has examined the state map and not found any tables. If you inspect the state then this map-entry should catch your eye:
+If you inspect the state then this map-entry should catch your eye:
 
 ````clojure
 :LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}
@@ -175,7 +175,7 @@ The workflow I used to manually test this tool against other applications was to
 
 #### Internal version
 
-The current internal version is **30**. Having an internal version makes sense for when dealing with snapshots. 30 (and all prior numbers) go with "0.1.1-SNAPSHOT". 30 is displayed by the HUD.
+The current internal version is **31**. Having an internal version makes sense for when dealing with snapshots. 31 (and all prior numbers) go with "0.1.1-SNAPSHOT". 31 is displayed by the HUD.
 
 #### Edn Configuration Reference
 

@@ -75,8 +75,8 @@
         routed-ns? (hof/reveal-f :before-slash-routing config)
         routed-name? (hof/reveal-f :after-slash-routing config)
         routing-table? (hof/reveal-f :routing-table-name config)]
-    {:ident-single-id?        (hof/reveal-f :ident-one-of-id config)
-     :map-entry-single-id?    (hof/reveal-f :map-entry-one-of-id config)
+    {:ident-single-id?        (hof/reveal-f :ident-one-of-id :one-of-id config)
+     :map-entry-single-id?    (hof/reveal-f :map-entry-one-of-id :one-of-id config)
      :table-key?              (some-fn table-name? table-ending? table-pattern? routing-table? routed-ns? routed-name?)
      :acceptable-map-value    (->> acceptable-map-value
                                    hof/setify

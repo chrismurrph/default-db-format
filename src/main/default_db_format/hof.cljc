@@ -84,6 +84,8 @@
            (and nm
                 (some #{nm} config-ns-strs))))))
 
+(def fn-only-keys [:ident-one-of-id :map-entry-one-of-id])
+
 (def kw->hof
   {:table-ending         table-ending-hof
    :ident-one-of-id      single-id-ident-hof
@@ -106,5 +108,8 @@
                    :else #{in})
     :else #{}))
 
-(defn reveal-f [kw config]
-  ((kw->hof kw) (setify (kw config))))
+(defn reveal-f
+  ([fn-kw config-kw config]
+   ((kw->hof fn-kw) (setify (config-kw config))))
+  ([kw config]
+   (reveal-f kw kw config)))

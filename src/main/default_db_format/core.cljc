@@ -18,7 +18,7 @@
 
 (def bad-state-text "No tables found in state")
 (def tool-name "Default DB Format")
-(def tool-version 30)
+(def tool-version 31)
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -271,7 +271,9 @@
 ;; check takes keys of two types, function keys and collection keys
 ;;
 (def collection-keys [:acceptable-map-value :acceptable-vector-value :skip-link :skip-field-join])
-(def check-keys (into #{} (concat collection-keys (keys hof/kw->hof))))
+(def check-keys (into #{} (concat collection-keys (conj (keys (apply dissoc hof/kw->hof hof/fn-only-keys)) :one-of-id))))
+
+;(dev/log "check-keys" check-keys)
 
 ;;
 ;; Just so it is obvious. edn file contents is input to `check`.
