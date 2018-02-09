@@ -186,7 +186,7 @@ Key | Explanation
 `:one-of-id` | Something standard in the Ident's second position, for components that the application only needs one of. For example `:UI`.
 `:table-name` | Some table names do not follow any convention that can be described using `:table-ending` or `:table-pattern`.
 `:routing-table` | Any table used as the class (first position) of a routing Ident. Treated internally the same as `:table-name`.
-`:skip-link` | A root level key that you don't want to be inspected. Often you might have a map at the top level that is not going to pass as a root join. It is a link and you specify it as such here. Note that join keys that are not namespaced or just contain simple scalar values are ignored anyway.
+`:skip-link` | A root level key that you don't want to be inspected. Often you might have a map at the top level that is not going to pass as a join. It is a link and you specify it as such here. Note that join keys that just contain simple scalar values are ignored anyway.
 `:skip-field-join` | A field level join key that you don't want to be part of normalization. Same concept as `:skip-link`, but in the field of an entity rather than at the root level.
 `:acceptable-map-value` | Description using a vector where it is a real leaf thing (simple *scalar* value), e.g. `[:r :g :b]` for colour will mean that `{:g 255 :r 255 :b 255}` is accepted.
 `:acceptable-vector-value` | Allowed objects in a vector, e.g. `[:report-1 :report-2]` for a list of reports will mean that `[:report-1]` is accepted but `[:report-1 :report-3]` is not. Note that the order of the objects is not important.
