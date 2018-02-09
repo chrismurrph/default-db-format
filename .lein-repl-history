@@ -1,4 +1,0 @@
-(in-ns 'default-db-format.core)
-(check nil)
-(check 1 2)
-exit
