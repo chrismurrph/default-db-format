@@ -25,13 +25,13 @@ This library is a Fulcro tool. As such the setup will be similar to that for [Fu
                                               :debounce-timeout   2000}}
 ```` 
 
-Note that `default-db-format.preload` should come before `fulcro.inspect.preload` `(*)`. The *collapse keystroke* is a toggle to get this tool out of the way of the UI of the host application you are working on. The *debounce timeout* ensures that when your application's state is being hammered with changes *Default DB Format* will only be checking it every so often.
+If you don't find a `:preloads` in `project.clj` then also check `shadow-cljs.edn`. Note that `default-db-format.preload` should come before `fulcro.inspect.preload` `(*)`. The *collapse keystroke* is a toggle to get this tool out of the way of the UI of the host application you are working on. The *debounce timeout* ensures that when your application's state is being hammered with changes *Default DB Format* will only be checking it every so often.
 
 The default configuration for `default-db-format.core/check` is: 
 ````clojure
 {:table-ending #{"/by-id" "/BY-ID"}}
 ````
-However it is likely you will need to set your own configuration, perhaps choosing a different set of strings for `:table-ending`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#edn-configuration-reference) for the meanings of all the configuration keys.
+However you may need to set your own configuration, perhaps choosing a different set of strings for `:table-ending`, or choosing some regexes for `:table-pattern`. Configuration is done in the `default-db-format.edn` file, kept at `/resources/config/`. See the [Reference](#edn-configuration-reference) for configuration key meanings. In short *Default DB Format* will do its job if it can recognise all the tables in your application's state.
 
 #### Fulcro Websocket Demo
 
@@ -39,7 +39,7 @@ You should see this message pop up in the browser:
 
 ![](imgs/20180209-095321.png)
 
-If you inspect the state then this map-entry should catch your eye:
+There is a problem with the root join `:root/login-form` and with the field join `:active-user-panel`. The issue is similar in both cases - the tool is not recognising that `[:LOGIN-FORM-UI :UI]`and `[:UI-ACTIVE-USERS :UI]` are Idents. If you inspect the state then this map-entry may catch your eye:
 
 ````clojure
 :LOGIN-FORM-UI {:UI {:db/id :UI, :ui/username ""}}
@@ -154,11 +154,11 @@ It is quite common to keep maps (or any other denormalized data) in links, which
  }
 ````
 
-*Fulcro Inspect* is normally ignored by *Default DB Format*. However it, or any other client app can be targeted using the lein `:default-db-format/config` key `:host-root-path`. Here it was set to "fulcro.inspect.core/GlobalRoot". Messages in the browser console inform you of the names of (non-tool) apps that are discarded, in case *Default DB Format* has targeted the wrong one when you are developing a multiple app client.
+*Fulcro Inspect* is normally ignored by *Default DB Format*. However it, or any other client application can be targeted using the lein `:default-db-format/config` key `:host-root-path`. Here it was set to "fulcro.inspect.core/GlobalRoot". Messages in the browser console inform you of the names of (non-tool) applications that are discarded, in case *Default DB Format* has targeted the wrong one when you are developing a multiple application client.
 
 #### Fulcro
 
-Fulcro causes some de-normalization to your app's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
+Fulcro causes some de-normalization to your application's state, which is internalized by *Default DB Format*. If it were not, this is what the edn configuration delta would need to be:
 
 ````clojure
 {:skip-field-join :fulcro.ui.forms/form

@@ -302,6 +302,16 @@
        :expected-vectors []}
       table-field-problems)))
 
+(def healthy-state
+  {:categories              #{}
+   :table-names             #{}
+   :skip-root-joins         #{}
+   :non-vector-root-joins   #{}
+   :skip-table-fields       #{}
+   :non-vector-table-fields #{}
+   :poor-table-structures   #{}
+   })
+
 (defn check
   "Checks to see if normalization works as expected. Returns a small hash-map indicating normalization health.
   config param keys:
@@ -369,13 +379,23 @@
              no-tables? (empty? table-names)]
          (if no-tables?
            (do
-             (ret {:failed-assumption (incorrect bad-state-text)}))
+             ;;
+             ;; Not actually a problem that needs to be reported. More importantly if this situation
+             ;; exists then the HUD will keep popping up and there's no way to stop it when this is the
+             ;; fallback when say :ui/current-time has been made a :skip-link. This solution will work for
+             ;; :skip-field-join as well. Important concept is that every error needs to be able to be
+             ;; turned off. If an error can't be turned off then this tool is too annoying to be worth using.
+             ;;
+             ;(ret {:failed-assumption (incorrect bad-state-text)})
+             (ret healthy-state))
            (let [categories (into #{} (map (comp help/category-part str key) top-level-joins))
                  root-tester (root-join->error-hof ident-like? categories)
                  field-tester (field-join->error-hof conformance-predicates acceptable-map-value
                                                      acceptable-vector-value ignore-skip-field-joins)
                  root-problems (mapcat root-tester top-level-joins)
-                 {:keys [expected-idents expected-vectors]} (separate-out-bad-joins ident-like? (mapcat field-tester somehow-table-entries))
+                 {:keys [expected-idents expected-vectors]} (separate-out-bad-joins ident-like?
+                                                                                    (mapcat field-tester
+                                                                                            somehow-table-entries))
                  ]
              (ret {:categories              categories
                    :table-names             table-names

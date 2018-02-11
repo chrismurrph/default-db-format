@@ -256,8 +256,11 @@
 #_(defn dump-fulcro-inspect []
     (-> (fulcro.inspect.core/global-inspector) :reconciler prim/app-state deref keys dev/pp))
 
+(defonce ^:private last-state (atom nil))
+
 ;;
 ;; Normal path
+;; Called from a watch on state, so whenever state changes
 ;;
 (defn update-inspect-state-hof [tool-reconciler host-app-path]
   (let [config (-> tool-reconciler prim/app-root prim/shared :edn)]
@@ -265,9 +268,16 @@
     (fn [new-state]
       (prim/transact! tool-reconciler [`(state-inspection {:config    ~config
                                                            :new-state ~new-state
-                                                           }) [:floating-panel/by-id :UI]]))))
+                                                           }) [:floating-panel/by-id :UI]])
+      (when dev/debug-state-change?
+        (when @last-state
+          ;; If ever really need to find out what is causing the state change, perhaps for
+          ;; a bug where HUD has not been silenced.
+          (dev/debug-state-change "diff" (clojure.data/diff @last-state new-state)))
+        (reset! last-state new-state)))))
 
 ;;
+;; Abnormal path
 ;; Stores a function that takes new-state. Not used when all-state-changes? is true
 ;;
 (defonce ^:private state-inspector (atom nil))

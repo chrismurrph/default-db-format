@@ -221,13 +221,18 @@
   (is (= :fulcro.inspect.core/app-id
          (-> not-a-table-liar core/table-structure->error :problem))))
 
+;;
+;; The only errors we report are the ones that can be turned off.
+;; 'no recognised table names' can't be turned off, so is no longer
+;; an error
+;;
 (deftest no-recognised-table-names
   (let [res (dissoc (core/check
                       {}
                       kanban/kanban-norm-state-1)
                     :version)]
-    (is (= core/bad-state-text
-           (-> res :failed-assumption :text)))
+    (is (= core/healthy-state
+           res))
     #_(dev/pp res)))
 
 (deftest recognise-uppercase-table-names

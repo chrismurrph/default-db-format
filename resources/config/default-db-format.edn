@@ -1,3 +1,4 @@
 ;; For use with Baby Sharks devcards, the "/id" should be commented out to accord with the README
 ;; (reload-config) and Shift-F5 when alter this file.
-{:table-ending #{"/by-id" "/BY-ID" #_"/id"}}
+{:table-ending #{"/by-id" "/BY-ID" #_"/id"}
+ #_:skip-link #_:ui/current-time}

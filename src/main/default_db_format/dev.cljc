@@ -8,6 +8,7 @@
 (def debug-check? false)
 (def debug-config? false)
 (def debug-visual? false)
+(def debug-state-change? false)
 
 #?(:cljs (enable-console-print!))
 
@@ -54,6 +55,10 @@
 
 (defn debug-visual [& args]
   (when debug-visual?
+    (apply log-pr args)))
+
+(defn debug-state-change [& args]
+  (when debug-state-change?
     (apply log-pr args)))
 
 (defn summarize [x]
