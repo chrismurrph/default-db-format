@@ -1,12 +1,12 @@
 # default-db-format
 
-Checks that your Fulcro client state is formatted as per the normalized storage format - aka **Default DB Format**
+Checks that your Fulcro client state is formatted as per the normalized storage format - AKA **Default DB Format**
 
 #### Current release:
 
 [![Clojars Project](https://img.shields.io/clojars/v/default-db-format.svg)](https://clojars.org/default-db-format)
 
-**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the conventions that the keys of the state map use. So for instance if a `by-id` field value such as `(get-in [my-table-name/by-id 14] :my/join)` becomes something other than: 
+**default-db-format** is a development tool that checks client state stays normalized in the face of your code's mutations. It does this with an understanding of the conventions that the keys of the state map use. So for instance if `(get-in [my-table-name/by-id 14] :my/join)` becomes something other than:
 
  * an Ident or 
  * vector of Idents or 

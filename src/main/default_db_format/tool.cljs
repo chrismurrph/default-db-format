@@ -15,6 +15,7 @@
     ;; don't delete ui.domain
             [default-db-format.ui.domain :as ui.domain]
             [clojure.string :as s]
+            [clojure.data :as data]
             [default-db-format.hof :as hof]))
 
 ;;
@@ -273,7 +274,7 @@
         (when @last-state
           ;; If ever really need to find out what is causing the state change, perhaps for
           ;; a bug where HUD has not been silenced.
-          (dev/debug-state-change "diff" (clojure.data/diff @last-state new-state)))
+          (dev/debug-state-change "diff" (data/diff @last-state new-state)))
         (reset! last-state new-state)))))
 
 ;;
