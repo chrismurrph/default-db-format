@@ -1,5 +1,5 @@
 (ns default-db-format.core
-  (:require [clojure.string :as s]
+  (:require [clojure.set :as cs]
             [fulcro.client.primitives :as prim]
     #?(:cljs [cljs.pprint :refer [pprint]])
     #?(:clj
@@ -16,9 +16,8 @@
 (def upper-under-regex #"([A-Z]+_)*[A-Z]+$")
 (def upper-minus-regex #"([A-Z]+-)*[A-Z]+$")
 
-(def bad-state-text "No tables found in state")
 (def tool-name "Default DB Format")
-(def tool-version 31)
+(def tool-version 32)
 
 (defn bool? [v]
   (or (true? v) (false? v)))
@@ -282,8 +281,8 @@
 (def possible-lein-option-keys #{:collapse-keystroke :debounce-timeout :host-root-path})
 
 (defn find-incorrect-keys [{:keys [lein-options edn]}]
-  (let [unknown-lein-keys (clojure.set/difference (-> lein-options keys set) possible-lein-option-keys)
-        unknown-edn-keys (clojure.set/difference (-> edn keys set) possible-edn-option-keys)]
+  (let [unknown-lein-keys (cs/difference (-> lein-options keys set) possible-lein-option-keys)
+        unknown-edn-keys (cs/difference (-> edn keys set) possible-edn-option-keys)]
     [unknown-lein-keys unknown-edn-keys]))
 
 (defn separate-out-bad-joins [ident-like? table-field-problems]

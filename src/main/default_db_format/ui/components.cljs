@@ -4,7 +4,8 @@
             [fulcro-css.css :as css]
             [default-db-format.ui.domain :as ui.domain]
             [default-db-format.dev :as dev]
-            [default-db-format.helpers :as help]))
+            [default-db-format.helpers :as help]
+            [cljs.pprint :as pp]))
 
 (def global-css (css/get-classnames ui.domain/CSS))
 
@@ -285,5 +286,5 @@
        Object
        (render [this]
                (let [val (prim/props this)]
-                 (dom/pre nil (with-out-str (cljs.pprint/pprint val))))))
+                 (dom/pre nil (with-out-str (pp/pprint val))))))
 (def display (prim/factory GenericDisplayer))

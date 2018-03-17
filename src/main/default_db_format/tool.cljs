@@ -64,6 +64,8 @@
 
 (def expanded-percentage-width 50)
 
+(def default-timeout 2000)
+
 ;; A red line on the right edge of the container will be a
 ;; reminder to the user.
 ;; Hmm - mose well just have a red line rather than collapse it!
@@ -313,7 +315,8 @@
         lein-opts (-> tool-reconciler prim/app-root prim/shared :lein-options)
         _ (dev/debug-config "install-app! lein options:" lein-opts)
         get-target-state #(some-> target-app :reconciler :config :state)
-        watch-st-f (partial watch-state get-target-state tool-reconciler (:debounce-timeout lein-opts))
+        watch-st-f (partial watch-state get-target-state tool-reconciler (or (:debounce-timeout lein-opts)
+                                                                             default-timeout))
         host-root-path-preference (:host-root-path lein-opts)]
     (if (-> host-root-path* deref nil?)
       (let [[whole-path _ :as host-root] (app-path target-app)]

@@ -1,9 +1,6 @@
 (ns default-db-format.dev
   (:require
-    [fulcro.client.primitives :as prim]
-    #?(:cljs [cljs.pprint :as pp])
-    #?(:clj
-    [clojure.pprint :as pp])))
+    [fulcro.client.primitives :as prim]))
 
 (def debug-check? false)
 (def debug-config? false)
@@ -23,22 +20,6 @@
 
 (defn warn [& args]
   (apply log-pr "WARN:" args))
-
-(def width 120)
-
-(defn pp-str
-  ([n x]
-   (binding [pp/*print-right-margin* n]
-     (-> x pp/pprint with-out-str)))
-  ([x]
-   (pp-str width x)))
-
-(defn pp
-  ([n x]
-   (binding [pp/*print-right-margin* n]
-     (-> x pp/pprint)))
-  ([x]
-   (pp width x)))
 
 (defn log-off [& _])
 
@@ -77,12 +58,3 @@
     :else x))
 
 (def n-able? (every-pred coll? (complement map?)))
-
-(defn probe-on
-  ([x]
-   (-> x
-       pp)
-   x)
-  ([x & msgs]
-   (apply log-pr x msgs)
-   x))

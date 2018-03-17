@@ -175,7 +175,7 @@ The workflow I used to manually test this tool against other applications was to
 
 #### Internal version
 
-The current internal version is **31**. Having an internal version makes sense for when dealing with snapshots. 31 (and all prior numbers) go with "0.1.1-SNAPSHOT". 31 is displayed by the HUD.
+The current internal version is **32**. Having an internal version makes sense for when dealing with snapshots. 32 (and all prior numbers) go with "0.1.1-SNAPSHOT". 32 is displayed by the HUD.
 
 #### Edn Configuration Reference
 
