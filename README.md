@@ -1,3 +1,6 @@
+
+No need to use this anymore - Fulcro Inspect is all you need.
+
 # default-db-format
 
 Checks that your Fulcro client state is formatted as per the normalized storage format - AKA **Default DB Format**
